@@ -62,7 +62,6 @@ async def login_for_access_token_endpoint(
             email=request.email, 
             password=request.password
         )
-        # trả về accesstoken, refreshtoken và thông tin user
         return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=UserResponse.model_validate(user)) 
         
     except AuthenticationError as e:

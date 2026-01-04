@@ -7,7 +7,6 @@ from infrastructure.repositorties.user_repo_imlp import UserRepositoryImpl
 
 class LastLoginMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # If Authorization Bearer token present, attempt to update last_login
         auth = request.headers.get("Authorization")
         if auth and auth.startswith("Bearer "):
             token = auth.split(" ", 1)[1]
@@ -16,7 +15,6 @@ class LastLoginMiddleware(BaseHTTPMiddleware):
                 payload = jwt_svc.decode_token(token)
                 user_id = payload.get("user_id")
                 if user_id:
-                    # update last_login in a best-effort non-blocking way
                     async with async_session() as session:
                         repo = UserRepositoryImpl(session)
                         user = await repo.get_by_id(user_id)

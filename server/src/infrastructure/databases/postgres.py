@@ -15,15 +15,12 @@ async_session = sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False 
 )
 
-# Tạo sync engine cho các phần code còn dùng sync session
-# Chuyển đổi từ asyncpg URL sang psycopg2 URL
 sync_database_url = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
 sync_engine = create_engine(sync_database_url, echo=True)
 
-# Sync session maker
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
 
-# Hàm dependency để lấy sync database session
 def get_db() -> Generator[Session, None, None]:
     """Cung cấp sync database session cho mỗi request."""
     db = SessionLocal()

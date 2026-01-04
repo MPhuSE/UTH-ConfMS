@@ -12,7 +12,6 @@ export default function DashboardLayout() {
   const { user, isAuthenticated, isCheckingAuth, checkAuth } = useAuthStore();
 
   useEffect(() => {
-    // ensure we validate stored token when the layout mounts
     checkAuth();
   }, [checkAuth]);
 
@@ -44,8 +43,6 @@ export default function DashboardLayout() {
           </button>
           {open && <span className="font-semibold">UTH-ConfMS</span>}
         </div>
-
-        {/* Dashboard-specific sidebar content shown when on /dashboard */}
         <div className={`p-2 ${open ? '' : 'hidden'}`}>
           {location.pathname.startsWith("/dashboard") && <SidebarDashboard />}
         </div>
@@ -53,8 +50,7 @@ export default function DashboardLayout() {
 
       {/* MAIN */}
       <main className="flex-1 flex flex-col bg-gray-50">
-        <Navbar />
-
+        {/* <Navbar /> */}
         <div className="flex-1 p-6">
           <Outlet />
         </div>

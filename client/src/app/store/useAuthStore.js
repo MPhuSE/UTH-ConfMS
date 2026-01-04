@@ -9,23 +9,41 @@ export const useAuthStore = create(
       token: localStorage.getItem("access_token"),
       role: localStorage.getItem("role"),
       isAuthenticated: !!localStorage.getItem("access_token"),
+      isCheckingAuth: false,
       isLoading: false,
 
       checkAuth: async () => {
-        set({ isCheckingAuth: true });
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          set({ user: null, isCheckingAuth: false });
-          return;
-        }
-        try {
-          const res = await api.get("/users/me");
-          set({ user: res.data, isCheckingAuth: false });
-        } catch {
-          localStorage.removeItem("access_token");
-          set({ user: null, isCheckingAuth: false });
-        }
-      },
+  const token = localStorage.getItem("access_token");
+
+  if (!token) {
+    set({
+      user: null,
+      isAuthenticated: false,
+      isCheckingAuth: false,
+    });
+    return;
+  }
+
+  if (get().user) return;
+
+  set({ isCheckingAuth: true });
+
+  try {
+    const res = await api.get("/users/me");
+    set({
+      user: res.data,
+      isAuthenticated: true,
+    });
+  } catch {
+    localStorage.removeItem("access_token");
+    set({
+      user: null,
+      isAuthenticated: false,
+    });
+  } finally {
+    set({ isCheckingAuth: false });
+  }
+},
 
 
       login: async (data) => {
@@ -64,7 +82,7 @@ export const useAuthStore = create(
       forgotPassword: async (email) => {
         set({ isLoading: true });
         const res = await api.post("/auth/forgot-password", { email });
-        set({ isLoading: false });
+        set({ isLoading: false }); 
         return res.data;
       },
 
@@ -74,6 +92,12 @@ export const useAuthStore = create(
           token,
           new_password: newPassword,
         });
+        set({ isLoading: false });
+        return res.data;
+      },
+      updateProfile : async (data) => {
+        set({ isLoading: true });
+        const res = await api.put("/users/me", data);
         set({ isLoading: false });
         return res.data;
       },

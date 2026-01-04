@@ -60,8 +60,6 @@ class SubmissionFileModel(Base):
     mime_type = Column(String)
     write_type = Column(String) 
     version = Column(Integer)
-    
-
     submission = relationship(
         "SubmissionModel", 
         back_populates="files",

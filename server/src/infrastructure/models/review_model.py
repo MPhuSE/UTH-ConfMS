@@ -63,7 +63,6 @@ class ReviewAnswerModel(Base):
     review_id = Column(ForeignKey("reviews.id"), primary_key=True)
     question_id = Column(ForeignKey("review_question.id"), primary_key=True)
     answer = Column(String) 
-    
     review = relationship("ReviewModel", back_populates="answers")
     question = relationship("ReviewQuestionModel")
     

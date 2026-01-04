@@ -32,7 +32,7 @@ export default function AppRouter() {
     <BrowserRouter>
       <Routes>
 
-        {/* 🌍 PUBLIC */}
+        {/* PUBLIC */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<CfpPublicPage />} />
           <Route path="/login" element={<Login />} />
@@ -40,7 +40,7 @@ export default function AppRouter() {
           <Route path="/forgotpassword" element={<ForgotPassword />} />
         </Route>
 
-        {/* 👤 AUTHOR DASHBOARD */}
+        {/* AUTHOR DASHBOARD */}
         <Route
           path="/dashboard"
           element={
@@ -55,7 +55,7 @@ export default function AppRouter() {
           <Route path="submission/:id" element={<SubmissionDetailPage />} />
         </Route>
 
-        {/* 🧑‍💼 CHAIR / ADMIN */}
+        {/*CHAIR / ADMIN */}
         <Route
           path="/admin"
           element={

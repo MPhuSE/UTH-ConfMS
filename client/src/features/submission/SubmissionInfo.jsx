@@ -3,7 +3,7 @@ export default function SubmissionInfo({ submission, deadline }) {
     return (
       <div className="bg-yellow-50 p-6 rounded-xl">
         <p className="text-sm text-yellow-700">
-          ⏳ Chưa có deadline được cấu hình
+          Chưa có deadline được cấu hình
         </p>
       </div>
     );
@@ -34,6 +34,19 @@ export default function SubmissionInfo({ submission, deadline }) {
           ? new Date(submission.updatedAt).toLocaleString()
           : "—"}
       </p>
+  {submission && (
+        <div className="border-t pt-4">
+          <h3 className="font-semibold text-lg">Rebuttal</h3>
+
+          {role === "AUTHOR" && (
+            <AuthorRebuttalForm paperId={submission.id} />
+          )}
+
+          {role === "REVIEWER" && (
+            <ReviewerRebuttalView paperId={submission.id} />
+          )}
+        </div>
+      )}
     </div>
   );
 }

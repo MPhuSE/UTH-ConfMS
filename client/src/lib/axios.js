@@ -1,9 +1,14 @@
 import axios from "axios";
 
 const api = axios.create({
+<<<<<<< HEAD
   baseURL: "http://127.0.0.1:8000/",
   withCredentials: false,
   timeout: 5000,
+=======
+  baseURL: "http://localhost:8000",
+  withCredentials: true, 
+>>>>>>> 996ccfa (: add rebuttal)
 });
 
 api.interceptors.request.use((config) => {

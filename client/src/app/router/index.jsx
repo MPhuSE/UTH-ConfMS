@@ -6,6 +6,7 @@ import PublicLayout from "../layouts/PublicLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
 
 
+//route auth
 import CfpPublicPage from "../../features/auth/pages/CfpPublicPage";
 import Login from "../../features/auth/pages/Login";
 import Register from "../../features/auth/pages/Register";
@@ -23,7 +24,7 @@ import PcManagement from "../../features/auth/pages/PcManagement";
 import AuditLogs from "../../features/dashboard/pages/AuditLogs";
 import ReviewForm from "../../features/reviewer/ReviewForm";
 import AssignedPaper from "../../features/reviewer/AssignedPapers";
-import Proceeding from "../../features/dashboard/pages/ProceedingViews";
+import Proceeding from "../../features/Chair/ProceedingView";
 
 
 

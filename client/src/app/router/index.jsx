@@ -54,11 +54,11 @@ export default function AppRouter() {
                     path="/dashboard"
                     element={
                         <ProtectedRoute>
-                            <AuthorDashboard />
+                            <DashboardLayout />
                         </ProtectedRoute>
                     }
                 >
-                    <Route index element={<Home />} />
+                    <Route index element={<AuthorDashboard />} />
                     <Route path="profile" element={<AuthorProfile />} />
                     <Route path="audit-logs" element={<AuditLogs/>} />
                     <Route path="smtp-config" element={<SmtpConfig />} />
@@ -66,10 +66,12 @@ export default function AppRouter() {
                     <Route path="conference-list" element={<ConferenceList />} />
                     <Route path="track-topic" element={<TrackTopicManagement />} />
                     <Route path="submission" element={<PaperSubmissionPage />} />
+                    <Route path="submission/:paperId" element={<PaperSubmissionPage />} />
+
 
                     <Route path="review-form" element={<ReviewForm />} />
                     <Route path="Assigned-paper" element={<AssignedPaper />} />
-
+                   
 
                 </Route>
             </Routes>

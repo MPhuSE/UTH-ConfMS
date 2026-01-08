@@ -33,7 +33,7 @@ export const useSubmissionStore = create(
           
           // Fetch based on role
           switch(role) {
-            case 'authors':
+            case 'author':
               console.log('Fetching author data...');
               promises.push(axios.get("/submissions/me"));
               promises.push(axios.get("/submissions"));
@@ -59,7 +59,7 @@ export const useSubmissionStore = create(
             error: null
           };
           
-          if (role === 'authors' && results[1]) {
+          if (role === 'author' && results[1]) {
             console.log('Author submissions:', results[1].data);
             newState.submissions = results[1].data || [];
             if (results[2]) {
@@ -88,8 +88,8 @@ export const useSubmissionStore = create(
         const allSubmissions = get().allSubmissions;
         console.log('All submissions for counts:', allSubmissions);
         const total = allSubmissions.filter(p => !p.is_withdrawn).length;
-        const accepted = allSubmissions.filter(p => p.status === "Accepted").length;
-        const rejected = allSubmissions.filter(p => p.status === "Rejected").length;
+        const accepted = allSubmissions.filter(p => p.status === "Accept").length;
+        const rejected = allSubmissions.filter(p => p.status === "Reject").length;
         const underReview = total - accepted - rejected;
         return { total, accepted, rejected, underReview };
       },
@@ -98,8 +98,8 @@ export const useSubmissionStore = create(
         const submissions = get().submissions;
         console.log('My submissions for counts:', submissions);
         const myTotal = submissions.length;
-        const myAccepted = submissions.filter(p => p.status === "Accepted").length;
-        const myRejected = submissions.filter(p => p.status === "Rejected").length;
+        const myAccepted = submissions.filter(p => p.status === "Accept").length;
+        const myRejected = submissions.filter(p => p.status === "Reject").length;
         const myUnderReview = myTotal - myAccepted - myRejected;
         return { total: myTotal, accepted: myAccepted, rejected: myRejected, underReview: myUnderReview };
       },

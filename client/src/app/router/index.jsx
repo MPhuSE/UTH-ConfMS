@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 //layouts
 import PublicLayout from "../layouts/PublicLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
+import ProtectedRoute from "./ProtectedRoute";
+
 
 
 //route auth
@@ -24,8 +26,15 @@ import PcManagement from "../../features/auth/pages/PcManagement";
 import AuditLogs from "../../features/dashboard/pages/AuditLogs";
 import ReviewForm from "../../features/reviewer/ReviewForm";
 import AssignedPaper from "../../features/reviewer/AssignedPapers";
-import Proceeding from "../../features/Chair/ProceedingView";
+import AuthorDashboard from "../../features/dashboard/AuthorDashboard";
 
+
+const Unauthorized = () => (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-2">
+        <h1 className="text-2xl font-semibold text-gray-800">Không có quyền truy cập</h1>
+        <p className="text-gray-600">Bạn không được phép truy cập trang này.</p>
+    </div>
+);
 
 
 
@@ -38,9 +47,17 @@ export default function AppRouter() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/forgotpassword" element={<ForgotPassword />} />
+                    <Route path="/unauthorized" element={<Unauthorized />} />
 
                 </Route>
-                <Route path="/dashboard" element={<DashboardLayout />}>
+                <Route
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute>
+                            <AuthorDashboard />
+                        </ProtectedRoute>
+                    }
+                >
                     <Route index element={<Home />} />
                     <Route path="profile" element={<AuthorProfile />} />
                     <Route path="audit-logs" element={<AuditLogs/>} />
@@ -52,7 +69,7 @@ export default function AppRouter() {
 
                     <Route path="review-form" element={<ReviewForm />} />
                     <Route path="Assigned-paper" element={<AssignedPaper />} />
-                    <Route path="prooceedings" element={<Proceeding />} />
+
 
                 </Route>
             </Routes>

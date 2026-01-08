@@ -10,7 +10,7 @@ from api.controllers import (
     conference_controller, submission_controller, review_controller,
     track_controller, decision_controller, camera_ready_controller,
     reports_controller, email_template_controller, ai_controller,
-    admin_controller, schedule_controller
+    admin_controller, schedule_controller, notification_controller
 )
 
 from infrastructure.models import (
@@ -76,7 +76,7 @@ app.include_router(email_template_controller.router)
 app.include_router(ai_controller.router)
 app.include_router(admin_controller.router)
 app.include_router(schedule_controller.router)
-
+app.include_router(notification_controller.router)
 
 
 

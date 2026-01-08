@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any, List
 
 from infrastructure.databases.postgres import get_db
-from infrastructure.repositorties.submission_repo_impl import SubmissionRepositoryImpl
-from infrastructure.repositorties.review_repo_impl import ReviewRepositoryImpl
-from infrastructure.repositorties.conference_repo_impl import ConferenceRepositoryImpl
+from infrastructure.repositories.submission_repo_impl import SubmissionRepositoryImpl
+from infrastructure.repositories.review_repo_impl import ReviewRepositoryImpl
+from infrastructure.repositories.conference_repo_impl import ConferenceRepositoryImpl
 from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair
 from services.reports.analytics_service import AnalyticsService

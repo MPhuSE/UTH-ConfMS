@@ -9,9 +9,9 @@ from api.schemas.review_schema import (
     BidRequest, BidResponse
 )
 from infrastructure.databases.postgres import get_db
-from infrastructure.repositorties.review_repo_impl import ReviewRepositoryImpl
-from infrastructure.repositorties.submission_repo_impl import SubmissionRepositoryImpl
-from infrastructure.repositorties.user_repo_imlp import UserRepositoryImpl
+from infrastructure.repositories.review_repo_impl import ReviewRepositoryImpl
+from infrastructure.repositories.submission_repo_impl import SubmissionRepositoryImpl
+from infrastructure.repositories.user_repo_imlp import UserRepositoryImpl
 from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair, require_chair_or_reviewer, require_reviewer
 from services.review.assignment_service import AssignmentService

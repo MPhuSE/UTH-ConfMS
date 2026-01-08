@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from domain.models.conference import Conference
 from infrastructure.models.conference_model import ConferenceModel
-from infrastructure.repositories_interfaces.conference_repository import ConferenceRepository  # pyright: ignore[reportMissingImports]
+from infrastructure.repositories_interfaces.conference_repository import ConferenceRepository # pyright: ignore[reportMissingImports]
 from domain.exceptions import NotFoundError
 
 class ConferenceRepositoryImpl(ConferenceRepository):
@@ -46,6 +46,17 @@ class ConferenceRepositoryImpl(ConferenceRepository):
 
         return self._model_to_domain(model)
 
+    # --- HÀM SAVE MỚI ĐỂ PHỤC VỤ CFP VÀ CÁC LOGIC KHÁC ---
+    def save(self, conference: Conference) -> Conference:
+        """
+        Lưu hoặc Cập nhật Conference. 
+        Nếu có ID thì update, nếu chưa có thì create.
+        """
+        if conference.id:
+            return self.update(conference)
+        else:
+            return self.create(conference)
+
     def get_by_id(self, conference_id: int) -> Optional[Conference]:
         """Get conference by ID."""
         model = self.db.query(ConferenceModel).filter(ConferenceModel.id == conference_id).first()
@@ -63,7 +74,7 @@ class ConferenceRepositoryImpl(ConferenceRepository):
         return self.db.query(ConferenceModel).count()
 
     def delete(self, conference_id: int) -> None:
-        """Delete a conference by ID. Raises NotFoundError if not found."""
+        """Delete a conference by ID."""
         model = self.db.query(ConferenceModel).filter(ConferenceModel.id == conference_id).first()
         if model is None:
             raise NotFoundError(f"Conference with id {conference_id} not found")
@@ -71,10 +82,7 @@ class ConferenceRepositoryImpl(ConferenceRepository):
         self.db.commit()
 
     def update(self, conference: Conference) -> Conference:
-        """Update an existing conference and return the updated domain object.
-
-        Raises NotFoundError if the conference does not exist.
-        """
+        """Update an existing conference."""
         model = self.db.query(ConferenceModel).filter(ConferenceModel.id == conference.id).first()
         if model is None:
             raise NotFoundError(f"Conference with id {conference.id} not found")

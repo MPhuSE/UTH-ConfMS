@@ -7,8 +7,8 @@ from api.schemas.decision_schema import (
     DecisionStatisticsResponse, SubmissionDecisionResponse
 )
 from infrastructure.databases.postgres import get_db
-from infrastructure.repositorties.review_repo_impl import ReviewRepositoryImpl
-from infrastructure.repositorties.submission_repo_impl import SubmissionRepositoryImpl
+from infrastructure.repositories.review_repo_impl import ReviewRepositoryImpl
+from infrastructure.repositories.submission_repo_impl import SubmissionRepositoryImpl
 from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair
 from services.decision.decision_service import DecisionService

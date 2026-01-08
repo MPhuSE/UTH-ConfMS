@@ -4,13 +4,13 @@ from typing import AsyncGenerator
 
 # Infrastructure Imports
 from infrastructure.databases.postgres import async_session
-from infrastructure.repositorties.user_repo_imlp import UserRepositoryImpl
+from infrastructure.repositories.user_repo_imlp import UserRepositoryImpl
 from infrastructure.repositories_interfaces.user_repository import UserRepository
-from infrastructure.repositorties.audit_log_repo_impl import AuditLogRepositoryImpl
+from infrastructure.repositories.audit_log_repo_impl import AuditLogRepositoryImpl
 from infrastructure.repositories_interfaces.audit_log_repository import AuditLogRepository
-from infrastructure.repositorties.conference_repo_impl import ConferenceRepositoryImpl 
+from infrastructure.repositories.conference_repo_impl import ConferenceRepositoryImpl 
 from infrastructure.repositories_interfaces.conference_repository import ConferenceRepository
-from infrastructure.repositorties.conference_repo_impl import ConferenceRepositoryImpl
+from infrastructure.repositories.conference_repo_impl import ConferenceRepositoryImpl
 from infrastructure.security.jwt import JWTService
 
 
@@ -132,7 +132,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from infrastructure.databases.postgres import get_db
-from infrastructure.repositorties.submission_repo_impl import SubmissionRepositoryImpl  # type: ignore
+from infrastructure.repositories.submission_repo_impl import SubmissionRepositoryImpl  # type: ignore
 
 
 def get_submission_repo(db: Session = Depends(get_db)):

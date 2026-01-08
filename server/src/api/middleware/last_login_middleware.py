@@ -3,7 +3,7 @@ from starlette.requests import Request
 from datetime import datetime
 from infrastructure.security.jwt import JWTService
 from infrastructure.databases.postgres import async_session
-from infrastructure.repositorties.user_repo_imlp import UserRepositoryImpl
+from infrastructure.repositories.user_repo_imlp import UserRepositoryImpl
 
 class LastLoginMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):

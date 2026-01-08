@@ -9,6 +9,11 @@ class ConferenceRepository(ABC):
         pass
 
     @abstractmethod
+    def save(self, conference: Conference) -> Conference:
+        """Lưu hoặc cập nhật thông tin hội nghị (Dùng cho logic Service)."""
+        pass
+
+    @abstractmethod
     def get_by_id(self, conference_id: int) -> Optional[Conference]:
         pass
 
@@ -26,7 +31,6 @@ class ConferenceRepository(ABC):
         pass
 
     @abstractmethod
-    def update(self, conference: "Conference") -> "Conference":
+    def update(self, conference: Conference) -> Conference:
         """Update an existing conference and return the updated domain object."""
         pass
-

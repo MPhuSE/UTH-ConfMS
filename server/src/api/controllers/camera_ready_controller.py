@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from api.schemas.camera_ready_schema import CameraReadyUploadRequest, CameraReadyResponse
 from infrastructure.databases.postgres import get_db
-from infrastructure.repositorties.submission_repo_impl import SubmissionRepositoryImpl
+from infrastructure.repositories.submission_repo_impl import SubmissionRepositoryImpl
 from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.external_services.cloudinary_service import CloudinaryService
 from services.camera_ready.camera_ready_service import CameraReadyService

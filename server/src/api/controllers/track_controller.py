@@ -4,7 +4,7 @@ from typing import List
 
 from api.schemas.track_schema import TrackCreateRequest, TrackUpdateRequest, TrackResponse
 from infrastructure.databases.postgres import get_db
-from infrastructure.repositorties.track_repo_impl import TrackRepositoryImpl
+from infrastructure.repositories.track_repo_impl import TrackRepositoryImpl
 from infrastructure.models.conference_model import TrackModel
 from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair

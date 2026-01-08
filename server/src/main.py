@@ -5,7 +5,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from infrastructure.databases.postgres import test_connection
-from api.controllers import auth_controller, user_controller, audit_log_controller, conference_controller,submission_controller
+from api.controllers import (
+    auth_controller, user_controller, audit_log_controller, 
+    conference_controller, submission_controller, review_controller,
+    track_controller, decision_controller, camera_ready_controller,
+    reports_controller, email_template_controller, ai_controller,
+    admin_controller, schedule_controller
+)
 
 from infrastructure.models import (
     user_model,
@@ -42,7 +48,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# last_login middleware: update user.last_login on requests with valid access token
+
 from api.middleware.last_login_middleware import LastLoginMiddleware
 app.add_middleware(LastLoginMiddleware)
 
@@ -55,6 +61,15 @@ app.include_router(user_controller.router)
 app.include_router(audit_log_controller.router)
 app.include_router(conference_controller.router)
 app.include_router(submission_controller.router)
+app.include_router(review_controller.router)
+app.include_router(track_controller.router)
+app.include_router(decision_controller.router)
+app.include_router(camera_ready_controller.router)
+app.include_router(reports_controller.router)
+app.include_router(email_template_controller.router)
+app.include_router(ai_controller.router)
+app.include_router(admin_controller.router)
+app.include_router(schedule_controller.router)
 
 
 

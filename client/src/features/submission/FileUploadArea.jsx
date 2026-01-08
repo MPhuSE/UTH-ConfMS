@@ -12,7 +12,7 @@ export default function FileUploadArea({ files, setFiles, disabled }) {
     }
 
     setFiles([...files, ...selected]);
-    e.target.value = ""; // reset để chọn lại cùng file
+    e.target.value = "";
   };
 
   const removeFile = (index) => {

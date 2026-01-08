@@ -21,8 +21,6 @@ export const useSubmissionStore = create(
       setAssignedReviews: (assignedReviews) => set({ assignedReviews }),
       setIsLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
-      
-      // Fetch data based on role
       fetchDashboardData: async (role) => {
         console.log('Fetching data for role:', role);
         set({ isLoading: true, error: null });
@@ -55,8 +53,6 @@ export const useSubmissionStore = create(
           console.log('API Results:', results);
           
           const conferenceRes = results[0];
-          
-          // Process results based on role
           let newState = {
             conferences: (conferenceRes.data?.conferences || []).filter(c => c.is_open),
             isLoading: false,

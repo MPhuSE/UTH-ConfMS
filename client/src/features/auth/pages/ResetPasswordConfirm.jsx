@@ -6,12 +6,12 @@ import { toast } from "react-hot-toast";
 const ResetPasswordConfirm = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { resetPasswordConfirm, isLoading } = useAuthStore(); // Hàm này cần thêm vào Store
+  const { resetPasswordConfirm, isLoading } = useAuthStore(); 
   
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   
-  // Lấy token từ URL (?token=...)
+  
   const token = searchParams.get("token");
 
   const handleSubmit = async (e) => {
@@ -24,7 +24,7 @@ const ResetPasswordConfirm = () => {
     try {
       await resetPasswordConfirm(token, newPassword);
       toast.success("Mật khẩu đã được cập nhật! Đang chuyển hướng...");
-      setTimeout(() => navigate("/"), 2000); // Về trang đăng nhập
+      setTimeout(() => navigate("/"), 2000); 
     } catch (error) {
       toast.error(error.response?.data?.detail || "Link đã hết hạn hoặc không hợp lệ.");
     }

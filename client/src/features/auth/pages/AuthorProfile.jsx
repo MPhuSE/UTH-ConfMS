@@ -79,7 +79,6 @@ export default function AuthorProfile() {
     try {
       setLoading(true);
       await updateProfile(formData);
-      console.log("Cập nhật thanh cong");
       setEditMode(false);
       alert("Cập nhật thành công!");
     } catch (err) {

@@ -45,7 +45,7 @@ def create_conference(
     except BusinessRuleException as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail=str(e) 
         )
     except Exception as e:
         db.rollback()

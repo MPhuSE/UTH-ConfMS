@@ -50,6 +50,12 @@ app.add_middleware(
 
 
 from api.middleware.last_login_middleware import LastLoginMiddleware
+from api.middleware.jwt_middleware import JWTAuthMiddleware
+
+# JWT Authentication Middleware - xác thực JWT và gắn user vào request state
+app.add_middleware(JWTAuthMiddleware)
+
+# Last Login Middleware - cập nhật last_login khi user đăng nhập
 app.add_middleware(LastLoginMiddleware)
 
 

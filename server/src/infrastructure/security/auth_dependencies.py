@@ -54,7 +54,7 @@ async def require_admin(
     current_user: UserModel = Depends(get_current_user),
 ) -> UserModel:
     """Yêu cầu user phải có quyền admin."""
-    role_names = [role.name for role in current_user.roles]
+    role_names = current_user.role_names
     if "chair" not in role_names and "admin" not in role_names:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

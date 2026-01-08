@@ -8,6 +8,7 @@ from infrastructure.databases.postgres import get_db
 from infrastructure.models.system_model import ScheduleItemModel
 from infrastructure.models.conference_model import LessonModel
 from infrastructure.security.auth_dependencies import get_current_user
+from infrastructure.security.rbac import require_admin_or_chair
 from domain.exceptions import NotFoundError
 
 router = APIRouter(prefix="/schedule", tags=["Schedule"])
@@ -46,10 +47,10 @@ class ScheduleItemResponse(BaseModel):
 @router.post("", response_model=ScheduleItemResponse, status_code=status.HTTP_201_CREATED)
 def create_schedule_item(
     request: ScheduleItemCreateRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
-    """Create a schedule item."""
+    """Create a schedule item - only admin or chair can create."""
     try:
         schedule_item = ScheduleItemModel(
             conference_id=request.conference_id,
@@ -108,10 +109,10 @@ def get_schedule_by_conference(
 def update_schedule_item(
     item_id: int,
     request: ScheduleItemUpdateRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
-    """Update a schedule item."""
+    """Update a schedule item - only admin or chair can update."""
     try:
         item = db.query(ScheduleItemModel).filter(ScheduleItemModel.id == item_id).first()
         if not item:
@@ -149,10 +150,10 @@ def update_schedule_item(
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_schedule_item(
     item_id: int,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
-    """Delete a schedule item."""
+    """Delete a schedule item - only admin or chair can delete."""
     try:
         item = db.query(ScheduleItemModel).filter(ScheduleItemModel.id == item_id).first()
         if not item:

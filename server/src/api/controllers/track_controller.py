@@ -7,6 +7,7 @@ from infrastructure.databases.postgres import get_db
 from infrastructure.repositorties.track_repo_impl import TrackRepositoryImpl
 from infrastructure.models.conference_model import TrackModel
 from infrastructure.security.auth_dependencies import get_current_user
+from infrastructure.security.rbac import require_admin_or_chair
 from domain.exceptions import NotFoundError
 
 router = APIRouter(prefix="/tracks", tags=["Tracks"])
@@ -19,10 +20,10 @@ def get_track_repo(db: Session = Depends(get_db)):
 @router.post("", response_model=TrackResponse, status_code=status.HTTP_201_CREATED)
 def create_track(
     request: TrackCreateRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     repo=Depends(get_track_repo)
 ):
-    """Create a new track."""
+    """Create a new track - only admin or chair can create."""
     try:
         track = TrackModel(
             conference_id=request.conference_id,
@@ -89,10 +90,10 @@ def get_tracks_by_conference(
 def update_track(
     track_id: int,
     request: TrackUpdateRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     repo=Depends(get_track_repo)
 ):
-    """Update a track."""
+    """Update a track - only admin or chair can update."""
     try:
         track = repo.get_by_id(track_id)
         if not track:
@@ -119,10 +120,10 @@ def update_track(
 @router.delete("/{track_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_track(
     track_id: int,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     repo=Depends(get_track_repo)
 ):
-    """Delete a track."""
+    """Delete a track - only admin or chair can delete."""
     try:
         repo.delete(track_id)
     except NotFoundError as e:

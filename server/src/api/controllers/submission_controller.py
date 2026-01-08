@@ -70,7 +70,11 @@ async def submit_paper(
         )
 
 @router.get("/", response_model=List[SubmissionResponseSchema])
-def list_submissions(repo=Depends(get_submission_repo)):
+def list_submissions(
+    current_user=Depends(get_current_user),
+    repo=Depends(get_submission_repo)
+):
+    """List all submissions - requires authentication."""
     return ListSubmissionsService(repo).execute()
 
 
@@ -84,7 +88,12 @@ def list_my_submissions(
 
 
 @router.get("/{submission_id}", response_model=SubmissionResponseSchema)
-def get_submission(submission_id: int, repo=Depends(get_submission_repo)):
+def get_submission(
+    submission_id: int,
+    current_user=Depends(get_current_user),
+    repo=Depends(get_submission_repo)
+):
+    """Get a submission - requires authentication."""
     return GetSubmissionService(repo).execute(submission_id)
 
 
@@ -92,13 +101,22 @@ def get_submission(submission_id: int, repo=Depends(get_submission_repo)):
 def update_submission(
     submission_id: int,
     payload: SubmissionPatchSchema,
+    current_user=Depends(get_current_user),
     repo=Depends(get_submission_repo)
 ):
+    """Update submission - only author or admin/chair can update."""
+    # TODO: Add ownership check - only author or admin/chair can update
     data = payload.dict(exclude_none=True)
     return EditSubmissionService(repo).execute(submission_id, data)
 
 
 @router.delete("/{submission_id}")
-def delete_submission(submission_id: int, repo=Depends(get_submission_repo)):
+def delete_submission(
+    submission_id: int,
+    current_user=Depends(get_current_user),
+    repo=Depends(get_submission_repo)
+):
+    """Delete submission - only author or admin/chair can delete."""
+    # TODO: Add ownership check - only author or admin/chair can delete
     DeleteSubmissionService(repo).execute(submission_id)
     return {"message": "Submission deleted successfully"}

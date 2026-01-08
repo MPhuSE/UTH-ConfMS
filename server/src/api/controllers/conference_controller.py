@@ -6,6 +6,8 @@ from domain.models.conference import Conference
 from domain.exceptions import BusinessRuleException, NotFoundError
 from infrastructure.databases.postgres import get_db
 from infrastructure.repositorties.conference_repo_impl import ConferenceRepositoryImpl  # pyright: ignore[reportMissingImports]
+from infrastructure.security.auth_dependencies import get_current_user
+from infrastructure.security.rbac import require_admin_or_chair
 from services.conference.create_conference import CreateConferenceService
 from services.conference.get_conference import GetConferenceService
 from services.conference.delete_conference import DeleteConferenceService
@@ -16,6 +18,7 @@ router = APIRouter(prefix="/conferences", tags=["Conferences"])
 @router.post("", response_model=dict)
 def create_conference(
     request: ConferenceCreateRequest,
+    current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
     try:
@@ -135,6 +138,7 @@ def get_all_conferences(
 @router.delete("/{conference_id}", response_model=dict)
 def delete_conference_by_id(
     conference_id: int,
+    current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
     """Delete a conference by ID."""
@@ -165,6 +169,7 @@ def delete_conference_by_id(
 def update_conference_by_id(
     conference_id: int,
     request: ConferenceCreateRequest,
+    current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
     """Update a conference by ID."""

@@ -10,6 +10,7 @@ from infrastructure.databases.postgres import get_db
 from infrastructure.repositorties.review_repo_impl import ReviewRepositoryImpl
 from infrastructure.repositorties.submission_repo_impl import SubmissionRepositoryImpl
 from infrastructure.security.auth_dependencies import get_current_user
+from infrastructure.security.rbac import require_admin_or_chair
 from services.decision.decision_service import DecisionService
 from domain.exceptions import NotFoundError, BusinessRuleException
 
@@ -35,10 +36,10 @@ def get_decision_service(
 @router.post("", response_model=DecisionResponse, status_code=status.HTTP_201_CREATED)
 def make_decision(
     request: DecisionRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_decision_service)
 ):
-    """Make a decision on a submission."""
+    """Make a decision on a submission - only admin or chair can make decisions."""
     try:
         result = service.make_decision(
             submission_id=request.submission_id,
@@ -55,10 +56,10 @@ def make_decision(
 @router.get("/conferences/{conference_id}", response_model=List[SubmissionDecisionResponse])
 def get_decisions_by_conference(
     conference_id: int,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_decision_service)
 ):
-    """Get all decisions for a conference."""
+    """Get all decisions for a conference - only admin or chair can view."""
     try:
         decisions = service.get_decisions_by_conference(conference_id)
         return [SubmissionDecisionResponse(**d) for d in decisions]
@@ -69,10 +70,10 @@ def get_decisions_by_conference(
 @router.get("/conferences/{conference_id}/statistics", response_model=DecisionStatisticsResponse)
 def get_decision_statistics(
     conference_id: int,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_decision_service)
 ):
-    """Get decision statistics for a conference."""
+    """Get decision statistics for a conference - only admin or chair can view."""
     try:
         stats = service.get_decision_statistics(conference_id)
         return DecisionStatisticsResponse(**stats)

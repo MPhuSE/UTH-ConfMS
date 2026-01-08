@@ -7,6 +7,7 @@ from api.schemas.email_template_schema import (
 )
 from infrastructure.databases.postgres import get_db
 from infrastructure.security.auth_dependencies import get_current_user
+from infrastructure.security.rbac import require_admin_or_chair
 from services.email_template.email_template_service import EmailTemplateService
 from domain.exceptions import NotFoundError
 
@@ -20,10 +21,10 @@ def get_email_template_service(db: Session = Depends(get_db)):
 @router.post("", response_model=EmailTemplateResponse, status_code=status.HTTP_201_CREATED)
 def create_email_template(
     request: EmailTemplateCreateRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_email_template_service)
 ):
-    """Create an email template."""
+    """Create an email template - only admin or chair can create."""
     try:
         result = service.create_template(
             conference_id=request.conference_id,
@@ -72,10 +73,10 @@ def get_templates_by_conference(
 def update_email_template(
     template_id: int,
     request: EmailTemplateUpdateRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_email_template_service)
 ):
-    """Update an email template."""
+    """Update an email template - only admin or chair can update."""
     try:
         result = service.update_template(
             template_id=template_id,
@@ -93,10 +94,10 @@ def update_email_template(
 @router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_email_template(
     template_id: int,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_email_template_service)
 ):
-    """Delete an email template."""
+    """Delete an email template - only admin or chair can delete."""
     try:
         service.delete_template(template_id)
     except NotFoundError as e:

@@ -7,6 +7,7 @@ from infrastructure.repositorties.submission_repo_impl import SubmissionReposito
 from infrastructure.repositorties.review_repo_impl import ReviewRepositoryImpl
 from infrastructure.repositorties.conference_repo_impl import ConferenceRepositoryImpl
 from infrastructure.security.auth_dependencies import get_current_user
+from infrastructure.security.rbac import require_admin_or_chair
 from services.reports.analytics_service import AnalyticsService
 
 router = APIRouter(prefix="/reports", tags=["Reports & Analytics"])
@@ -24,10 +25,10 @@ def get_analytics_service(
 @router.get("/conferences/{conference_id}/submissions-by-track")
 def get_submissions_by_track(
     conference_id: int,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_analytics_service)
 ):
-    """Get submission statistics by track."""
+    """Get submission statistics by track - only admin or chair can view."""
     try:
         return service.get_submissions_by_track(conference_id)
     except Exception as e:
@@ -37,10 +38,10 @@ def get_submissions_by_track(
 @router.get("/conferences/{conference_id}/review-sla")
 def get_review_sla(
     conference_id: int,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_analytics_service)
 ):
-    """Get review service-level agreement statistics."""
+    """Get review service-level agreement statistics - only admin or chair can view."""
     try:
         return service.get_review_sla(conference_id)
     except Exception as e:
@@ -51,10 +52,10 @@ def get_review_sla(
 def get_activity_logs(
     conference_id: int,
     limit: int = Query(100, ge=1, le=1000),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_analytics_service)
 ):
-    """Get activity logs for a conference."""
+    """Get activity logs for a conference - only admin or chair can view."""
     try:
         return service.get_activity_logs(conference_id, limit)
     except Exception as e:
@@ -64,10 +65,10 @@ def get_activity_logs(
 @router.get("/conferences/{conference_id}/acceptance-rate-by-school")
 def get_acceptance_rate_by_school(
     conference_id: int,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_analytics_service)
 ):
-    """Get acceptance rate by school/affiliation."""
+    """Get acceptance rate by school/affiliation - only admin or chair can view."""
     try:
         return service.get_acceptance_rate_by_school(conference_id)
     except Exception as e:

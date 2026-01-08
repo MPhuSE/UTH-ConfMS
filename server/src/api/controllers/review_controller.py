@@ -13,6 +13,7 @@ from infrastructure.repositorties.review_repo_impl import ReviewRepositoryImpl
 from infrastructure.repositorties.submission_repo_impl import SubmissionRepositoryImpl
 from infrastructure.repositorties.user_repo_imlp import UserRepositoryImpl
 from infrastructure.security.auth_dependencies import get_current_user
+from infrastructure.security.rbac import require_admin_or_chair, require_chair_or_reviewer, require_reviewer
 from services.review.assignment_service import AssignmentService
 from services.review.review_service import ReviewService
 from services.review.coi_service import COIService
@@ -73,10 +74,10 @@ def get_bidding_service(
 @router.post("/assignments", response_model=ReviewAssignmentResponse, status_code=status.HTTP_201_CREATED)
 def assign_reviewer(
     request: ReviewAssignmentRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin_or_chair),
     service=Depends(get_assignment_service)
 ):
-    """Assign a reviewer to a submission."""
+    """Assign a reviewer to a submission - only admin or chair can assign."""
     try:
         result = service.assign_reviewer(
             submission_id=request.submission_id,
@@ -136,10 +137,10 @@ def get_assignments_by_reviewer(
 def submit_review(
     submission_id: int,
     request: ReviewSubmitRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_reviewer),
     service=Depends(get_review_service)
 ):
-    """Submit a review."""
+    """Submit a review - only reviewer can submit reviews."""
     try:
         review_data = request.dict(exclude_none=True)
         result = service.submit_review(

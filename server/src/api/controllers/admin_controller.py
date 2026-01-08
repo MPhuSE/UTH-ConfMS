@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 
 from infrastructure.databases.postgres import get_db
 from infrastructure.security.auth_dependencies import get_current_user
+from infrastructure.security.rbac import require_admin
 from config import settings
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -41,13 +42,10 @@ class QuotaConfigResponse(BaseModel):
 
 @router.get("/smtp-config", response_model=SMTPConfigResponse)
 def get_smtp_config(
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """Get SMTP configuration."""
-    # Check if user is admin
-    if "admin" not in current_user.role_names:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     
     return SMTPConfigResponse(
         host=settings.SMTP_HOST,
@@ -61,13 +59,10 @@ def get_smtp_config(
 @router.put("/smtp-config", response_model=SMTPConfigResponse)
 def update_smtp_config(
     request: SMTPConfigRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """Update SMTP configuration."""
-    # Check if user is admin
-    if "admin" not in current_user.role_names:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     
     # In production, this would update a database table or config file
     # For now, we'll just return the request
@@ -82,13 +77,10 @@ def update_smtp_config(
 
 @router.get("/quotas", response_model=QuotaConfigResponse)
 def get_quotas(
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """Get quota configuration."""
-    # Check if user is admin
-    if "admin" not in current_user.role_names:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     
     # In production, this would come from database
     return QuotaConfigResponse(
@@ -101,13 +93,10 @@ def get_quotas(
 @router.put("/quotas", response_model=QuotaConfigResponse)
 def update_quotas(
     request: QuotaConfigRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """Update quota configuration."""
-    # Check if user is admin
-    if "admin" not in current_user.role_names:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     
     # In production, this would update a database table
     return QuotaConfigResponse(
@@ -119,13 +108,10 @@ def update_quotas(
 
 @router.get("/system-health")
 def get_system_health(
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """Get system health status."""
-    # Check if user is admin
-    if "admin" not in current_user.role_names:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     
     # Check database connection
     try:

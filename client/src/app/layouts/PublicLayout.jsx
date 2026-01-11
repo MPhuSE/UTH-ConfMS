@@ -1,11 +1,13 @@
+import React from "react";
 import { Outlet } from "react-router-dom";
-// import Footer from "../components/Footer";
 
 export default function PublicLayout() {
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-            <Outlet />
-            {/* <Footer /> */}
-        </div>
-    )
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Bạn có thể thêm Navbar chung cho khách ở đây */}
+      <main>
+        <Outlet /> {/* Đây là nơi các trang Login, Register sẽ hiển thị */}
+      </main>
+    </div>
+  );
 }

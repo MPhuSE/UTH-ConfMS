@@ -1,40 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../app/store/useAuthStore";
-import { reviewService, submissionService } from "../../services";
-import { 
-  FileText, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle,
-  TrendingUp,
-  Users,
-  BarChart3
-} from "lucide-react";
-import Table from "../../components/Table";
+import { useAuthStore } from "../../../app/store/useAuthStore";
+import { reviewService } from "../../../services";
+import { FileText, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import Table from "../../../components/Table";
 import { toast } from "react-hot-toast";
 
 /**
  * Dashboard cho Reviewer
  */
-const StatCard = ({ title, value, icon: Icon, color, loading = false }) => (
-  <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm text-gray-500 mb-2">{title}</p>
-        {loading ? (
-          <div className="h-8 w-20 bg-gray-200 animate-pulse rounded"></div>
-        ) : (
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
-        )}
-      </div>
-      <div className={`p-3 rounded-xl ${color} bg-opacity-10`}>
-        <Icon className={`w-6 h-6 ${color}`} />
-      </div>
-    </div>
-  </div>
-);
-
 export default function ReviewerDashboard() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -49,11 +23,11 @@ export default function ReviewerDashboard() {
 
   useEffect(() => {
     if (user?.id) {
-      loadData();
+      loadAssignments();
     }
   }, [user]);
 
-  const loadData = async () => {
+  const loadAssignments = async () => {
     try {
       setLoading(true);
       const data = await reviewService.getAssignmentsByReviewer(user.id);
@@ -64,7 +38,7 @@ export default function ReviewerDashboard() {
       const completed = data.filter((a) => a.review?.submitted).length;
       const overdue = data.filter((a) => {
         if (a.review?.submitted) return false;
-        const deadline = new Date(a.deadline || a.submission?.review_deadline);
+        const deadline = new Date(a.deadline);
         return deadline < new Date();
       }).length;
 
@@ -75,7 +49,7 @@ export default function ReviewerDashboard() {
         overdue,
       });
     } catch (error) {
-      toast.error("Không thể tải dữ liệu");
+      toast.error("Không thể tải danh sách bài được phân công");
       console.error(error);
     } finally {
       setLoading(false);
@@ -122,7 +96,7 @@ export default function ReviewerDashboard() {
       header: "Hạn chót",
       accessor: "deadline",
       render: (row) => {
-        const deadline = new Date(row.deadline || row.submission?.review_deadline);
+        const deadline = new Date(row.deadline);
         const isOverdue = deadline < new Date() && !row.review?.submitted;
         return (
           <span className={isOverdue ? "text-red-600 font-medium" : ""}>
@@ -136,7 +110,7 @@ export default function ReviewerDashboard() {
       accessor: "actions",
       render: (row) => (
         <button
-          onClick={() => navigate(`/dashboard/review/${row.submission_id || row.submission?.id}`)}
+          onClick={() => navigate(`/dashboard/review/${row.submission_id}`)}
           className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors text-sm"
         >
           {row.review?.submitted ? "Xem đánh giá" : "Đánh giá"}
@@ -154,41 +128,50 @@ export default function ReviewerDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard
-          title="Tổng số bài"
-          value={stats.total}
-          icon={FileText}
-          color="text-blue-500"
-          loading={loading}
-        />
-        <StatCard
-          title="Chờ đánh giá"
-          value={stats.pending}
-          icon={Clock}
-          color="text-yellow-500"
-          loading={loading}
-        />
-        <StatCard
-          title="Đã hoàn thành"
-          value={stats.completed}
-          icon={CheckCircle}
-          color="text-green-500"
-          loading={loading}
-        />
-        <StatCard
-          title="Quá hạn"
-          value={stats.overdue}
-          icon={AlertCircle}
-          color="text-red-500"
-          loading={loading}
-        />
+        <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Tổng số</p>
+              <p className="text-2xl font-bold mt-1">{stats.total}</p>
+            </div>
+            <FileText className="w-8 h-8 text-blue-500" />
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Chờ đánh giá</p>
+              <p className="text-2xl font-bold mt-1">{stats.pending}</p>
+            </div>
+            <Clock className="w-8 h-8 text-yellow-500" />
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Đã hoàn thành</p>
+              <p className="text-2xl font-bold mt-1">{stats.completed}</p>
+            </div>
+            <CheckCircle className="w-8 h-8 text-green-500" />
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Quá hạn</p>
+              <p className="text-2xl font-bold mt-1 text-red-600">{stats.overdue}</p>
+            </div>
+            <AlertCircle className="w-8 h-8 text-red-500" />
+          </div>
+        </div>
       </div>
 
       {/* Assignments Table */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Danh sách bài được phân công</h2>
-        </div>
+      <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <h2 className="text-lg font-semibold mb-4">Danh sách bài được phân công</h2>
         <Table
           columns={columns}
           data={assignments}

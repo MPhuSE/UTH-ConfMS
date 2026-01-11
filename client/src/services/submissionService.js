@@ -1,72 +1,44 @@
 import api from "../lib/axios";
 
-/**
- * Submission Service
- * Handles all submission-related API calls
- */
 export const submissionService = {
-  /**
-   * Submit a paper (with file upload)
-   * @param {FormData} formData - FormData with title, abstract, track_id, conference_id, file
-   * @returns {Promise<Object>} Created submission
-   */
+  // Gửi bài mới (Multipart cho file + JSON cho authors)
   submit: async (formData) => {
     const res = await api.post("/submissions/", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return res.data;
   },
 
-  /**
-   * Get all submissions
-   * @returns {Promise<Array>} List of submissions
-   */
-  getAll: async () => {
-    const res = await api.get("/submissions/");
+  // Cập nhật bài viết (Sử dụng PATCH hoặc PUT tùy Backend)
+  update: async (id, formData) => {
+    const res = await api.patch(`/submissions/${id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return res.data;
   },
 
-  /**
-   * Get current user's submissions
-   * @returns {Promise<Array>} List of user's submissions
-   */
-  getMySubmissions: async () => {
-    const res = await api.get("/submissions/me");
+  // Xóa bài viết
+  delete: async (id) => {
+    const res = await api.delete(`/submissions/${id}`);
     return res.data;
   },
 
-  /**
-   * Get submission by ID
-   * @param {number} submissionId - Submission ID
-   * @returns {Promise<Object>} Submission data
-   */
-  getById: async (submissionId) => {
-    const res = await api.get(`/submissions/${submissionId}`);
+  getById: async (id) => {
+    const res = await api.get(`/submissions/${id}`);
     return res.data;
   },
 
-  /**
-   * Update submission
-   * @param {number} submissionId - Submission ID
-   * @param {Object} payload - Updated submission data
-   * @returns {Promise<Object>} Updated submission
-   */
-  update: async (submissionId, payload) => {
-    const res = await api.patch(`/submissions/${submissionId}`, payload);
+  // LẤY DỮ LIỆU THỰC TẾ TỪ API
+  getTracksByConference: async (confId) => {
+    const res = await api.get(`/tracks/conferences/${confId}`);
     return res.data;
   },
 
-  /**
-   * Delete submission
-   * @param {number} submissionId - Submission ID
-   * @returns {Promise<Object>} Success message
-   */
-  delete: async (submissionId) => {
-    const res = await api.delete(`/submissions/${submissionId}`);
+  getTopicsByTrack: async (trackId) => {
+    // Lưu ý: Kiểm tra lại endpoint này trên Swagger của bạn
+    const res = await api.get(`/topics/tracks/${trackId}`);
     return res.data;
-  },
+  }
 };
 
 export default submissionService;

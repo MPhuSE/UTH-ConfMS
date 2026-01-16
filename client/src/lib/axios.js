@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "https://9klwjq49-8000.asse.devtunnels.ms/";
+const BASE_URL = "http://localhost:8000/";
 
 // Client chính
 const api = axios.create({

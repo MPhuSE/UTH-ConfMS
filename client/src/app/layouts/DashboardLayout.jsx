@@ -6,7 +6,11 @@ export default function DashboardLayout() {
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar đơn giản */}
       <aside className="w-64 bg-indigo-900 text-white p-6">
-        <h2 className="text-xl font-bold mb-8">UTH-ConfMS</h2>
+      <Link to="/dashboard/overview" className="block hover:opacity-80 transition-all">
+  <h2 className="text-xl font-black mb-8 tracking-tighter text-gray-900">
+    UTH-Conf<span className="text-blue-600">MS</span>
+  </h2>
+</Link>
         <nav className="space-y-4">
           <Link to="/dashboard/my-submissions" className="block hover:text-indigo-300">Bài nộp của tôi</Link>
           <Link to="/dashboard/profile" className="block hover:text-indigo-300">Hồ sơ</Link>
@@ -19,7 +23,7 @@ export default function DashboardLayout() {
         <header className="mb-8 bg-white p-4 rounded-xl shadow-sm">
           <span className="text-gray-600">Xin chào, Tác giả</span>
         </header>
-        <Outlet /> {/* Đây là nơi MySubmissionsPage sẽ hiển thị */}
+        <Outlet /> 
       </main>
     </div>
   );

@@ -1,13 +1,25 @@
-from sqlalchemy.orm import Session
+# infrastructure/repositories/submission_repo_impl.py
+
+from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException
 
-from infrastructure.models.submission_model import SubmissionModel, SubmissionAuthorModel , SubmissionFileModel
-from infrastructure.repositories_interfaces.submission_repository import SubmissionRepository
+# Import Submissions models
+from infrastructure.models.submission_model import (
+    SubmissionModel, 
+    SubmissionAuthorModel, 
+    SubmissionFileModel
+)
 
+# QUAN TRỌNG: Import TrackModel từ file định nghĩa của nó (thường là conference_model)
+# Bạn hãy kiểm tra lại đường dẫn import này cho chính xác với project của bạn
+from infrastructure.models.conference_model import TrackModel, ConferenceModel 
+
+from infrastructure.repositories_interfaces.submission_repository import SubmissionRepository
 
 class SubmissionRepositoryImpl(SubmissionRepository):
     def __init__(self, db: Session):
         self.db = db
+
     def create(self, data: dict):
         new_submission = SubmissionModel(
             title=data.get('title'),
@@ -26,8 +38,9 @@ class SubmissionRepositoryImpl(SubmissionRepository):
             version=1
         )
         self.db.add(new_file)
+
         new_author = SubmissionAuthorModel(
-        submission_id=new_submission.id,
+            submission_id=new_submission.id,
             user_id=data.get('author_id'),
             order_index=1,
             is_corresponding=True
@@ -36,10 +49,19 @@ class SubmissionRepositoryImpl(SubmissionRepository):
         self.db.commit()
         self.db.refresh(new_submission)
         return new_submission
+
     def get_by_id(self, submission_id: int):
-        submission = self.db.query(SubmissionModel).filter(
-            SubmissionModel.id == submission_id
-        ).first()
+        # Bây giờ TrackModel đã được import nên sẽ không còn lỗi NameError
+        submission = (
+            self.db.query(SubmissionModel)
+            .options(
+                joinedload(SubmissionModel.track).joinedload(TrackModel.conference),
+                joinedload(SubmissionModel.authors).joinedload(SubmissionAuthorModel.user),
+                joinedload(SubmissionModel.files) 
+            )
+            .filter(SubmissionModel.id == submission_id)
+            .first()
+        )
 
         if not submission:
             raise HTTPException(status_code=404, detail="Submission not found")
@@ -47,29 +69,31 @@ class SubmissionRepositoryImpl(SubmissionRepository):
         return submission
 
     def get_all(self):
-        return self.db.query(SubmissionModel).all()
+        # Nếu muốn lấy đầy đủ thông tin ở trang danh sách, bạn cũng nên dùng joinedload ở đây
+        return self.db.query(SubmissionModel).options(
+            joinedload(SubmissionModel.track).joinedload(TrackModel.conference)
+        ).all()
 
     def get_by_author(self, user_id: int):
         return (
             self.db.query(SubmissionModel)
             .join(SubmissionAuthorModel, SubmissionModel.id == SubmissionAuthorModel.submission_id)
+            .options(
+                joinedload(SubmissionModel.track).joinedload(TrackModel.conference)
+            )
             .filter(SubmissionAuthorModel.user_id == user_id)
             .all()
         )
 
     def update(self, submission_id: int, data: dict):
         submission = self.get_by_id(submission_id)
-
         for k, v in data.items():
             setattr(submission, k, v)
-
         self.db.commit()
         self.db.refresh(submission)
-
         return submission
 
     def delete(self, submission_id: int):
         submission = self.get_by_id(submission_id)
-
         self.db.delete(submission)
         self.db.commit()

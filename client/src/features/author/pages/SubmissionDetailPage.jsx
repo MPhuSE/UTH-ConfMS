@@ -1,821 +1,338 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { submissionService } from "../../../services/submissionService";
 import { 
-  ArrowLeft, 
-  Download, 
-  MessageSquare, 
-  FileText, 
-  Globe, 
-  Clock, 
-  AlertCircle,
-  Users,
-  Building,
-  Award,
-  CheckCircle,
-  XCircle,
-  Eye,
-  BarChart3,
-  Calendar,
-  Shield,
-  Sparkles,
-  Edit,
-  Printer,
-  Share2,
-  Globe as GlobeIcon,
-  Star,
-  ChevronRight,
-  Mail,
-  Phone,
-  ExternalLink,
-  FileSearch
+  ArrowLeft, Download, FileText, Globe, Clock, AlertCircle,
+  Award, CheckCircle, XCircle, BarChart3, Calendar,
+  Shield, Edit, FileSearch, Star, Eye, User, UploadCloud
 } from "lucide-react";
-import { useAuthStore } from "../../../app/store/useAuthStore";
+import { useSubmissionStore } from "../../../app/store/useSubmissionStore";
 
+// --- Sub-component: Nộp bản Camera-Ready ---
+const CameraReadySection = ({ submission, language, onUpload }) => {
+  const [file, setFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Nếu đã nộp rồi
+  if (submission?.is_camera_ready || submission?.camera_ready_submission) {
+    return (
+      <div className="mt-8 bg-emerald-50 border-2 border-emerald-100 rounded-[2rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+            <CheckCircle size={28} />
+          </div>
+          <div>
+            <h4 className="font-black text-emerald-900 uppercase text-xs tracking-wider">
+              {language === 'VI' ? 'Hoàn tất bản hoàn thiện' : 'Camera-Ready Completed'}
+            </h4>
+            <p className="text-[10px] text-emerald-600 font-bold mt-1 uppercase">
+              {language === 'VI' ? 'Hệ thống đã ghi nhận' : 'System has recorded your file'}
+            </p>
+          </div>
+        </div>
+        <button 
+          onClick={() => window.open(submission.camera_ready_url, '_blank')}
+          className="px-6 py-3 bg-white text-emerald-700 rounded-xl text-[10px] font-black border border-emerald-200 hover:bg-emerald-100 transition-all shadow-sm whitespace-nowrap"
+        >
+          {language === 'VI' ? 'XEM BẢN CUỐI' : 'VIEW FINAL PDF'}
+        </button>
+      </div>
+    );
+  }
+
+  // Nếu bài đã Accepted nhưng chưa nộp bản cuối
+  if (submission?.decision?.toLowerCase() === 'accepted') {
+    return (
+      <div className="mt-8 bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-4">
+            <UploadCloud className="text-indigo-200" size={24} />
+            <h3 className="text-lg font-black uppercase italic tracking-tight">Camera-Ready Submission</h3>
+          </div>
+          <p className="text-xs font-bold text-indigo-100 mb-8 max-w-md leading-relaxed">
+            {language === 'VI' 
+              ? 'Chúc mừng! Bài báo đã được chấp nhận. Vui lòng tải lên bản PDF hoàn thiện cuối cùng để phục vụ xuất bản.' 
+              : 'Congratulations! Your paper is accepted. Please upload the final camera-ready PDF for the proceedings.'}
+          </p>
+          <div className="flex flex-col md:flex-row gap-4">
+            <label className="flex-1 bg-white/10 border-2 border-dashed border-white/30 rounded-2xl p-4 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-all group">
+              <input type="file" accept=".pdf" className="hidden" onChange={(e) => setFile(e.target.files[0])} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-center">
+                {file ? file.name : (language === 'VI' ? 'CHỌN FILE PDF HOÀN THIỆN' : 'SELECT FINAL PDF')}
+              </span>
+            </label>
+            <button 
+              onClick={async () => {
+                setIsUploading(true);
+                await onUpload(submission.id, file);
+                setIsUploading(false);
+              }}
+              disabled={!file || isUploading}
+              className="px-10 py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase hover:shadow-xl transition-all disabled:opacity-50 active:scale-95"
+            >
+              {isUploading ? 'UPLOADING...' : (language === 'VI' ? 'NỘP BẢN CUỐI' : 'SUBMIT FINAL')}
+            </button>
+          </div>
+        </div>
+        <div className="absolute -bottom-10 -right-10 text-white/5 rotate-12"><Shield size={200} /></div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+// --- Component Chính ---
 export default function SubmissionDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const [language, setLanguage] = useState('VI'); // VI/EN toggle
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { currentSubmission, fetchSubmissionById, submitCameraReady, isLoading, error } = useSubmissionStore();
+  
+  const [language, setLanguage] = useState('VI');
   const [activeTab, setActiveTab] = useState('details');
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const submissionData = await submissionService.getById(id);
-        setData(submissionData);
-      } catch (err) {
-        console.error("Lỗi:", err);
-        const errorMsg = language === 'VI' 
-          ? "Không thể tải thông tin bài báo này." 
-          : "Unable to load paper information.";
-        setError(errorMsg);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [id, language]);
+    if (id) fetchSubmissionById(id);
+  }, [id, fetchSubmissionById]);
 
-  const getStatusInfo = (status) => {
-    const statusLower = status?.toLowerCase();
-    const statusConfig = {
-      'submitted': { 
-        label: language === 'VI' ? 'ĐÃ NỘP' : 'SUBMITTED', 
-        color: 'text-blue-600', 
-        bg: 'bg-blue-50',
-        icon: Clock 
-      },
-      'under review': { 
-        label: language === 'VI' ? 'ĐANG PHẢN BIỆN' : 'UNDER REVIEW', 
-        color: 'text-yellow-600', 
-        bg: 'bg-yellow-50',
-        icon: FileSearch 
-      },
-      'accept': { 
-        label: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', 
-        color: 'text-green-600', 
-        bg: 'bg-green-50',
-        icon: CheckCircle 
-      },
-      'reject': { 
-        label: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', 
-        color: 'text-red-600', 
-        bg: 'bg-red-50',
-        icon: XCircle 
-      },
-      'camera ready': { 
-        label: language === 'VI' ? 'BẢN CUỐI' : 'CAMERA READY', 
-        color: 'text-purple-600', 
-        bg: 'bg-purple-50',
-        icon: CheckCircle 
-      }
-    };
-
-    return statusConfig[statusLower] || { 
-      label: status || (language === 'VI' ? 'ĐANG XỬ LÝ' : 'PROCESSING'), 
-      color: 'text-gray-600', 
-      bg: 'bg-gray-50',
-      icon: Clock 
-    };
+  // Logic trạng thái
+  const getStatusInfo = (paper) => {
+    if (paper?.withdrawn) return { label: 'WITHDRAWN', color: 'text-gray-500', bg: 'bg-gray-100', icon: XCircle };
+    const decision = paper?.decision?.toLowerCase();
+    if (paper?.is_camera_ready || paper?.camera_ready_submission) return { label: 'PUBLISHED', color: 'text-purple-600', bg: 'bg-purple-50', icon: Award };
+    if (decision === 'accepted') return { label: 'ACCEPTED', color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle };
+    if (decision === 'rejected') return { label: 'REJECTED', color: 'text-red-600', bg: 'bg-red-50', icon: XCircle };
+    return { label: 'UNDER REVIEW', color: 'text-blue-600', bg: 'bg-blue-50', icon: Clock };
   };
 
-  const calculateAverageScore = (reviews) => {
-    if (!reviews || reviews.length === 0) return 0;
-    const total = reviews.reduce((sum, review) => sum + (review.score || 0), 0);
-    return (total / reviews.length).toFixed(1);
-  };
+  if (isLoading) return (
+    <div className="flex flex-col items-center justify-center min-h-[500px] space-y-4">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <p className="font-black text-gray-400 uppercase tracking-widest text-xs">Loading Submission...</p>
+    </div>
+  );
 
-  const handleDownload = () => {
-    if (data?.file_url) {
-      window.open(data.file_url, '_blank');
-    } else {
-      alert(language === 'VI' ? 'Không tìm thấy file' : 'File not found');
-    }
-  };
+  if (error) return (
+    <div className="p-10 text-center bg-red-50 rounded-[2.5rem] m-10 border border-red-100 max-w-2xl mx-auto shadow-xl shadow-red-50">
+      <AlertCircle className="mx-auto text-red-500 mb-4 w-12 h-12" />
+      <h3 className="text-lg font-black text-red-900 mb-2 uppercase italic">{language === 'VI' ? 'Lỗi Hệ Thống' : 'System Error'}</h3>
+      <p className="text-red-600 text-sm font-medium">{error}</p>
+      <button onClick={() => navigate(-1)} className="mt-8 px-8 py-3 bg-red-600 text-white rounded-xl font-black text-xs uppercase tracking-widest">Back to List</button>
+    </div>
+  );
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-[#2C7A7B]/30 border-t-[#2C7A7B] rounded-full animate-spin" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <FileText className="w-8 h-8 text-[#2C7A7B]" />
-          </div>
-        </div>
-        <div>
-          <p className="text-lg font-bold text-gray-900 text-center">
-            {language === 'VI' ? 'Đang tải thông tin bài báo...' : 'Loading paper information...'}
-          </p>
-          <p className="text-sm text-gray-600 text-center mt-2">
-            {language === 'VI' ? 'Vui lòng đợi trong giây lát' : 'Please wait a moment'}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (!currentSubmission) return null;
 
-  if (error) {
-    return (
-      <div className="max-w-2xl mx-auto py-12">
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-3">{error}</h3>
-          <p className="text-gray-600 mb-6">
-            {language === 'VI' 
-              ? 'Không thể tải thông tin bài báo. Vui lòng thử lại sau.'
-              : 'Could not load paper information. Please try again later.'
-            }
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button 
-              onClick={() => navigate(-1)}
-              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-            >
-              {language === 'VI' ? 'Quay lại' : 'Go Back'}
-            </button>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-[#2C7A7B] text-white rounded-lg font-medium hover:bg-[#1A365D] transition-colors"
-            >
-              {language === 'VI' ? 'Thử lại' : 'Try Again'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const statusInfo = getStatusInfo(data?.status);
+  const statusInfo = getStatusInfo(currentSubmission);
   const StatusIcon = statusInfo.icon;
-  const averageScore = calculateAverageScore(data?.reviews);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header with Back and Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:border-[#2C7A7B] hover:bg-gray-50 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="font-medium">{language === 'VI' ? 'Quay lại' : 'Go Back'}</span>
+    <div className="max-w-7xl mx-auto px-4 py-8 bg-gray-50/30 min-h-screen">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="flex items-center gap-5">
+          <button onClick={() => navigate(-1)} className="p-3 bg-white border rounded-2xl hover:bg-gray-50 transition-all shadow-sm group">
+            <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:-translate-x-1 transition-transform" />
           </button>
-          
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {language === 'VI' ? 'Chi tiết bài báo' : 'Paper Details'}
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase italic italic">
+              {language === 'VI' ? 'Chi tiết bài báo' : 'Submission Dossier'}
             </h1>
-            <p className="text-gray-600">
-              ID: {data?.id} • {language === 'VI' ? 'Theo dõi trạng thái' : 'Track status'}
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">
+              DOI Reference: <span className="text-blue-600">#CONF-{currentSubmission.id}</span>
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setLanguage(lang => lang === 'VI' ? 'EN' : 'VI')}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:border-[#2C7A7B] transition-colors"
-          >
-            <GlobeIcon className="w-4 h-4" />
-            <span className="font-medium">{language}</span>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setLanguage(l => l === 'VI' ? 'EN' : 'VI')} className="px-4 py-3 bg-white border rounded-2xl font-black text-[10px] flex items-center gap-2 hover:border-blue-500 transition-all shadow-sm">
+            <Globe className="w-3.5 h-3.5 text-blue-500" /> {language}
           </button>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={handleDownload}
-              className="flex items-center gap-2 px-4 py-2 bg-[#2C7A7B] text-white rounded-lg font-medium hover:bg-[#1A365D] transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">
-                {language === 'VI' ? 'Tải PDF' : 'Download PDF'}
-              </span>
-            </button>
-            
-            {data?.status?.toLowerCase() === 'submitted' && (
-              <button 
-                onClick={() => navigate(`/dashboard/submission/edit/${data.id}`)}
-                className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors"
-              >
-                <Edit className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {language === 'VI' ? 'Chỉnh sửa' : 'Edit'}
-                </span>
-              </button>
-            )}
-          </div>
+          <button 
+            onClick={() => window.open(currentSubmission.file_url, '_blank')}
+            className="px-6 py-3 bg-gray-900 text-white rounded-2xl font-black text-[10px] flex items-center gap-2 hover:bg-black shadow-xl shadow-gray-200 transition-all active:scale-95"
+          >
+            <Download className="w-3.5 h-3.5" /> PDF MANUSCRIPT
+          </button>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Paper Header Card */}
-          <div className="bg-gradient-to-r from-[#1A365D] to-[#2C7A7B] rounded-2xl p-6 text-white">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <FileText className="w-8 h-8" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold line-clamp-2">{data?.title}</h2>
-                  <div className="flex items-center gap-4 mt-2 text-white/80 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Award className="w-4 h-4" />
-                      <span>{data?.conference?.name || 'UTH Conference'}</span>
-                    </div>
-                    <div className="w-px h-4 bg-white/30"></div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>
-                        {new Date(data?.created_at).toLocaleDateString('vi-VN', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric'
-                        })}
-                      </span>
-                    </div>
+      <div className="grid lg:grid-cols-4 gap-8">
+        {/* LEFT COLUMN: CONTENT */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden relative">
+            <div className="h-2 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-400"></div>
+            <div className="p-8 md:p-12">
+              <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+                <div className="flex-1 space-y-6">
+                  <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${statusInfo.bg} ${statusInfo.color} border border-current/10`}>
+                    <StatusIcon size={14} /> {statusInfo.label}
+                  </div>
+                  <h2 className="text-3xl font-black text-gray-900 leading-[1.1] tracking-tight">{currentSubmission.title}</h2>
+                  <div className="flex flex-wrap gap-x-8 gap-y-4 text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                    <span className="flex items-center gap-2 text-blue-600/80"><Award size={14} /> {currentSubmission.conference?.name}</span>
+                    <span className="flex items-center gap-2 text-indigo-600/80"><BarChart3 size={14} /> Track: {currentSubmission.track?.name}</span>
+                    <span className="flex items-center gap-2"><Calendar size={14} /> {new Date(currentSubmission.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex flex-col items-end">
-                <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${statusInfo.bg} ${statusInfo.color} font-bold`}>
-                  <StatusIcon className="w-4 h-4" />
-                  {statusInfo.label}
-                </div>
-                {data?.reviews?.length > 0 && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <Star className="w-4 h-4 text-[#D4AF37]" />
-                    <span className="text-sm font-medium">{averageScore}/5</span>
+                
+                {currentSubmission.avg_score > 0 && (
+                  <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 text-center min-w-[150px] shadow-inner">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Review Score</p>
+                    <div className="flex items-center justify-center gap-1 text-3xl font-black text-blue-900">
+                      <Star className="w-6 h-6 fill-amber-400 text-amber-400" />
+                      {currentSubmission.avg_score}
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/20">
-              <div className="text-center">
-                <div className="text-2xl font-bold">{data?.reviews?.length || 0}</div>
-                <div className="text-sm text-white/80">
-                  {language === 'VI' ? 'Lượt phản biện' : 'Reviews'}
-                </div>
+              {/* TABS */}
+              <div className="flex gap-10 border-b border-gray-50 mt-12">
+                {['details', 'abstract', 'authors'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`pb-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${
+                      activeTab === tab ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    {language === 'VI' ? (tab === 'details' ? 'Thông tin' : tab === 'abstract' ? 'Tóm tắt' : 'Tác giả') : tab}
+                    {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full"></div>}
+                  </button>
+                ))}
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">{data?.authors?.length || 1}</div>
-                <div className="text-sm text-white/80">
-                  {language === 'VI' ? 'Tác giả' : 'Authors'}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">
-                  {data?.track?.name?.charAt(0) || 'T'}
-                </div>
-                <div className="text-sm text-white/80">
-                  {language === 'VI' ? 'Track' : 'Track'}
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Tabs Navigation */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="border-b border-gray-200">
-              <nav className="flex overflow-x-auto">
-                <button
-                  onClick={() => setActiveTab('details')}
-                  className={`px-6 py-3 font-medium whitespace-nowrap border-b-2 transition-colors ${
-                    activeTab === 'details'
-                      ? 'border-[#2C7A7B] text-[#2C7A7B]'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {language === 'VI' ? 'Thông tin chi tiết' : 'Paper Details'}
-                </button>
-                <button
-                  onClick={() => setActiveTab('abstract')}
-                  className={`px-6 py-3 font-medium whitespace-nowrap border-b-2 transition-colors ${
-                    activeTab === 'abstract'
-                      ? 'border-[#2C7A7B] text-[#2C7A7B]'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {language === 'VI' ? 'Tóm tắt' : 'Abstract'}
-                </button>
-                <button
-                  onClick={() => setActiveTab('reviews')}
-                  className={`px-6 py-3 font-medium whitespace-nowrap border-b-2 transition-colors ${
-                    activeTab === 'reviews'
-                      ? 'border-[#2C7A7B] text-[#2C7A7B]'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {language === 'VI' ? 'Phản biện' : 'Reviews'} ({data?.reviews?.length || 0})
-                </button>
-                <button
-                  onClick={() => setActiveTab('authors')}
-                  className={`px-6 py-3 font-medium whitespace-nowrap border-b-2 transition-colors ${
-                    activeTab === 'authors'
-                      ? 'border-[#2C7A7B] text-[#2C7A7B]'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {language === 'VI' ? 'Tác giả' : 'Authors'} ({data?.authors?.length || 1})
-                </button>
-              </nav>
-            </div>
-
-            {/* Tab Content */}
-            <div className="p-6">
-              {activeTab === 'details' && (
-                <div className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-bold text-gray-900">
-                        {language === 'VI' ? 'Thông tin hội nghị' : 'Conference Information'}
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">{language === 'VI' ? 'Tên hội nghị:' : 'Conference:'}</span>
-                          <span className="font-medium text-gray-900">{data?.conference?.name || 'UTH Conference'}</span>
+              {/* TAB CONTENT */}
+              <div className="mt-10 min-h-[300px]">
+                {activeTab === 'details' && (
+                  <div className="animate-in fade-in duration-500">
+                    <div className="grid md:grid-cols-2 gap-16">
+                      <div className="space-y-8">
+                        <div className="flex flex-col gap-1 border-b border-gray-50 pb-4">
+                          <span className="text-[10px] text-gray-400 font-black uppercase">Submission ID</span>
+                          <span className="text-sm font-bold text-gray-800">#{currentSubmission.id}</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">{language === 'VI' ? 'Track:' : 'Track:'}</span>
-                          <span className="font-medium text-gray-900">{data?.track?.name || 'Not specified'}</span>
+                        <div className="flex flex-col gap-1 border-b border-gray-50 pb-4">
+                          <span className="text-[10px] text-gray-400 font-black uppercase">Scientific Track</span>
+                          <span className="text-sm font-bold text-gray-800">{currentSubmission.track?.name}</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">{language === 'VI' ? 'Ngày nộp:' : 'Submission date:'}</span>
-                          <span className="font-medium text-gray-900">
-                            {new Date(data?.created_at).toLocaleDateString('vi-VN', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                        <div className="flex flex-col gap-1 border-b border-gray-50 pb-4">
+                          <span className="text-[10px] text-gray-400 font-black uppercase">Decision Status</span>
+                          <span className="text-sm font-bold text-gray-800 italic uppercase">{currentSubmission.decision || 'Pending Decision'}</span>
+                        </div>
+                      </div>
+                      <div className="bg-blue-50/50 p-8 rounded-[2rem] border border-blue-100 flex flex-col items-center justify-center text-center">
+                        <FileText className="w-12 h-12 text-blue-200 mb-4" />
+                        <h4 className="text-[10px] font-black text-blue-900 uppercase tracking-widest mb-6">Submitted Manuscript</h4>
+                        <div className="flex gap-2 w-full">
+                          <button onClick={() => window.open(currentSubmission.file_url)} className="flex-1 py-3 bg-white border border-blue-200 rounded-xl text-blue-600 font-black text-[10px] uppercase hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
+                            <Eye size={14} /> Preview
+                          </button>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-bold text-gray-900">
-                        {language === 'VI' ? 'Thông tin file' : 'File Information'}
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">{language === 'VI' ? 'Định dạng:' : 'Format:'}</span>
-                          <span className="font-medium text-gray-900">PDF</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">{language === 'VI' ? 'Trạng thái:' : 'Status:'}</span>
-                          <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${statusInfo.bg} ${statusInfo.color}`}>
-                            <StatusIcon className="w-3 h-3" />
-                            {statusInfo.label}
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">{language === 'VI' ? 'Lần cập nhật:' : 'Last updated:'}</span>
-                          <span className="font-medium text-gray-900">
-                            {new Date(data?.updated_at || data?.created_at).toLocaleDateString('vi-VN')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    {/* Tích hợp Camera Ready Section */}
+                    <CameraReadySection 
+                      submission={currentSubmission} 
+                      language={language} 
+                      onUpload={async (subId, file) => {
+                        const success = await submitCameraReady(subId, file);
+                        if (success) fetchSubmissionById(subId); // Refresh data
+                      }}
+                    />
                   </div>
+                )}
 
-                  {data?.keywords && data.keywords.length > 0 && (
-                    <div className="pt-6 border-t border-gray-200">
-                      <h4 className="text-lg font-bold text-gray-900 mb-3">
-                        {language === 'VI' ? 'Từ khóa' : 'Keywords'}
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {data.keywords.split(',').map((keyword, index) => (
-                          <span 
-                            key={index} 
-                            className="px-3 py-1 bg-[#2C7A7B]/10 text-[#2C7A7B] rounded-full text-sm font-medium"
-                          >
-                            {keyword.trim()}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'abstract' && (
-                <div className="space-y-6">
-                  <div className="bg-gradient-to-r from-gray-50 to-white p-6 rounded-xl border border-gray-200">
-                    <h4 className="text-lg font-bold text-gray-900 mb-4">
-                      {language === 'VI' ? 'Tóm tắt bài báo' : 'Paper Abstract'}
-                    </h4>
-                    <div className="prose max-w-none">
-                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                        {data?.abstract}
-                      </p>
-                    </div>
+                {activeTab === 'abstract' && (
+                  <div className="max-w-4xl animate-in fade-in duration-500">
+                    <p className="text-gray-600 leading-[1.8] text-lg font-medium italic">"{currentSubmission.abstract}"</p>
                   </div>
+                )}
 
-                  <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
-                    <div className="flex items-start gap-3">
-                      <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h5 className="font-bold text-gray-900 mb-2">
-                          {language === 'VI' ? 'Gợi ý AI từ tóm tắt' : 'AI Insights from Abstract'}
-                        </h5>
-                        <p className="text-sm text-gray-700">
-                          {language === 'VI' 
-                            ? 'Hệ thống AI đã phân tích và xác định các chủ đề chính: Nghiên cứu ứng dụng, Phương pháp mới, Kết quả thực nghiệm.'
-                            : 'AI system has analyzed and identified key topics: Applied research, Novel methodology, Experimental results.'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'reviews' && (
-                <div className="space-y-6">
-                  {data?.reviews && data.reviews.length > 0 ? (
-                    <>
-                      {/* Review Stats */}
-                      <div className="bg-gray-50 rounded-xl p-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{data.reviews.length}</div>
-                            <div className="text-sm text-gray-600">
-                              {language === 'VI' ? 'Tổng phản biện' : 'Total Reviews'}
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{averageScore}</div>
-                            <div className="text-sm text-gray-600">
-                              {language === 'VI' ? 'Điểm trung bình' : 'Average Score'}
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">
-                              {Math.max(...data.reviews.map(r => r.score || 0))}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {language === 'VI' ? 'Điểm cao nhất' : 'Highest Score'}
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">
-                              {Math.min(...data.reviews.map(r => r.score || 0))}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {language === 'VI' ? 'Điểm thấp nhất' : 'Lowest Score'}
-                            </div>
-                          </div>
+                {activeTab === 'authors' && (
+                  <div className="grid md:grid-cols-2 gap-4 animate-in fade-in duration-500">
+                    {currentSubmission.authors?.map((a, i) => (
+                      <div key={i} className="flex items-center gap-4 p-5 bg-gray-50/50 border border-gray-100 rounded-2xl">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-black ${a.is_main ? 'bg-blue-600' : 'bg-slate-400'}`}>
+                          <User size={20} />
                         </div>
-                      </div>
-
-                      {/* Review List */}
-                      <div className="space-y-4">
-                        {data.reviews.map((review, index) => (
-                          <div key={index} className="bg-white border border-gray-200 rounded-xl p-6 hover:border-[#2C7A7B]/50 transition-colors">
-                            <div className="flex items-start justify-between mb-4">
-                              <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="font-bold text-gray-900">
-                                    {language === 'VI' ? 'Phản biện' : 'Reviewer'} #{index + 1}
-                                  </span>
-                                  <span className="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-700 rounded-full">
-                                    {language === 'VI' ? 'Ẩn danh' : 'Anonymous'}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>
-                                    {new Date(review.created_at || review.date).toLocaleDateString('vi-VN')}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="text-2xl font-bold text-gray-900">
-                                  {review.score || 'N/A'}/5
-                                </div>
-                                <div className="w-10">
-                                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div 
-                                      className="h-full bg-[#2C7A7B]" 
-                                      style={{ width: `${((review.score || 0) / 5) * 100}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-3">
-                              <div>
-                                <h6 className="text-sm font-medium text-gray-900 mb-1">
-                                  {language === 'VI' ? 'Nhận xét chính' : 'Main Comments'}
-                                </h6>
-                                <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
-                                  {review.comment || review.content}
-                                </p>
-                              </div>
-                              
-                              {review.strengths && (
-                                <div>
-                                  <h6 className="text-sm font-medium text-green-700 mb-1">
-                                    {language === 'VI' ? 'Ưu điểm' : 'Strengths'}
-                                  </h6>
-                                  <p className="text-gray-700">{review.strengths}</p>
-                                </div>
-                              )}
-                              
-                              {review.weaknesses && (
-                                <div>
-                                  <h6 className="text-sm font-medium text-amber-700 mb-1">
-                                    {language === 'VI' ? 'Cần cải thiện' : 'Areas for Improvement'}
-                                  </h6>
-                                  <p className="text-gray-700">{review.weaknesses}</p>
-                                </div>
-                              )}
-                              
-                              {review.recommendation && (
-                                <div>
-                                  <h6 className="text-sm font-medium text-blue-700 mb-1">
-                                    {language === 'VI' ? 'Khuyến nghị' : 'Recommendation'}
-                                  </h6>
-                                  <p className="text-gray-700">{review.recommendation}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                        <MessageSquare className="w-8 h-8 text-gray-400" />
-                      </div>
-                      <h4 className="text-lg font-bold text-gray-900 mb-2">
-                        {language === 'VI' ? 'Chưa có phản biện' : 'No Reviews Yet'}
-                      </h4>
-                      <p className="text-gray-600 max-w-md mx-auto">
-                        {language === 'VI' 
-                          ? 'Bài báo đang được phân công cho các phản biện. Phản hồi ẩn danh sẽ xuất hiện tại đây sau khi có kết quả.'
-                          : 'The paper is being assigned to reviewers. Anonymous feedback will appear here once available.'
-                        }
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'authors' && (
-                <div className="space-y-6">
-                  <h4 className="text-lg font-bold text-gray-900">
-                    {language === 'VI' ? 'Danh sách tác giả' : 'Author List'}
-                  </h4>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {data?.authors?.map((author, index) => (
-                      <div key={index} className="bg-white border border-gray-200 rounded-xl p-6">
-                        <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#2C7A7B] to-[#38A169] flex items-center justify-center text-white font-bold">
-                            {author.name?.charAt(0)?.toUpperCase() || 'A'}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <h5 className="font-bold text-gray-900">
-                                {author.name}
-                                {author.is_main && (
-                                  <span className="ml-2 text-xs font-bold text-[#2C7A7B] bg-[#2C7A7B]/10 px-2 py-0.5 rounded-full">
-                                    {language === 'VI' ? 'TÁC GIẢ CHÍNH' : 'MAIN AUTHOR'}
-                                  </span>
-                                )}
-                              </h5>
-                              <span className="text-sm text-gray-500">#{index + 1}</span>
-                            </div>
-                            
-                            <div className="space-y-2 text-sm">
-                              <div className="flex items-center gap-2">
-                                <Mail className="w-4 h-4 text-gray-400" />
-                                <span className="text-gray-700">{author.email}</span>
-                              </div>
-                              
-                              <div className="flex items-center gap-2">
-                                <Building className="w-4 h-4 text-gray-400" />
-                                <span className="text-gray-700">{author.affiliation}</span>
-                              </div>
-                              
-                              {author.orcid && (
-                                <div className="flex items-center gap-2">
-                                  <Shield className="w-4 h-4 text-gray-400" />
-                                  <span className="text-gray-700">ORCID: {author.orcid}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                        <div>
+                          <h4 className="font-black text-gray-900 text-sm">
+                            {a.name} {a.is_main && <span className="ml-2 text-[8px] bg-blue-100 text-blue-600 px-2 py-1 rounded-md uppercase">Primary</span>}
+                          </h4>
+                          <p className="text-[10px] text-blue-500 font-bold tracking-tight uppercase">{a.email}</p>
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* RIGHT COLUMN: SIDEBAR TIMELINE */}
         <div className="space-y-6">
-          {/* Status Timeline */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              {language === 'VI' ? 'Dòng thời gian' : 'Timeline'}
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {language === 'VI' ? 'Bài báo đã nộp' : 'Paper submitted'}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {new Date(data?.created_at).toLocaleDateString('vi-VN')}
-                  </p>
-                </div>
-              </div>
+          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
+            <h3 className="font-black text-gray-400 mb-10 flex items-center gap-2 uppercase text-[10px] tracking-[0.2em]"><Clock size={14} /> workflow timeline</h3>
+            <div className="space-y-12 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-50">
               
-              <div className="flex items-start gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  ['under review', 'accept', 'reject'].includes(data?.status?.toLowerCase()) 
-                    ? 'bg-yellow-100' 
-                    : 'bg-gray-100'
-                }`}>
-                  <Clock className={`w-4 h-4 ${
-                    ['under review', 'accept', 'reject'].includes(data?.status?.toLowerCase()) 
-                      ? 'text-yellow-600' 
-                      : 'text-gray-400'
-                  }`} />
-                </div>
-                <div>
-                  <p className={`font-medium ${
-                    ['under review', 'accept', 'reject'].includes(data?.status?.toLowerCase()) 
-                      ? 'text-gray-900' 
-                      : 'text-gray-400'
-                  }`}>
-                    {language === 'VI' ? 'Đang phản biện' : 'Under review'}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {language === 'VI' ? 'Đang tiến hành' : 'In progress'}
-                  </p>
-                </div>
-              </div>
+              <TimelineItem 
+                active={true} 
+                icon={CheckCircle} 
+                label={language === 'VI' ? 'Nộp bài' : 'Submission'} 
+                date={new Date(currentSubmission.created_at).toLocaleDateString()} 
+                color="bg-green-500" 
+              />
               
-              <div className="flex items-start gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  ['accept', 'reject'].includes(data?.status?.toLowerCase()) 
-                    ? 'bg-blue-100' 
-                    : 'bg-gray-100'
-                }`}>
-                  <CheckCircle className={`w-4 h-4 ${
-                    ['accept', 'reject'].includes(data?.status?.toLowerCase()) 
-                      ? 'text-blue-600' 
-                      : 'text-gray-400'
-                  }`} />
-                </div>
-                <div>
-                  <p className={`font-medium ${
-                    ['accept', 'reject'].includes(data?.status?.toLowerCase()) 
-                      ? 'text-gray-900' 
-                      : 'text-gray-400'
-                  }`}>
-                    {language === 'VI' ? 'Quyết định' : 'Decision'}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {data?.status ? statusInfo.label : (language === 'VI' ? 'Chờ xử lý' : 'Pending')}
-                  </p>
-                </div>
-              </div>
+              <TimelineItem 
+                active={statusInfo.label !== 'UNDER REVIEW'} 
+                icon={FileSearch} 
+                label={language === 'VI' ? 'Đang phản biện' : 'Peer Review'} 
+                date={statusInfo.label === 'UNDER REVIEW' ? 'In Progress...' : 'Completed'} 
+                color="bg-blue-500" 
+              />
+
+              <TimelineItem 
+                active={!!currentSubmission.decision} 
+                icon={Shield} 
+                label={language === 'VI' ? 'Kết luận' : 'Decision'} 
+                date={currentSubmission.decision || 'Pending'} 
+                color="bg-gray-900" 
+              />
+
+              <TimelineItem 
+                active={currentSubmission.is_camera_ready || currentSubmission.camera_ready_submission} 
+                icon={Award} 
+                label={language === 'VI' ? 'Xuất bản' : 'Publication'} 
+                date={currentSubmission.is_camera_ready ? 'Finished' : 'Waiting'} 
+                color="bg-purple-600" 
+              />
             </div>
           </div>
-
-          {/* Quick Actions */}
-          <div className="bg-gradient-to-br from-[#F7FAFC] to-gray-50 rounded-xl border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              {language === 'VI' ? 'Thao tác nhanh' : 'Quick Actions'}
-            </h3>
-            <div className="space-y-3">
-              <button 
-                onClick={handleDownload}
-                className="flex items-center justify-between w-full p-3 bg-white border border-gray-300 rounded-lg hover:border-[#2C7A7B] hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Download className="w-5 h-5 text-gray-400" />
-                  <span className="font-medium text-gray-900">
-                    {language === 'VI' ? 'Tải bài báo' : 'Download Paper'}
-                  </span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </button>
-              
-              <button 
-                onClick={() => window.print()}
-                className="flex items-center justify-between w-full p-3 bg-white border border-gray-300 rounded-lg hover:border-[#2C7A7B] hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Printer className="w-5 h-5 text-gray-400" />
-                  <span className="font-medium text-gray-900">
-                    {language === 'VI' ? 'In thông tin' : 'Print Details'}
-                  </span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </button>
-              
-              <button 
-                onClick={() => navigate(`/dashboard/submission/${data?.id}/reviews`)}
-                className="flex items-center justify-between w-full p-3 bg-white border border-gray-300 rounded-lg hover:border-[#2C7A7B] hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <MessageSquare className="w-5 h-5 text-gray-400" />
-                  <span className="font-medium text-gray-900">
-                    {language === 'VI' ? 'Xem phản biện' : 'View Reviews'}
-                  </span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </button>
-              
-              <button 
-                onClick={() => navigate(`/conferences/${data?.conference?.id}`)}
-                className="flex items-center justify-between w-full p-3 bg-white border border-gray-300 rounded-lg hover:border-[#2C7A7B] hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Globe className="w-5 h-5 text-gray-400" />
-                  <span className="font-medium text-gray-900">
-                    {language === 'VI' ? 'Xem hội nghị' : 'View Conference'}
-                  </span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </button>
-            </div>
-          </div>
-
-          {/* Conference Info */}
-          {data?.conference && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                {language === 'VI' ? 'Thông tin hội nghị' : 'Conference Information'}
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-[#D4AF37]" />
-                  <span className="font-medium text-gray-900">{data.conference.name}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    {new Date(data.conference.start_date).toLocaleDateString('vi-VN')} - {new Date(data.conference.end_date).toLocaleDateString('vi-VN')}
-                  </span>
-                </div>
-                <button 
-                  onClick={() => navigate(`/conferences/${data.conference.id}`)}
-                  className="w-full mt-4 py-2 text-center text-[#2C7A7B] font-medium hover:bg-[#2C7A7B]/10 rounded-lg transition-colors"
-                >
-                  {language === 'VI' ? 'Xem trang hội nghị →' : 'View Conference Page →'}
-                </button>
-              </div>
-            </div>
+          
+          {!currentSubmission.withdrawn && currentSubmission.decision?.toLowerCase() !== 'rejected' && (
+             <button 
+              onClick={() => navigate(`/dashboard/submission/edit/${currentSubmission.id}`)}
+              className="w-full py-4 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-amber-600 transition-all shadow-lg shadow-amber-100"
+             >
+               <Edit size={16} /> Edit Submission
+             </button>
           )}
         </div>
       </div>
     </div>
   );
 }
+
+// --- Helper: Timeline Item Component ---
+const TimelineItem = ({ active, icon: Icon, label, date, color }) => (
+  <div className="relative pl-10">
+    <div className={`absolute left-0 w-8 h-8 rounded-full flex items-center justify-center ring-4 ring-white shadow-md z-10 ${active ? color + ' text-white' : 'bg-gray-100 text-gray-300'}`}>
+      <Icon size={14} />
+    </div>
+    <p className={`font-black text-[10px] uppercase tracking-tight ${active ? 'text-gray-900' : 'text-gray-300'}`}>{label}</p>
+    <p className="text-[10px] text-gray-400 font-bold mt-1">{date}</p>
+  </div>
+);

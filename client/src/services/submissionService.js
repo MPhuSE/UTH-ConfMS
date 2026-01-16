@@ -40,11 +40,13 @@ export const submissionService = {
   },
   
   update: async (id, formData) => {
-    const res = await api.patch(`/submissions/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+    const res = await api.patch(`/submissions/${id}/`, formData, {
+        headers: { 
+            "Content-Type": "multipart/form-data" 
+        },
     });
     return res.data;
-  },
+},
 
   delete: async (id) => {
     const res = await api.delete(`/submissions/${id}`);

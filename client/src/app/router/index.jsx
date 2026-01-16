@@ -22,6 +22,7 @@ import AuthorProfile from "../../features/auth/pages/AuthorProfile";
 import AuditLogs from "../../features/dashboard/pages/AuditLogs";
 import AuthorDashboard from "../../features/dashboard/AuthorDashboard";
 import VerifyEmail from "../../features/auth/pages/VerifyEmail";
+import EditSubmissionPage from "../../features/author/pages/EditSubmissionPage";
 
 export default function AppRouter() {
     return (
@@ -52,7 +53,7 @@ export default function AppRouter() {
                     <Route path="overview" element={<AuthorDashboard />} />
                     <Route path="my-submissions" element={<MySubmissionsPage />} />
                     <Route path="submission" element={<PaperSubmissionPage />} />
-                    <Route path="submission/edit/:paperId" element={<PaperSubmissionPage />} />
+                    <Route path="submission/edit/:paperId" element={<EditSubmissionPage />} />
                     <Route path="submission/:id" element={<SubmissionDetailPage />} /> 
                     <Route path="profile" element={<AuthorProfile />} />
 

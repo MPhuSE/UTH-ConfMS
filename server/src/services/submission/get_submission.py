@@ -3,4 +3,44 @@ class GetSubmissionService:
         self.repo = repo
 
     def execute(self, submission_id: int):
-        return self.repo.get_by_id(submission_id)
+        # 1. Repo này bây giờ đã JOIN các bảng (như ta đã sửa ở bước trước)
+        submission = self.repo.get_by_id(submission_id)
+        
+        if not submission:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Không tìm thấy bài nộp")
+
+        # 2. Xử lý logic để lấy File Path (lấy file bản mới nhất hoặc bản đầu tiên)
+        # Trong DBML của bạn là bảng submission_files
+        file_url = None
+        if hasattr(submission, 'files') and submission.files:
+            file_url = submission.files[0].file_path
+
+        # 3. Xây dựng cấu trúc trả về khớp với Frontend yêu cầu
+        return {
+            "id": submission.id,
+            "title": submission.title,
+            "abstract": submission.abstract,
+            "status": submission.status,
+            "decision": submission.decision,
+            "file_path": file_url,
+            # Lấy thông tin Track và Conference qua mối quan hệ
+            "track": {
+                "id": submission.track.id,
+                "name": submission.track.name,
+                "conference": {
+                    "id": submission.track.conference.id,
+                    "name": submission.track.conference.name,
+                    "abbreviation": getattr(submission.track.conference, 'abbreviation', None)
+                }
+            } if submission.track else None,
+            # Map danh sách tác giả từ bảng users thông qua submission_authors
+            "authors": [
+                {
+                    "full_name": sa.user.full_name,
+                    "email": sa.user.email,
+                    "affiliation": sa.user.affiliation,
+                    "order_index": sa.order_index
+                } for sa in (submission.authors or [])
+            ]
+        }

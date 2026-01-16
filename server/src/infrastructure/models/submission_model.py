@@ -9,11 +9,11 @@ class SubmissionModel(Base):
     __tablename__ = "submissions"
     id = Column(Integer, primary_key=True, index=True)
     track_id = Column(ForeignKey("tracks.id"), nullable=False)
-    
+    conference_id = Column(Integer, ForeignKey("conferences.id"), nullable=False)
     # Paper Info
     title = Column(String, nullable=False)
     abstract = Column(String)
-    
+    decision = Column(String, nullable=True)
     # Status & Score
     status = Column(String) 
     is_withdrawn = Column(Boolean, default=False)
@@ -24,19 +24,36 @@ class SubmissionModel(Base):
     
     # Relationships
     track = relationship("TrackModel", back_populates="submissions")
-    authors = relationship("SubmissionAuthorModel", back_populates="submission", lazy="selectin")
+    
+    authors = relationship(
+        "SubmissionAuthorModel", 
+        back_populates="submission", 
+        lazy="selectin",
+        cascade="all, delete-orphan" 
+    )
+    
+    # SỬA TẠI ĐÂY: Thêm cascade cho files để không để lại file rác
     files = relationship(
         "SubmissionFileModel", 
         back_populates="submission", 
         lazy="selectin",
-        foreign_keys="SubmissionFileModel.submission_id"
+        foreign_keys="SubmissionFileModel.submission_id",
+        cascade="all, delete-orphan"
     )
+    
     camera_ready_file = relationship(
         "SubmissionFileModel",
         foreign_keys="SubmissionModel.camera_ready_submission",
         uselist=False,
         post_update=True
     )
+    @property
+    def file_path(self):
+        """Tự động lấy đường dẫn file mới nhất từ danh sách files."""
+        if self.files:
+            latest_file = max(self.files, key=lambda f: f.id)
+            return latest_file.file_path
+        return None
     
 class SubmissionAuthorModel(Base):
     """Liên kết Tác giả và Bài nộp."""

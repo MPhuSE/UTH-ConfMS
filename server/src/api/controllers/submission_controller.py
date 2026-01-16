@@ -20,6 +20,8 @@ from infrastructure.external_services.cloudinary_service import CloudinaryServic
 
 
 router = APIRouter(prefix="/submissions", tags=["Submissions"])
+
+
 @router.post("/", response_model=SubmissionResponseSchema, status_code=status.HTTP_201_CREATED)
 async def submit_paper(
     title: str = Form(...),
@@ -32,21 +34,27 @@ async def submit_paper(
     conf_repo = Depends(get_conference_repo) 
 ):
     try:
+        # 1. Kiểm tra tồn tại của hội nghị
         conference = conf_repo.get_by_id(conference_id)
         if not conference:
             raise HTTPException(status_code=404, detail="Conference not found")
         
+        # 2. Kiểm tra hạn chót nộp bài
+        # Đảm bảo so sánh cùng múi giờ nếu cần thiết
         if datetime.datetime.now() > conference.submission_deadline:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
                 detail="The submission deadline for this conference has passed."
             )
 
-
+        # 3. Kiểm tra định dạng file
         if file.content_type != "application/pdf":
             raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
 
+        # 4. Upload file lên Cloudinary
         file_url = await CloudinaryService.upload_pdf(file)
+        
+        # 5. Thực thi tạo submission qua Service
         service = CreateSubmissionService(repo)
         result = service.execute(
             title=title,
@@ -56,16 +64,23 @@ async def submit_paper(
             author_id=current_user.id,
             file_url=file_url
         )
+
+        # 6. FIX: Đảm bảo các trường ID không bị None trước khi trả về (tránh lỗi Validation)
+        if not hasattr(result, 'conference_id') or result.conference_id is None:
+            result.conference_id = conference_id
+        if not hasattr(result, 'track_id') or result.track_id is None:
+            result.track_id = track_id
+
         return result
 
     except HTTPException as he:
         raise he
     except Exception as e:
+        print(f"Submission Error: {str(e)}") # Log lỗi ra console để debug
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"An error occurred during submission: {str(e)}"
         )
-
 @router.get("/", response_model=List[SubmissionResponseSchema])
 def list_submissions(
     current_user=Depends(get_current_user),
@@ -90,9 +105,9 @@ def get_submission(
     current_user=Depends(get_current_user),
     repo=Depends(get_submission_repo)
 ):
-    """Get a submission - requires authentication."""
-    return GetSubmissionService(repo).execute(submission_id)
-
+    """Lấy chi tiết bài nộp - Yêu cầu đăng nhập."""
+    submission = GetSubmissionService(repo).execute(submission_id)
+    return submission
 
 @router.patch("/{submission_id}", response_model=SubmissionResponseSchema)
 async def update_submission(
@@ -100,7 +115,7 @@ async def update_submission(
     title: str = Form(None),
     abstract: str = Form(None),
     status: str = Form(None),
-    file: UploadFile = File(None), # Nhận file mới (không bắt buộc)
+    file: UploadFile = File(None), 
     current_user = Depends(get_current_user),
     repo = Depends(get_submission_repo)
 ):
@@ -117,12 +132,12 @@ async def update_submission(
     if abstract is not None: update_data["abstract"] = abstract
     if status is not None: update_data["status"] = status
 
-    # 2. Xử lý file nếu có upload file mới
+ 
     if file:
         if file.content_type != "application/pdf":
             raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
         
-        # Upload file mới lên Cloudinary
+
         new_file_url = await CloudinaryService.upload_pdf(file)
         update_data["file_url"] = new_file_url
 

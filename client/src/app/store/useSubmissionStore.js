@@ -1,117 +1,107 @@
-// app/store/useSubmissionStore.js
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import axios from '../../lib/axios';
+import { submissionService } from '../../services/submissionService'; // Import service
 
 export const useSubmissionStore = create(
   persist(
     (set, get) => ({
-      // State
-      submissions: [],
-      allSubmissions: [],
+      // --- STATE ---
+      submissions: [],      
+      allSubmissions: [],   
       conferences: [],
       assignedReviews: [],
       isLoading: false,
       error: null,
-      
-      // Actions
-      setSubmissions: (submissions) => set({ submissions }),
-      setAllSubmissions: (allSubmissions) => set({ allSubmissions }),
-      setConferences: (conferences) => set({ conferences }),
-      setAssignedReviews: (assignedReviews) => set({ assignedReviews }),
-      setIsLoading: (isLoading) => set({ isLoading }),
-      setError: (error) => set({ error }),
+
+      // --- ACTIONS ---
       fetchDashboardData: async (role) => {
-        console.log('Fetching data for role:', role);
         set({ isLoading: true, error: null });
-        
         try {
-          let promises = [];
-          
-          // All roles need conferences
-          promises.push(axios.get("/conferences"));
-          
-          // Fetch based on role
-          switch(role) {
+          // 1. Luôn lấy danh sách hội nghị (dùng chung cho mọi role)
+          const confData = await submissionService.getConferences();
+          const openConferences = (confData?.conferences || []).filter(c => c.is_open);
+
+          let newState = { 
+            conferences: openConferences,
+            isLoading: false 
+          };
+
+          // 2. Lấy dữ liệu theo vai trò (Role-based) thông qua Service
+          switch (role) {
             case 'author':
-              console.log('Fetching author data...');
-              promises.push(axios.get("/submissions/me"));
-              promises.push(axios.get("/submissions"));
+              // Tác giả cần bài của mình và danh sách hội nghị để nộp bài
+              const [mySubs, allSubs] = await Promise.all([
+                submissionService.getMySubmissions(),
+                submissionService.getAllSubmissions()
+              ]);
+              newState.submissions = mySubs || [];
+              newState.allSubmissions = allSubs || [];
               break;
+
             case 'reviewer':
-              promises.push(axios.get("/reviews/assigned"));
+              const assigned = await submissionService.getAssignedReviews();
+              newState.assignedReviews = assigned || [];
               break;
+
             case 'chair':
             case 'admin':
-              promises.push(axios.get("/submissions"));
+              const totalSubs = await submissionService.getAllSubmissions();
+              newState.allSubmissions = totalSubs || [];
               break;
+
             default:
-              promises.push(axios.get("/submissions/me"));
+              const defaultSubs = await submissionService.getMySubmissions();
+              newState.submissions = defaultSubs || [];
           }
-          
-          const results = await Promise.all(promises);
-          console.log('API Results:', results);
-          
-          const conferenceRes = results[0];
-          let newState = {
-            conferences: (conferenceRes.data?.conferences || []).filter(c => c.is_open),
-            isLoading: false,
-            error: null
-          };
-          
-          if (role === 'author' && results[1]) {
-            console.log('Author submissions:', results[1].data);
-            newState.submissions = results[1].data || [];
-            if (results[2]) {
-              newState.allSubmissions = results[2].data || [];
-            }
-          } else if (role === 'reviewer' && results[1]) {
-            newState.assignedReviews = results[1].data || [];
-          } else if ((role === 'chair' || role === 'admin') && results[1]) {
-            newState.allSubmissions = results[1].data || [];
-          }
-          
-          console.log('New store state:', newState);
+
           set(newState);
-          
         } catch (error) {
-          console.error("Failed to fetch dashboard data:", error);
           set({ 
             isLoading: false, 
-            error: error.message || 'Failed to fetch data'
+            error: error.response?.data?.detail || 'Lỗi tải dữ liệu dashboard' 
           });
         }
       },
-      
-      // Getters with computed values
+
+      // Hàm xóa bài nộp (Ví dụ gọi từ UI)
+      deleteSubmission: async (id) => {
+        set({ isLoading: true });
+        try {
+          await submissionService.delete(id);
+          // Cập nhật lại state cục bộ sau khi xóa thành công
+          set({ 
+            submissions: get().submissions.filter(s => s.id !== id),
+            isLoading: false 
+          });
+        } catch (error) {
+          set({ isLoading: false, error: "Không thể xóa bài viết" });
+        }
+      },
+
+      // --- GETTERS (Computed Values) ---
       getCounts: () => {
-        const allSubmissions = get().allSubmissions;
-        console.log('All submissions for counts:', allSubmissions);
-        const total = allSubmissions.filter(p => !p.is_withdrawn).length;
-        const accepted = allSubmissions.filter(p => p.status === "Accept").length;
-        const rejected = allSubmissions.filter(p => p.status === "Reject").length;
-        const underReview = total - accepted - rejected;
-        return { total, accepted, rejected, underReview };
+        const list = get().allSubmissions || [];
+        const total = list.filter(p => !p.is_withdrawn).length;
+        return {
+          total,
+          accepted: list.filter(p => p.status === "Accept").length,
+          rejected: list.filter(p => p.status === "Reject").length,
+          underReview: total - (list.filter(p => p.status === "Accept").length + list.filter(p => p.status === "Reject").length)
+        };
       },
-      
+
       getMyCounts: () => {
-        const submissions = get().submissions;
-        console.log('My submissions for counts:', submissions);
-        const myTotal = submissions.length;
-        const myAccepted = submissions.filter(p => p.status === "Accept").length;
-        const myRejected = submissions.filter(p => p.status === "Reject").length;
-        const myUnderReview = myTotal - myAccepted - myRejected;
-        return { total: myTotal, accepted: myAccepted, rejected: myRejected, underReview: myUnderReview };
+        const list = get().submissions || [];
+        return {
+          total: list.length,
+          accepted: list.filter(p => p.status === "Accept").length,
+          rejected: list.filter(p => p.status === "Reject").length,
+        };
       },
-      
-      // Clear store
+
       clearStore: () => set({ 
-        submissions: [], 
-        allSubmissions: [], 
-        conferences: [], 
-        assignedReviews: [],
-        isLoading: false,
-        error: null
+        submissions: [], allSubmissions: [], conferences: [], 
+        assignedReviews: [], isLoading: false, error: null 
       }),
     }),
     {

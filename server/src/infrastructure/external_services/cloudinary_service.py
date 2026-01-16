@@ -12,14 +12,13 @@ cloudinary.config(
 class CloudinaryService:
     @staticmethod
     async def upload_pdf(file: UploadFile, folder: str = "uth_conf_papers") -> str:
-        """Upload PDF và trả về Secure URL."""
         try:
             result = cloudinary.uploader.upload(
                 file.file,
                 folder = folder,
-                resource_type = "raw",
+                resource_type = "auto", 
                 public_id = f"{file.filename.split('.')[0]}",
-                access_mode = "authenticated" #
+                access_mode = "public" 
             )
             return result.get("secure_url")
         except Exception as e:

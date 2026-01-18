@@ -162,6 +162,16 @@ export const reviewService = {
     const res = await api.get(`/reviews/coi/check/${submissionId}`);
     return res.data;
   },
+
+  /**
+   * Get COIs by conference (Admin/Chair only)
+   * @param {number} conferenceId - Conference ID
+   * @returns {Promise<Array>} List of COIs
+   */
+  getCOIsByConference: async (conferenceId) => {
+    const res = await api.get(`/reviews/coi/conferences/${conferenceId}`);
+    return res.data;
+  },
 };
 
 export default reviewService;

@@ -40,6 +40,7 @@ import DecisionManagementPage from "../../features/Chair/pages/DecisionManagemen
 import ProceedingsExportPage from "../../features/Chair/pages/ProceedingsExportPage";
 import BulkNotificationsPage from "../../features/Chair/pages/BulkNotificationsPage";
 import ConferenceManagementPage from "../../features/Chair/pages/ConferenceManagementPage";
+import COIManagementPage from "../../features/Chair/pages/COIManagementPage";
 
 // Reviewer
 import ReviewerDashboard from "../../features/reviewer/ReviewerDashboard";
@@ -154,6 +155,22 @@ export default function AppRouter() {
                         element={
                             <ProtectedRoute allowRoles={["chair", "admin"]}>
                                 <ProceedingsExportPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/coi/:conferenceId"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <COIManagementPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/coi"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <COIManagementPage />
                             </ProtectedRoute>
                         }
                     />

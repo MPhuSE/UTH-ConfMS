@@ -558,6 +558,42 @@ def check_coi(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+@router.get("/coi/conferences/{conference_id}", response_model=List[COIResponse])
+def get_cois_by_conference(
+    conference_id: int,
+    current_user=Depends(require_admin_or_chair),
+    db: Session = Depends(get_db),
+    service=Depends(get_coi_service)
+):
+    """
+    Get all COIs for submissions in a conference - accessible by admin and chair.
+    """
+    from infrastructure.models.conference_model import TrackModel
+    from infrastructure.models.submission_model import SubmissionModel
+    
+    try:
+        # Get all submissions in the conference
+        track_ids = [t.id for t in db.query(TrackModel).filter(TrackModel.conference_id == conference_id).all()]
+        if not track_ids:
+            return []
+        
+        submissions = db.query(SubmissionModel).filter(SubmissionModel.track_id.in_(track_ids)).all()
+        submission_ids = [s.id for s in submissions]
+        
+        if not submission_ids:
+            return []
+        
+        # Get all COIs for these submissions
+        all_cois = []
+        for sub_id in submission_ids:
+            cois = service.get_cois_by_submission(sub_id)
+            all_cois.extend(cois)
+        
+        return [COIResponse(**c) for c in all_cois]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 # ==================== BIDDING ENDPOINTS ====================
 
 @router.post("/bids", response_model=BidResponse, status_code=status.HTTP_201_CREATED)

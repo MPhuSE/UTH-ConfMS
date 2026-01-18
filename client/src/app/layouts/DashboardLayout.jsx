@@ -182,6 +182,13 @@ export default function DashboardLayout() {
                 <span>Quản lý hội nghị</span>
               </Link>
               <Link
+                to="/dashboard/chair/coi"
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+              >
+                <Shield className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <span>Quản lý COI</span>
+              </Link>
+              <Link
                 to="/dashboard/audit-logs"
                 className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
               >

@@ -1,7 +1,7 @@
 import datetime
 import json
 from fastapi import APIRouter, Depends
-from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile 
+from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile, Request
 from typing import List
 from dependency_container import get_submission_repo, get_conference_repo
 from api.schemas.submission_schema import (
@@ -18,6 +18,7 @@ from services.submission.edit_submission import EditSubmissionService
 from services.submission.delete_submission import DeleteSubmissionService
 from services.submission.create_submission import CreateSubmissionService
 from infrastructure.external_services.cloudinary_service import CloudinaryService
+from api.utils.audit_utils import create_audit_log_sync
 
 
 router = APIRouter(prefix="/submissions", tags=["Submissions"])
@@ -31,6 +32,7 @@ async def submit_paper(
     conference_id: int = Form(...),
     file: UploadFile = File(...),
     authors: str = Form(None),
+    req: Request = None,
     current_user = Depends(get_current_user),
     repo = Depends(get_submission_repo),
     conf_repo = Depends(get_conference_repo) 
@@ -81,6 +83,30 @@ async def submit_paper(
         # Việc này đảm bảo các quan hệ (authors, files) được nạp đầy đủ 
         # giúp vượt qua bước kiểm tra ResponseValidationError của FastAPI.
         full_submission = repo.get_by_id(result.id)
+
+        # Audit: SUBMIT submission (includes initial PDF upload)
+        try:
+            create_audit_log_sync(
+                repo.db,
+                action_type="SUBMIT",
+                resource_type="SUBMISSION",
+                user_id=current_user.id,
+                resource_id=full_submission.id,
+                description="Author submitted a paper",
+                new_values={
+                    "id": full_submission.id,
+                    "title": full_submission.title,
+                    "conference_id": full_submission.conference_id,
+                    "track_id": full_submission.track_id,
+                    "file_path": full_submission.file_path,
+                },
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                metadata={"event": "submission_create", "pdf_uploaded": True},
+            )
+        except Exception:
+            # Don't block submission on audit failure
+            pass
         
         return full_submission
 
@@ -113,11 +139,28 @@ def list_my_submissions(
 @router.get("/{submission_id}", response_model=SubmissionResponseSchema)
 def get_submission(
     submission_id: int,
+    req: Request,
     current_user=Depends(get_current_user),
     repo=Depends(get_submission_repo)
 ):
     """Lấy chi tiết bài nộp - Yêu cầu đăng nhập."""
     submission = GetSubmissionService(repo).execute(submission_id)
+
+    # Audit: VIEW submission detail
+    try:
+        create_audit_log_sync(
+            repo.db,
+            action_type="VIEW",
+            resource_type="SUBMISSION",
+            user_id=current_user.id,
+            resource_id=submission_id,
+            description="Viewed submission detail",
+            ip_address=req.client.host if req and req.client else None,
+            user_agent=req.headers.get("user-agent") if req else None,
+            metadata={"event": "submission_view"},
+        )
+    except Exception:
+        pass
     return submission
 
 @router.patch("/{submission_id}", response_model=SubmissionResponseSchema)
@@ -128,6 +171,7 @@ async def update_submission(
     status: str = Form(None),
     file: UploadFile = File(None), 
     authors: str = Form(None),
+    req: Request = None,
     current_user = Depends(get_current_user),
     repo = Depends(get_submission_repo)
 ):
@@ -138,6 +182,9 @@ async def update_submission(
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
     
+    # Audit: snapshot before
+    before = submission
+
     # Gom dữ liệu chữ vào dict
     update_data = {}
     if title is not None: update_data["title"] = title
@@ -163,16 +210,55 @@ async def update_submission(
         update_data["file_url"] = new_file_url
 
     # 3. Gọi service để thực thi update vào Database
-    return EditSubmissionService(repo).execute(submission_id, update_data)
+    updated = EditSubmissionService(repo).execute(submission_id, update_data)
+
+    # Audit: UPDATE submission (and optionally PDF upload)
+    try:
+        create_audit_log_sync(
+            repo.db,
+            action_type="UPDATE",
+            resource_type="SUBMISSION",
+            user_id=current_user.id,
+            resource_id=submission_id,
+            description="Updated submission",
+            old_values={"title": before.title, "abstract": before.abstract, "status": before.status},
+            new_values={"title": updated.title, "abstract": updated.abstract, "status": updated.status},
+            ip_address=req.client.host if req and req.client else None,
+            user_agent=req.headers.get("user-agent") if req else None,
+            metadata={"event": "submission_update", "pdf_uploaded": bool(file)},
+        )
+    except Exception:
+        pass
+
+    return updated
 
 
 @router.delete("/{submission_id}")
 def delete_submission(
     submission_id: int,
+    req: Request,
     current_user=Depends(get_current_user),
     repo=Depends(get_submission_repo)
 ):
     """Delete submission - only author or admin/chair can delete."""
     # TODO: Add ownership check - only author or admin/chair can delete
+    submission = GetSubmissionService(repo).execute(submission_id)
     DeleteSubmissionService(repo).execute(submission_id)
+
+    # Audit: WITHDRAW (DELETE submission)
+    try:
+        create_audit_log_sync(
+            repo.db,
+            action_type="DELETE",
+            resource_type="SUBMISSION",
+            user_id=current_user.id,
+            resource_id=submission_id,
+            description="Author withdrew a submission",
+            old_values={"id": submission_id, "title": getattr(submission, "title", None)},
+            ip_address=req.client.host if req and req.client else None,
+            user_agent=req.headers.get("user-agent") if req else None,
+            metadata={"event": "submission_withdraw"},
+        )
+    except Exception:
+        pass
     return {"message": "Submission deleted successfully"}

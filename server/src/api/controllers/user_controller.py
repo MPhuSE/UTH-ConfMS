@@ -12,10 +12,12 @@ from api.schemas.user_schema import (
     UserLookupListResponse,
 )
 from services.user.user_management_service import UserManagementService
+from services.audit_log.audit_log_service import AuditLogService
 from infrastructure.models.user_model import UserModel
 from infrastructure.security.auth_dependencies import get_current_user, require_admin
 from domain.exceptions import DuplicateUserError, NotFoundError
-from dependency_container import get_user_management_service
+from dependency_container import get_user_management_service, get_audit_log_service
+from domain.models.audit_log import ActionType, ResourceType
 
 router = APIRouter(prefix="/users", tags=["User Management"])
 
@@ -111,6 +113,7 @@ async def get_user_by_id(
 async def create_user(
     request: UserCreateRequest,
     user_service: UserManagementService = Depends(get_user_management_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: UserModel = Depends(require_admin),
 ):
     """Tạo người dùng mới (Yêu cầu quyền admin/chair)."""
@@ -126,6 +129,15 @@ async def create_user(
             is_verified=request.is_verified,
             role_ids=request.role_ids,
         )
+
+        await audit_log_service.create_audit_log(
+            action_type=ActionType.CREATE,
+            resource_type=ResourceType.USER,
+            user_id=current_user.id,
+            resource_id=user.id,
+            description=f"Created user {user.email}",
+            new_values={"id": user.id, "email": user.email, "full_name": user.full_name, "is_active": user.is_active, "is_verified": user.is_verified},
+        )
         return UserResponse.model_validate(user)
     except DuplicateUserError as e:
         raise HTTPException(
@@ -139,10 +151,12 @@ async def update_user(
     user_id: int,
     request: UserUpdateRequest,
     user_service: UserManagementService = Depends(get_user_management_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: UserModel = Depends(require_admin),
 ):
     """Cập nhật thông tin người dùng (Yêu cầu quyền admin/chair)."""
     try:
+        before = await user_service.get_user_by_id(user_id)
         user = await user_service.update_user(
             user_id=user_id,
             full_name=request.full_name,
@@ -151,6 +165,16 @@ async def update_user(
             website_url=request.website_url,
             is_active=request.is_active,
             is_verified=request.is_verified,
+        )
+
+        await audit_log_service.create_audit_log(
+            action_type=ActionType.UPDATE,
+            resource_type=ResourceType.USER,
+            user_id=current_user.id,
+            resource_id=user.id,
+            description=f"Updated user {user.email}",
+            old_values={"full_name": before.full_name, "affiliation": before.affiliation, "phone_number": before.phone_number, "website_url": before.website_url, "is_active": before.is_active, "is_verified": before.is_verified},
+            new_values={"full_name": user.full_name, "affiliation": user.affiliation, "phone_number": user.phone_number, "website_url": user.website_url, "is_active": user.is_active, "is_verified": user.is_verified},
         )
         return UserResponse.model_validate(user)
     except NotFoundError as e:
@@ -192,11 +216,20 @@ async def add_role_to_user(
     user_id: int,
     request: UserRoleUpdateRequest,
     user_service: UserManagementService = Depends(get_user_management_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: UserModel = Depends(require_admin),
 ):
     """Thêm role cho người dùng (Yêu cầu quyền admin/chair)."""
     try:
         user = await user_service.add_role_to_user(user_id, request.role_id)
+        await audit_log_service.create_audit_log(
+            action_type=ActionType.ASSIGN,
+            resource_type=ResourceType.ROLE,
+            user_id=current_user.id,
+            resource_id=user_id,
+            description=f"Added role {request.role_id} to user {user_id}",
+            new_values={"user_id": user_id, "role_id": request.role_id},
+        )
         return UserResponse.model_validate(user)
     except NotFoundError as e:
         raise HTTPException(
@@ -210,11 +243,20 @@ async def remove_role_from_user(
     user_id: int,
     role_id: int,
     user_service: UserManagementService = Depends(get_user_management_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: UserModel = Depends(require_admin),
 ):
     """Xóa role khỏi người dùng (Yêu cầu quyền admin/chair)."""
     try:
         user = await user_service.remove_role_from_user(user_id, role_id)
+        await audit_log_service.create_audit_log(
+            action_type=ActionType.DELETE,
+            resource_type=ResourceType.ROLE,
+            user_id=current_user.id,
+            resource_id=user_id,
+            description=f"Removed role {role_id} from user {user_id}",
+            old_values={"user_id": user_id, "role_id": role_id},
+        )
         return UserResponse.model_validate(user)
     except NotFoundError as e:
         raise HTTPException(
@@ -227,11 +269,21 @@ async def remove_role_from_user(
 async def delete_user(
     user_id: int,
     user_service: UserManagementService = Depends(get_user_management_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: UserModel = Depends(require_admin),
 ):
     """Xóa người dùng (Yêu cầu quyền admin/chair)."""
     try:
+        user_before = await user_service.get_user_by_id(user_id)
         await user_service.delete_user(user_id)
+        await audit_log_service.create_audit_log(
+            action_type=ActionType.DELETE,
+            resource_type=ResourceType.USER,
+            user_id=current_user.id,
+            resource_id=user_id,
+            description=f"Deleted user {user_before.email}",
+            old_values={"id": user_before.id, "email": user_before.email, "full_name": user_before.full_name},
+        )
     except NotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

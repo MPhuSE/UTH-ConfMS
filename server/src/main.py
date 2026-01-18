@@ -10,7 +10,8 @@ from api.controllers import (
     conference_controller, submission_controller, review_controller,
     track_controller, decision_controller, camera_ready_controller,
     reports_controller, email_template_controller, ai_controller,
-    admin_controller, schedule_controller, notification_controller
+    admin_controller, schedule_controller, notification_controller,
+    tenant_controller
 )
 
 from infrastructure.models import (
@@ -19,7 +20,8 @@ from infrastructure.models import (
     conference_model,
     review_model,
     audit_log_model,
-    system_model
+    system_model,
+    tenant_model
 )
 
 
@@ -79,6 +81,7 @@ app.include_router(ai_controller.router)
 app.include_router(admin_controller.router)
 app.include_router(schedule_controller.router)
 app.include_router(notification_controller.router)
+app.include_router(tenant_controller.router)
 
 
 

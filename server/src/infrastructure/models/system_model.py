@@ -36,3 +36,22 @@ class ScheduleItemModel(Base):
     lesson = relationship("LessonModel", back_populates="schedule_items")
     conference = relationship("ConferenceModel")
     submission = relationship("SubmissionModel")
+
+
+class SystemSettingsModel(Base):
+    __tablename__ = "system_settings"
+
+    id = Column(Integer, primary_key=True)
+
+    smtp_host = Column(String)
+    smtp_port = Column(Integer)
+    smtp_user = Column(String)
+    smtp_password = Column(String)
+    smtp_from_email = Column(String)
+    smtp_from_name = Column(String)
+
+    quota_max_submissions_per_user = Column(Integer)
+    quota_max_reviews_per_reviewer = Column(Integer)
+    quota_max_file_size_mb = Column(Integer)
+
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

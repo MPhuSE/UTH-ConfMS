@@ -6,6 +6,8 @@ from typing import Optional, Dict, Any
 from infrastructure.databases.postgres import get_db
 from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin
+from infrastructure.models.system_model import SystemSettingsModel
+from api.utils.audit_utils import create_audit_log_sync
 from config import settings
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -46,13 +48,29 @@ def get_smtp_config(
     db: Session = Depends(get_db)
 ):
     """Get SMTP configuration."""
-    
+    system_settings = db.query(SystemSettingsModel).first()
+    if not system_settings:
+        system_settings = SystemSettingsModel(
+            smtp_host=settings.SMTP_HOST,
+            smtp_port=int(settings.SMTP_PORT),
+            smtp_user=settings.SMTP_USER,
+            smtp_password=settings.SMTP_PASSWORD,
+            smtp_from_email=settings.SMTP_FROM_EMAIL,
+            smtp_from_name=settings.SMTP_FROM_NAME,
+            quota_max_submissions_per_user=10,
+            quota_max_reviews_per_reviewer=20,
+            quota_max_file_size_mb=10,
+        )
+        db.add(system_settings)
+        db.commit()
+        db.refresh(system_settings)
+
     return SMTPConfigResponse(
-        host=settings.SMTP_HOST,
-        port=int(settings.SMTP_PORT),
-        user=settings.SMTP_USER,
-        from_email=settings.SMTP_FROM_EMAIL,
-        from_name=settings.SMTP_FROM_NAME
+        host=system_settings.smtp_host,
+        port=system_settings.smtp_port or int(settings.SMTP_PORT),
+        user=system_settings.smtp_user,
+        from_email=system_settings.smtp_from_email,
+        from_name=system_settings.smtp_from_name,
     )
 
 
@@ -63,15 +81,51 @@ def update_smtp_config(
     db: Session = Depends(get_db)
 ):
     """Update SMTP configuration."""
-    
-    # In production, this would update a database table or config file
-    # For now, we'll just return the request
+    system_settings = db.query(SystemSettingsModel).first()
+    if not system_settings:
+        system_settings = SystemSettingsModel()
+        db.add(system_settings)
+
+    old_values = {
+        "smtp_host": system_settings.smtp_host,
+        "smtp_port": system_settings.smtp_port,
+        "smtp_user": system_settings.smtp_user,
+        "smtp_from_email": system_settings.smtp_from_email,
+        "smtp_from_name": system_settings.smtp_from_name,
+    }
+
+    system_settings.smtp_host = request.host
+    system_settings.smtp_port = request.port
+    system_settings.smtp_user = request.user
+    system_settings.smtp_password = request.password
+    system_settings.smtp_from_email = request.from_email
+    system_settings.smtp_from_name = request.from_name
+    db.commit()
+    db.refresh(system_settings)
+
+    create_audit_log_sync(
+        db,
+        action_type="UPDATE",
+        resource_type="SYSTEM",
+        user_id=current_user.id,
+        description="Updated SMTP configuration",
+        old_values=old_values,
+        new_values={
+            "smtp_host": system_settings.smtp_host,
+            "smtp_port": system_settings.smtp_port,
+            "smtp_user": system_settings.smtp_user,
+            "smtp_from_email": system_settings.smtp_from_email,
+            "smtp_from_name": system_settings.smtp_from_name,
+        },
+        metadata={"section": "smtp-config"},
+    )
+
     return SMTPConfigResponse(
-        host=request.host,
-        port=request.port,
-        user=request.user,
-        from_email=request.from_email,
-        from_name=request.from_name
+        host=system_settings.smtp_host,
+        port=system_settings.smtp_port,
+        user=system_settings.smtp_user,
+        from_email=system_settings.smtp_from_email,
+        from_name=system_settings.smtp_from_name,
     )
 
 
@@ -81,12 +135,27 @@ def get_quotas(
     db: Session = Depends(get_db)
 ):
     """Get quota configuration."""
-    
-    # In production, this would come from database
+    system_settings = db.query(SystemSettingsModel).first()
+    if not system_settings:
+        system_settings = SystemSettingsModel(
+            smtp_host=settings.SMTP_HOST,
+            smtp_port=int(settings.SMTP_PORT),
+            smtp_user=settings.SMTP_USER,
+            smtp_password=settings.SMTP_PASSWORD,
+            smtp_from_email=settings.SMTP_FROM_EMAIL,
+            smtp_from_name=settings.SMTP_FROM_NAME,
+            quota_max_submissions_per_user=10,
+            quota_max_reviews_per_reviewer=20,
+            quota_max_file_size_mb=10,
+        )
+        db.add(system_settings)
+        db.commit()
+        db.refresh(system_settings)
+
     return QuotaConfigResponse(
-        max_submissions_per_user=10,
-        max_reviews_per_reviewer=20,
-        max_file_size_mb=10
+        max_submissions_per_user=system_settings.quota_max_submissions_per_user,
+        max_reviews_per_reviewer=system_settings.quota_max_reviews_per_reviewer,
+        max_file_size_mb=system_settings.quota_max_file_size_mb,
     )
 
 
@@ -97,12 +166,46 @@ def update_quotas(
     db: Session = Depends(get_db)
 ):
     """Update quota configuration."""
-    
-    # In production, this would update a database table
+    system_settings = db.query(SystemSettingsModel).first()
+    if not system_settings:
+        system_settings = SystemSettingsModel()
+        db.add(system_settings)
+
+    old_values = {
+        "max_submissions_per_user": system_settings.quota_max_submissions_per_user,
+        "max_reviews_per_reviewer": system_settings.quota_max_reviews_per_reviewer,
+        "max_file_size_mb": system_settings.quota_max_file_size_mb,
+    }
+
+    if request.max_submissions_per_user is not None:
+        system_settings.quota_max_submissions_per_user = request.max_submissions_per_user
+    if request.max_reviews_per_reviewer is not None:
+        system_settings.quota_max_reviews_per_reviewer = request.max_reviews_per_reviewer
+    if request.max_file_size_mb is not None:
+        system_settings.quota_max_file_size_mb = request.max_file_size_mb
+
+    db.commit()
+    db.refresh(system_settings)
+
+    create_audit_log_sync(
+        db,
+        action_type="UPDATE",
+        resource_type="SYSTEM",
+        user_id=current_user.id,
+        description="Updated quota configuration",
+        old_values=old_values,
+        new_values={
+            "max_submissions_per_user": system_settings.quota_max_submissions_per_user,
+            "max_reviews_per_reviewer": system_settings.quota_max_reviews_per_reviewer,
+            "max_file_size_mb": system_settings.quota_max_file_size_mb,
+        },
+        metadata={"section": "quotas"},
+    )
+
     return QuotaConfigResponse(
-        max_submissions_per_user=request.max_submissions_per_user,
-        max_reviews_per_reviewer=request.max_reviews_per_reviewer,
-        max_file_size_mb=request.max_file_size_mb
+        max_submissions_per_user=system_settings.quota_max_submissions_per_user,
+        max_reviews_per_reviewer=system_settings.quota_max_reviews_per_reviewer,
+        max_file_size_mb=system_settings.quota_max_file_size_mb,
     )
 
 

@@ -13,6 +13,26 @@ const isCameraReadyDone = (submission) => {
     || status.includes("published");
 };
 
+const getFileUrl = (submission) => submission?.file_url || submission?.file_path || "";
+
+const getDownloadUrl = (url) => {
+  if (!url) return "#";
+  try {
+    const parsed = new URL(url);
+    let filename = decodeURIComponent(parsed.pathname.split("/").pop() || "paper.pdf");
+    if (!filename.toLowerCase().endsWith(".pdf")) {
+      filename = `${filename}.pdf`;
+    }
+    if (!parsed.pathname.includes("/upload/")) return url;
+    if (parsed.pathname.includes("fl_attachment")) return url;
+    const [prefix, suffix] = parsed.pathname.split("/upload/");
+    parsed.pathname = `${prefix}/upload/fl_attachment:${filename}/${suffix}`;
+    return parsed.toString();
+  } catch (err) {
+    return url;
+  }
+};
+
 const CameraReadyBox = ({ submission, onUpload, isLoading }) => {
   const [file, setFile] = useState(null);
   const isFinished = isCameraReadyDone(submission);
@@ -61,6 +81,7 @@ export default function SubmissionDetailPage() {
     currentSubmission, 
     fetchSubmissionById, 
     uploadCameraReady, 
+    deleteSubmission,
     isLoading,
     reviewsBySubmission,
     reviewsLoading,
@@ -68,6 +89,7 @@ export default function SubmissionDetailPage() {
   } = useSubmissionStore();
   const submissionId = Number(id);
   const [reviewsOpen, setReviewsOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const subData = useMemo(() => {
     const fromList = submissions.find(s => s.id === Number(id));
@@ -97,6 +119,16 @@ export default function SubmissionDetailPage() {
   const isAccepted = subData?.decision?.toLowerCase() === 'accepted';
   const isCameraDone = isCameraReadyDone(subData);
   const submissionReviews = reviewsBySubmission[submissionId] || [];
+  const fileUrl = getFileUrl(subData);
+
+  const handleWithdraw = async () => {
+    if (!subData?.id) return;
+    if (!window.confirm("Bạn có chắc chắn muốn rút bài này?")) return;
+    setIsDeleting(true);
+    const ok = await deleteSubmission(subData.id);
+    setIsDeleting(false);
+    if (ok) navigate("/dashboard/my-submissions");
+  };
 
   const handleToggleReviews = async () => {
     const nextOpen = !reviewsOpen;
@@ -135,16 +167,42 @@ export default function SubmissionDetailPage() {
 
             <h2 className="text-4xl font-black text-gray-900 leading-tight mb-8 tracking-tighter">{subData?.title}</h2>
             
-            {isAccepted && !isCameraDone && (
-              <div className="mb-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              {subData?.status?.toLowerCase() === 'submitted' && (
+                <button
+                  onClick={() => navigate(`/dashboard/submission/edit/${subData?.id}`)}
+                  className="px-4 py-2 bg-amber-100 text-amber-700 rounded-xl text-[10px] font-black uppercase"
+                >
+                  Chỉnh sửa
+                </button>
+              )}
+              {(subData?.status?.toLowerCase() === 'submitted' || subData?.status?.toLowerCase() === 'under review') && (
+                <button
+                  onClick={handleWithdraw}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase"
+                >
+                  {isDeleting ? "Đang rút..." : "Rút bài"}
+                </button>
+              )}
+              {fileUrl && (
+                <a
+                  href={getDownloadUrl(fileUrl)}
+                  download
+                  className="px-4 py-2 bg-blue-100 text-blue-700 rounded-xl text-[10px] font-black uppercase"
+                >
+                  Tải PDF
+                </a>
+              )}
+              {isAccepted && !isCameraDone && (
                 <button
                   onClick={() => navigate(`/dashboard/submission/${subData?.id}/camera-ready`)}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase"
                 >
                   Nộp bản camera-ready
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
             <CameraReadyBox submission={subData} onUpload={uploadCameraReady} isLoading={isLoading} />
 
@@ -157,6 +215,19 @@ export default function SubmissionDetailPage() {
                 <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Submission Date</span>
                 <span className="text-sm font-bold text-gray-800">{subData?.created_at ? new Date(subData.created_at).toLocaleDateString() : '---'}</span>
               </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Conference</span>
+                <span className="text-sm font-bold text-gray-800">{subData?.track?.conference?.name || '---'}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Status</span>
+                <span className="text-sm font-bold text-gray-800">{statusInfo.label}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t">
+              <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Abstract</span>
+              <p className="mt-3 text-sm text-gray-700 whitespace-pre-line">{subData?.abstract || "---"}</p>
             </div>
 
             <div className="mt-6 pt-6 border-t">

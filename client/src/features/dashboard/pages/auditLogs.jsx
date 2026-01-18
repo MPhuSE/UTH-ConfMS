@@ -15,7 +15,7 @@ export default function AuditLog() {
         if (!logs) return [];
         return logs.filter((log) => {
             const matchesSearch =
-                (log.metadata?.admin_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (log.user_full_name || log.user_email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (log.resource_type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (log.description || "").toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -74,10 +74,10 @@ export default function AuditLog() {
                         ) : filteredLogs.map((log, index) => (
                             <tr key={log._id || index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                 <td className="p-3 text-gray-500 font-mono text-[11px] border-r border-gray-100">
-                                    {new Date(log.createdAt).toLocaleString('en-GB')}
+                                    {log.created_at ? new Date(log.created_at).toLocaleString('en-GB') : "---"}
                                 </td>
                                 <td className="p-3 border-r border-gray-100 font-semibold text-gray-700">
-                                    {log.metadata?.admin_name || "System"}
+                                    {log.user_full_name || log.user_email || "System"}
                                 </td>
                                 <td className="p-3 text-center border-r border-gray-100">
                                     <span className={`px-1.5 py-0.5 text-[9px] font-black tracking-tighter rounded border ${log.action_type === 'DELETE' ? 'text-red-600 border-red-200 bg-red-50' :

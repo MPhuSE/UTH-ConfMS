@@ -51,6 +51,25 @@ export const adminService = {
     const res = await api.get("/admin/system-health");
     return res.data;
   },
+
+  /**
+   * Tenancy management
+   */
+  getTenants: async () => {
+    const res = await api.get("/tenants");
+    return res.data;
+  },
+  createTenant: async (payload) => {
+    const res = await api.post("/tenants", payload);
+    return res.data;
+  },
+  updateTenant: async (tenantId, payload) => {
+    const res = await api.put(`/tenants/${tenantId}`, payload);
+    return res.data;
+  },
+  deleteTenant: async (tenantId) => {
+    await api.delete(`/tenants/${tenantId}`);
+  },
 };
 
 export default adminService;

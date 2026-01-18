@@ -149,7 +149,7 @@ export default function AdminDashboard() {
           </button>
 
           <button
-            onClick={() => navigate("/dashboard/smtp-config")}
+            onClick={() => navigate("/dashboard/admin/smtp-config")}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">

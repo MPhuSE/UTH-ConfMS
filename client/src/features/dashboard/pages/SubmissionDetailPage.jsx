@@ -167,7 +167,7 @@ export default function SubmissionDetailPage() {
                         </div>
 
                         <div className="flex justify-end">
-                            <a href={paper.file_url} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-black transition shadow-xl">
+                            <a href={paper.file_url || paper.file_path} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-black transition shadow-xl">
                                 <Download size={20} /> Xem PDF
                             </a>
                         </div>

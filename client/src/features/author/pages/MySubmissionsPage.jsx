@@ -31,8 +31,23 @@ export default function MySubmissionsPage() {
   // Helper: Biến URL thành link ép tải về (Attachment)
   const getDownloadUrl = (url) => {
     if (!url) return "#";
-    return url.replace('/upload/', '/upload/fl_attachment/');
+    try {
+      const parsed = new URL(url);
+      let filename = decodeURIComponent(parsed.pathname.split("/").pop() || "paper.pdf");
+      if (!filename.toLowerCase().endsWith(".pdf")) {
+        filename = `${filename}.pdf`;
+      }
+      if (!parsed.pathname.includes("/upload/")) return url;
+      if (parsed.pathname.includes("fl_attachment")) return url;
+      const [prefix, suffix] = parsed.pathname.split("/upload/");
+      parsed.pathname = `${prefix}/upload/fl_attachment:${filename}/${suffix}`;
+      return parsed.toString();
+    } catch (err) {
+      return url;
+    }
   };
+
+  const getFileUrl = (submission) => submission?.file_url || submission?.file_path || "";
 
   useEffect(() => {
     fetchDashboardData('author');
@@ -162,8 +177,8 @@ export default function MySubmissionsPage() {
               <div className="flex flex-col md:flex-row">
                 {/* PDF Thumbnail */}
                 <div className="w-full md:w-32 bg-gray-50 flex items-center justify-center border-r border-gray-50">
-                  {sub.file_url ? (
-                    <img src={getThumbnailUrl(sub.file_url)} alt="PDF" className="w-full h-full object-cover" />
+                  {getFileUrl(sub) ? (
+                    <img src={getThumbnailUrl(getFileUrl(sub))} alt="PDF" className="w-full h-full object-cover" />
                   ) : (
                     <FileText size={40} className="text-gray-200" />
                   )}
@@ -193,7 +208,11 @@ export default function MySubmissionsPage() {
                         <Edit size={14} /> {language === 'VI' ? 'Sửa' : 'Edit'}
                       </button>
                     )}
-                    <a href={getDownloadUrl(sub.file_url)} className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-xs font-bold hover:bg-blue-200">
+                    <a
+                      href={getDownloadUrl(getFileUrl(sub))}
+                      download
+                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-xs font-bold hover:bg-blue-200"
+                    >
                       <Download size={14} /> {language === 'VI' ? 'Tải PDF' : 'Download'}
                     </a>
                     {(sub.status?.toLowerCase() === 'submitted' || sub.status?.toLowerCase() === 'under review') && (

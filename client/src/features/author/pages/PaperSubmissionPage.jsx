@@ -64,7 +64,7 @@ export default function PaperSubmissionPage() {
         file: null,
         authors: paper.authors || [{ name: "", email: "", affiliation: "", is_main: true }]
       });
-      if (paper.file_url) setPdfPreviewUrl(paper.file_url);
+      if (paper.file_url || paper.file_path) setPdfPreviewUrl(paper.file_url || paper.file_path);
     } catch (err) {
       console.error(err);
     } finally {

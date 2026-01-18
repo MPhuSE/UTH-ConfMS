@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -19,6 +19,7 @@ from services.review.review_service import ReviewService
 from services.review.coi_service import COIService
 from services.review.bidding_service import BiddingService
 from domain.exceptions import NotFoundError, BusinessRuleException
+from api.utils.audit_utils import create_audit_log_sync
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 
@@ -158,12 +159,29 @@ def submit_review(
 @router.get("/submissions/{submission_id}", response_model=List[ReviewResponse])
 def get_reviews_by_submission(
     submission_id: int,
+    req: Request,
     current_user=Depends(get_current_user),
     service=Depends(get_review_service)
 ):
     """Get all reviews for a submission."""
     try:
         reviews = service.get_reviews_by_submission(submission_id)
+
+        # Audit: VIEW reviews (anonymized feedback)
+        try:
+            create_audit_log_sync(
+                service.db,
+                action_type="VIEW",
+                resource_type="REVIEW",
+                user_id=current_user.id,
+                resource_id=submission_id,
+                description="Viewed reviews for a submission",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                metadata={"event": "reviews_view"},
+            )
+        except Exception:
+            pass
         return [ReviewResponse(**r) for r in reviews]
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

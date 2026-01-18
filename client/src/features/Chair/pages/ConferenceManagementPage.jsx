@@ -42,13 +42,14 @@ export default function ConferenceManagementPage() {
     name: "",
     abbreviation: "",
     description: "",
-    website_url: "",
+    website: "",
+    location: "",
     start_date: "",
     end_date: "",
     submission_deadline: "",
     review_deadline: "",
     is_open: true,
-    double_blind: true,
+    blind_mode: "double",
   });
 
   useEffect(() => {
@@ -73,13 +74,14 @@ export default function ConferenceManagementPage() {
       name: "",
       abbreviation: "",
       description: "",
-      website_url: "",
+      website: "",
+      location: "",
       start_date: "",
       end_date: "",
       submission_deadline: "",
       review_deadline: "",
       is_open: true,
-      double_blind: true,
+      blind_mode: "double",
     });
   };
 
@@ -89,13 +91,14 @@ export default function ConferenceManagementPage() {
       name: conf.name || "",
       abbreviation: conf.abbreviation || "",
       description: conf.description || "",
-      website_url: conf.website_url || "",
+      website: conf.website || "",
+      location: conf.location || "",
       start_date: toDateInput(conf.start_date),
       end_date: toDateInput(conf.end_date),
       submission_deadline: toDateInput(conf.submission_deadline),
       review_deadline: toDateInput(conf.review_deadline),
       is_open: !!conf.is_open,
-      double_blind: !!conf.double_blind,
+      blind_mode: conf.blind_mode || "double",
     });
   };
 
@@ -104,9 +107,10 @@ export default function ConferenceManagementPage() {
       name: form.name.trim(),
       abbreviation: form.abbreviation?.trim() || null,
       description: form.description?.trim() || null,
-      website_url: form.website_url?.trim() || null,
+      website: form.website?.trim() || null,
+      location: form.location?.trim() || null,
       is_open: Boolean(form.is_open),
-      double_blind: Boolean(form.double_blind),
+      blind_mode: form.blind_mode || "double",
     };
     
     // Add dates only if they exist (Pydantic expects Optional[datetime] or None)
@@ -263,7 +267,8 @@ export default function ConferenceManagementPage() {
         <div className="space-y-4">
           <Input label="Tên hội nghị" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <Input label="Viết tắt" value={form.abbreviation} onChange={(e) => setForm({ ...form, abbreviation: e.target.value })} />
-          <Input label="Website" value={form.website_url} onChange={(e) => setForm({ ...form, website_url: e.target.value })} />
+          <Input label="Website" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+          <Input label="Địa điểm" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Mô tả</label>
             <textarea
@@ -294,10 +299,18 @@ export default function ConferenceManagementPage() {
               <input type="checkbox" checked={form.is_open} onChange={(e) => setForm({ ...form, is_open: e.target.checked })} />
               Open CFP
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={form.double_blind} onChange={(e) => setForm({ ...form, double_blind: e.target.checked })} />
-              Double blind
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Chế độ ẩn danh:</label>
+              <select
+                value={form.blind_mode}
+                onChange={(e) => setForm({ ...form, blind_mode: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-300 text-sm"
+              >
+                <option value="single">Single Blind</option>
+                <option value="double">Double Blind</option>
+                <option value="open">Open</option>
+              </select>
+            </div>
           </div>
           <div className="flex gap-3 justify-end">
             <Button variant="secondary" onClick={() => { setCreateModal(false); resetForm(); }}>
@@ -321,7 +334,8 @@ export default function ConferenceManagementPage() {
         <div className="space-y-4">
           <Input label="Tên hội nghị" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <Input label="Viết tắt" value={form.abbreviation} onChange={(e) => setForm({ ...form, abbreviation: e.target.value })} />
-          <Input label="Website" value={form.website_url} onChange={(e) => setForm({ ...form, website_url: e.target.value })} />
+          <Input label="Website" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+          <Input label="Địa điểm" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Mô tả</label>
             <textarea
@@ -352,10 +366,18 @@ export default function ConferenceManagementPage() {
               <input type="checkbox" checked={form.is_open} onChange={(e) => setForm({ ...form, is_open: e.target.checked })} />
               Open CFP
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={form.double_blind} onChange={(e) => setForm({ ...form, double_blind: e.target.checked })} />
-              Double blind
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Chế độ ẩn danh:</label>
+              <select
+                value={form.blind_mode}
+                onChange={(e) => setForm({ ...form, blind_mode: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-300 text-sm"
+              >
+                <option value="single">Single Blind</option>
+                <option value="double">Double Blind</option>
+                <option value="open">Open</option>
+              </select>
+            </div>
           </div>
           <div className="flex gap-3 justify-end">
             <Button variant="secondary" onClick={() => { setEditModal(null); resetForm(); }}>

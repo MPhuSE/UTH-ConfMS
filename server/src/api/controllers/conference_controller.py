@@ -46,11 +46,11 @@ def create_conference(
         service = CreateConferenceService(repo)
         conference = Conference(
             id=None, name=request.name, abbreviation=request.abbreviation,
-            description=request.description, website_url=request.website_url,
-            start_date=request.start_date, end_date=request.end_date,
+            description=request.description, website=request.website,
+            location=request.location, start_date=request.start_date, end_date=request.end_date,
             submission_deadline=request.submission_deadline,
             review_deadline=request.review_deadline,
-            is_open=request.is_open, double_blind=request.double_blind
+            is_open=request.is_open, blind_mode=request.blind_mode
         )
         result = service.execute(conference)
         
@@ -69,7 +69,7 @@ def create_conference(
                     "name": request.name,
                     "abbreviation": request.abbreviation,
                     "is_open": request.is_open,
-                    "double_blind": request.double_blind,
+                    "blind_mode": request.blind_mode,
                 },
             )
         except Exception:
@@ -90,11 +90,11 @@ def get_conference_by_id(conference_id: int, db: Session = Depends(get_db)):
         conf = service.get_by_id(conference_id)
         return ConferenceResponse(
             id=conf.id, name=conf.name, abbreviation=conf.abbreviation,
-            description=conf.description, website_url=conf.website_url,
-            start_date=conf.start_date, end_date=conf.end_date,
+            description=conf.description, website=conf.website,
+            location=conf.location, start_date=conf.start_date, end_date=conf.end_date,
             submission_deadline=conf.submission_deadline,
             review_deadline=conf.review_deadline,
-            is_open=conf.is_open, double_blind=conf.double_blind
+            is_open=conf.is_open, blind_mode=conf.blind_mode
         )
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -108,9 +108,9 @@ def get_all_conferences(skip: int = Query(0), limit: int = Query(100), db: Sessi
     return ConferenceListResponse(
         conferences=[ConferenceResponse(
             id=c.id, name=c.name, abbreviation=c.abbreviation, description=c.description,
-            website_url=c.website_url, start_date=c.start_date, end_date=c.end_date,
+            website=c.website, location=c.location, start_date=c.start_date, end_date=c.end_date,
             submission_deadline=c.submission_deadline, review_deadline=c.review_deadline,
-            is_open=c.is_open, double_blind=c.double_blind
+            is_open=c.is_open, blind_mode=c.blind_mode
         ) for c in conferences],
         total=total
     )
@@ -179,11 +179,11 @@ def update_conference_by_id(
         service = UpdateConferenceService(repo)
         conf = Conference(
             id=conference_id, name=request.name, abbreviation=request.abbreviation,
-            description=request.description, website_url=request.website_url,
-            start_date=request.start_date, end_date=request.end_date,
+            description=request.description, website=request.website,
+            location=request.location, start_date=request.start_date, end_date=request.end_date,
             submission_deadline=request.submission_deadline,
             review_deadline=request.review_deadline,
-            is_open=request.is_open, double_blind=request.double_blind
+            is_open=request.is_open, blind_mode=request.blind_mode
         )
         updated = service.update(conf)
         
@@ -201,12 +201,12 @@ def update_conference_by_id(
                 old_values={
                     "name": old_conf.name if old_conf else None,
                     "is_open": old_conf.is_open if old_conf else None,
-                    "double_blind": old_conf.double_blind if old_conf else None,
+                    "blind_mode": old_conf.blind_mode if old_conf else None,
                 } if old_conf else None,
                 new_values={
                     "name": request.name,
                     "is_open": request.is_open,
-                    "double_blind": request.double_blind,
+                    "blind_mode": request.blind_mode,
                 },
             )
         except Exception:
@@ -214,11 +214,11 @@ def update_conference_by_id(
         
         return ConferenceResponse(
             id=updated.id, name=updated.name, abbreviation=updated.abbreviation,
-            description=updated.description, website_url=updated.website_url,
-            start_date=updated.start_date, end_date=updated.end_date,
+            description=updated.description, website=updated.website,
+            location=updated.location, start_date=updated.start_date, end_date=updated.end_date,
             submission_deadline=updated.submission_deadline,
             review_deadline=updated.review_deadline,
-            is_open=updated.is_open, double_blind=updated.double_blind
+            is_open=updated.is_open, blind_mode=updated.blind_mode
         )
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))

@@ -8,7 +8,8 @@ class Conference:
     name: str
     abbreviation: Optional[str]
     description: Optional[str]
-    website_url: Optional[str]
+    website: Optional[str]  # Đổi từ website_url
+    location: Optional[str]  # Thêm location
 
     start_date: Optional[datetime]
     end_date: Optional[datetime]
@@ -16,4 +17,4 @@ class Conference:
     review_deadline: Optional[datetime]
 
     is_open: bool
-    double_blind: bool
+    blind_mode: str  # Đổi từ double_blind: enum single, double, open

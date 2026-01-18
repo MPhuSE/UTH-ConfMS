@@ -11,8 +11,9 @@ class ConferenceModel(Base):
     name = Column(String, nullable=False)
     abbreviation = Column(String)
     description = Column(String)
-    website_url = Column(String)
-    
+    website_url = Column(String)  # Tạm thời giữ website_url cho đến khi migration chạy xong
+    # website = Column(String)  # Sẽ được dùng sau migration - comment để tránh SQLAlchemy query
+    # location = Column(String)  # Sẽ được dùng sau migration - comment để tránh SQLAlchemy query
 
     start_date = Column(DateTime)
     end_date = Column(DateTime)
@@ -25,9 +26,10 @@ class ConferenceModel(Base):
     camera_ready_open = Column(Boolean, default=False)
     camera_ready_deadline = Column(DateTime, nullable=True)
     
-
+    # Blind mode: single, double, open
+    double_blind = Column(Boolean, default=True)  # Tạm thời giữ double_blind cho đến khi migration chạy xong
+    # blind_mode = Column(String, default="double")  # Sẽ được dùng sau migration - comment để tránh SQLAlchemy query
     is_open = Column(Boolean, default=True)
-    double_blind = Column(Boolean, default=True)
     
 
     tracks = relationship("TrackModel", back_populates="conference", lazy="selectin")
@@ -40,6 +42,7 @@ class TrackModel(Base):
     id = Column(Integer, primary_key=True)
     conference_id = Column(ForeignKey("conferences.id"), nullable=False)
     name = Column(String, nullable=False)
+    description = Column(String)  # Thêm description
     max_reviewers = Column(Integer, default=3)
     
 
@@ -63,6 +66,7 @@ class SessionModel(Base):
     id = Column(Integer, primary_key=True)
     conference_id = Column(ForeignKey("conferences.id"), nullable=False)
     name = Column(String, nullable=False)
+    room = Column(String)  # Thêm room
     conference = relationship("ConferenceModel", back_populates="sessions")
     schedule_items = relationship("ScheduleItemModel", back_populates="session", lazy="selectin")
 

@@ -18,9 +18,10 @@ class SubmissionModel(Base):
     decision_notes = Column(String, nullable=True)
     
     # Status & Score
-    status = Column(String) 
+    status = Column(String)  # enum: submitted, under_review, accepted, rejected, withdrawn
     is_withdrawn = Column(Boolean, default=False)
-    avg_score = Column(NUMERIC(19, 2)) 
+    avg_score = Column(NUMERIC(19, 2))
+    final_score = Column(NUMERIC(19, 2))  # Thêm final_score 
     
     # Links - Cột này nằm ở bảng submissions (BẢN CHUẨN)
     camera_ready_submission = Column(Integer, ForeignKey("submission_files.id", use_alter=True, name="fk_camera_ready"), nullable=True)

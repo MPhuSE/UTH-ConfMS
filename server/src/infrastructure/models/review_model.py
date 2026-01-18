@@ -28,9 +28,13 @@ class ReviewModel(Base):
     submission_id = Column(ForeignKey("submissions.id"), nullable=False)
     reviewer_id = Column(ForeignKey("users.id"), nullable=False)
     
+    confidence = Column(Integer)  # Thêm confidence
     summary = Column(String)
-    weakness = Column(String)
+    strengths = Column(String)  # Đổi từ weakness thành strengths (số nhiều)
+    weaknesses = Column(String)  # Thêm weaknesses
+    recommendation = Column(String)  # enum: accept, weak_accept, borderline, weak_reject, reject
     best_paper_recommendation = Column(Boolean, default=False)
+    submitted_at = Column(DateTime, default=func.now())  # Thêm submitted_at
     
 
     __table_args__ = (
@@ -53,8 +57,9 @@ class ReviewQuestionModel(Base):
     """Bộ câu hỏi đánh giá."""
     __tablename__ = "review_question"
     id = Column(Integer, primary_key=True)
+    conference_id = Column(ForeignKey("conferences.id"), nullable=False)  # Thêm conference_id
     question = Column(String, nullable=False)
-    type = Column(String) 
+    type = Column(String)  # enum: text, score, boolean
     required = Column(Boolean, default=True)
 
 class ReviewAnswerModel(Base):

@@ -11,8 +11,11 @@ const ReviewForm = () => {
   const [subLoading, setSubLoading] = useState(false);
   const [formData, setFormData] = useState({
     score: 7,
+    confidence: 5,
     summary: "",
-    weakness: "",
+    strengths: "",
+    weaknesses: "",
+    recommendation: "borderline",
     best_paper_recommendation: false,
   });
 
@@ -20,8 +23,8 @@ const ReviewForm = () => {
     e.preventDefault();
     
     // Validation
-    if (!formData.summary && !formData.weakness) {
-      toast.error("Vui lòng điền ít nhất Summary hoặc Weakness");
+    if (!formData.summary) {
+      toast.error("Vui lòng điền Summary");
       return;
     }
     
@@ -29,7 +32,10 @@ const ReviewForm = () => {
     try {
       const payload = {
         summary: formData.summary || null,
-        weakness: formData.weakness || null,
+        strengths: formData.strengths || null,
+        weaknesses: formData.weaknesses || null,
+        confidence: formData.confidence || null,
+        recommendation: formData.recommendation || "borderline",
         best_paper_recommendation: Boolean(formData.best_paper_recommendation),
         answers: [
           // question_id=1 is used by server DecisionService as "score"
@@ -109,17 +115,31 @@ const ReviewForm = () => {
       {subLoading && <div className="text-sm text-gray-500 mb-4">Đang tải thông tin bài nộp...</div>}
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Score (1-10)</label>
-          <input
-            type="number"
-            min="1"
-            max="10"
-            value={formData.score}
-            onChange={(e) => setFormData({ ...formData, score: Number(e.target.value) })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            required
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Score (1-10)</label>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={formData.score}
+              onChange={(e) => setFormData({ ...formData, score: Number(e.target.value) })}
+              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Confidence (1-10)</label>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={formData.confidence}
+              onChange={(e) => setFormData({ ...formData, confidence: Number(e.target.value) })}
+              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <p className="mt-1 text-xs text-gray-500">Mức độ tự tin của bạn về đánh giá</p>
+          </div>
         </div>
 
         <div>
@@ -132,22 +152,55 @@ const ReviewForm = () => {
             onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
             className="mt-1 block w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Tóm tắt nhận xét về bài báo..."
+            required
           />
           <p className="mt-1 text-xs text-gray-500">Tóm tắt các điểm chính của bài báo</p>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Weakness / Suggestions
+            Strengths
           </label>
           <textarea
-            rows="5"
-            value={formData.weakness}
-            onChange={(e) => setFormData({ ...formData, weakness: e.target.value })}
+            rows="4"
+            value={formData.strengths}
+            onChange={(e) => setFormData({ ...formData, strengths: e.target.value })}
+            className="mt-1 block w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Điểm mạnh của bài báo..."
+          />
+          <p className="mt-1 text-xs text-gray-500">Nêu các điểm mạnh của bài báo</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Weaknesses / Suggestions
+          </label>
+          <textarea
+            rows="4"
+            value={formData.weaknesses}
+            onChange={(e) => setFormData({ ...formData, weaknesses: e.target.value })}
             className="mt-1 block w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Điểm yếu, hạn chế và góp ý cải thiện..."
           />
           <p className="mt-1 text-xs text-gray-500">Nêu các điểm yếu và đề xuất cải thiện</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Recommendation
+          </label>
+          <select
+            value={formData.recommendation}
+            onChange={(e) => setFormData({ ...formData, recommendation: e.target.value })}
+            className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="accept">Accept</option>
+            <option value="weak_accept">Weak Accept</option>
+            <option value="borderline">Borderline</option>
+            <option value="weak_reject">Weak Reject</option>
+            <option value="reject">Reject</option>
+          </select>
+          <p className="mt-1 text-xs text-gray-500">Khuyến nghị của bạn về bài báo</p>
         </div>
 
         <label className="flex items-center gap-2 text-sm text-gray-700">

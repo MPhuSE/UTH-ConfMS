@@ -19,14 +19,16 @@ class NotificationLogModel(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(ForeignKey("users.id"))
-    message = Column(String)
+    type = Column(String)  # Thêm type
+    content = Column(String)  # Đổi từ message thành content
+    is_sent = Column(Boolean, default=False)  # Thêm is_sent
     created_at = Column(DateTime, default=func.now())
 
 class ScheduleItemModel(Base):
     __tablename__ = "schedule_items"
 
     id = Column(Integer, primary_key=True)
-    conference_id = Column(ForeignKey("conferences.id"))
+    conference_id = Column(ForeignKey("conferences.id"))  # Giữ lại vì code đang dùng
     submission_id = Column(ForeignKey("submissions.id"))
     session_id = Column(ForeignKey("sessions.id"))
     start_time = Column(DateTime)

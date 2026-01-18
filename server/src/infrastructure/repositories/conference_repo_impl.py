@@ -12,18 +12,24 @@ class ConferenceRepositoryImpl(ConferenceRepository):
 
     def _model_to_domain(self, model: ConferenceModel) -> Conference:
         """Convert ConferenceModel to Conference domain model."""
+        # Tạm thời dùng website_url và double_blind cho đến khi migration chạy xong
+        website_value = model.website_url  # Tạm thời dùng website_url
+        blind_mode_value = 'double' if model.double_blind else 'single'  # Convert từ double_blind
+        location_value = None  # Tạm thời None cho đến khi migration chạy xong
+        
         return Conference(
             id=model.id,
             name=model.name,
             abbreviation=model.abbreviation,
             description=model.description,
-            website_url=model.website_url,
+            website=website_value,
+            location=location_value,
             start_date=model.start_date,
             end_date=model.end_date,
             submission_deadline=model.submission_deadline,
             review_deadline=model.review_deadline,
             is_open=model.is_open,
-            double_blind=model.double_blind
+            blind_mode=blind_mode_value
         )
 
     def create(self, conference: Conference) -> Conference:
@@ -31,13 +37,14 @@ class ConferenceRepositoryImpl(ConferenceRepository):
             name=conference.name,
             abbreviation=conference.abbreviation,
             description=conference.description,
-            website_url=conference.website_url,
+            website_url=conference.website,  # Tạm thời dùng website_url
+            # location=conference.location,  # Tạm thời bỏ qua cho đến khi migration chạy xong
             start_date=conference.start_date,
             end_date=conference.end_date,
             submission_deadline=conference.submission_deadline,
             review_deadline=conference.review_deadline,
             is_open=conference.is_open,
-            double_blind=conference.double_blind
+            double_blind=(conference.blind_mode == 'double') if conference.blind_mode else True  # Tạm thời dùng double_blind
         )
 
         self.db.add(model)
@@ -91,13 +98,14 @@ class ConferenceRepositoryImpl(ConferenceRepository):
         model.name = conference.name
         model.abbreviation = conference.abbreviation
         model.description = conference.description
-        model.website_url = conference.website_url
+        model.website_url = conference.website  # Tạm thời dùng website_url
+        # model.location = conference.location  # Tạm thời bỏ qua cho đến khi migration chạy xong
         model.start_date = conference.start_date
         model.end_date = conference.end_date
         model.submission_deadline = conference.submission_deadline
         model.review_deadline = conference.review_deadline
         model.is_open = conference.is_open
-        model.double_blind = conference.double_blind
+        model.double_blind = (conference.blind_mode == 'double') if conference.blind_mode else True  # Tạm thời dùng double_blind
 
         self.db.add(model)
         self.db.commit()

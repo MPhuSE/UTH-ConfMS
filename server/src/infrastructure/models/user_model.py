@@ -23,15 +23,11 @@ class UserModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    # new column - canonical name for password hash (backfilled by migration)
-    password_hash = Column(String, nullable=True, index=True)
     full_name = Column(String)
     affiliation = Column(String)
     phone_number = Column(String)
     website_url = Column(String)
-    # optional profile fields
-    avatar_url = Column(String)
-    last_login = Column(DateTime, nullable=True)
+    avatar_url = Column(String)      
     is_verified = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=func.now())
@@ -42,19 +38,16 @@ class UserModel(Base):
     @property
     def role_names(self) -> list[str]:
         return [role.name for role in self.roles] if self.roles else []
-
     def to_domain_model(self):
-        from domain.models.user import User 
+        from src.domain.models.user import User 
         
-        return User(
+        return User( 
             id=self.id,
             email=self.email,
             full_name=self.full_name,
             affiliation=self.affiliation,
             phone_number=self.phone_number,
             website_url=self.website_url,
-            avatar_url=self.avatar_url,
-            last_login=self.last_login,
             is_verified=self.is_verified,
             is_active=self.is_active,
             created_at=self.created_at,

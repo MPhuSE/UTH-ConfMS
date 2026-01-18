@@ -8,7 +8,8 @@ class ConferenceCreateRequest(BaseModel):
     name: str
     abbreviation: Optional[str] = None
     description: Optional[str] = None
-    website_url: Optional[str] = None
+    website: Optional[str] = None  # Đổi từ website_url
+    location: Optional[str] = None  # Thêm location
 
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -16,14 +17,15 @@ class ConferenceCreateRequest(BaseModel):
     review_deadline: Optional[datetime] = None
 
     is_open: bool = True
-    double_blind: bool = True
+    blind_mode: str = "double"  # Đổi từ double_blind: enum single, double, open
 
 class ConferenceResponse(BaseModel):
     id: int
     name: str
     abbreviation: Optional[str] = None
     description: Optional[str] = None
-    website_url: Optional[str] = None
+    website: Optional[str] = None  # Đổi từ website_url
+    location: Optional[str] = None  # Thêm location
 
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -31,7 +33,7 @@ class ConferenceResponse(BaseModel):
     review_deadline: Optional[datetime] = None
 
     is_open: bool
-    double_blind: bool
+    blind_mode: str  # Đổi từ double_blind: enum single, double, open
 
     class Config:
         from_attributes = True

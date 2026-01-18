@@ -18,6 +18,7 @@ import emailTemplateService from "./emailTemplateService";
 import aiService from "./aiService";
 import scheduleService from "./scheduleService";
 import notificationService from "./notificationService";
+import aiService from "./aiService";
 
 // Named exports
 export {

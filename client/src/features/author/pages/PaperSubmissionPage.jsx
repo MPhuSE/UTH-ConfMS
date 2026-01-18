@@ -4,6 +4,9 @@ import { submissionService } from "../../../services/submissionService";
 import { userService } from "../../../services/userService";
 import { trackService } from "../../../services/trackService";
 import { useConferenceStore } from "../../../app/store/useConferenceStore";
+import SpellCheckComponent from "../../../components/AI/SpellCheckComponent";
+import SummaryComponent from "../../../components/AI/SummaryComponent";
+import KeywordsComponent from "../../../components/AI/KeywordsComponent";
 import {
   Loader2,
   Layout,
@@ -255,11 +258,40 @@ export default function PaperSubmissionPage() {
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Tiêu đề bài báo *</label>
               <input required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập tiêu đề bài báo..." />
+              <div className="mt-2">
+                <SpellCheckComponent
+                  text={formData.title}
+                  onTextChange={(correctedText) => setFormData({...formData, title: correctedText})}
+                  label="Kiểm tra chính tả tiêu đề"
+                />
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Tóm tắt *</label>
               <textarea required rows={4} value={formData.abstract} onChange={(e) => setFormData({...formData, abstract: e.target.value})} className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập tóm tắt (Abstract)..." />
+              <div className="mt-2 space-y-2">
+                <SpellCheckComponent
+                  text={formData.abstract}
+                  onTextChange={(correctedText) => setFormData({...formData, abstract: correctedText})}
+                  label="Kiểm tra chính tả tóm tắt"
+                />
+                <SummaryComponent
+                  text={formData.abstract}
+                  maxWords={200}
+                  onSummaryGenerated={(summary) => {
+                    // Optional: có thể tự động thay thế abstract bằng summary
+                    // setFormData({...formData, abstract: summary});
+                  }}
+                />
+                <KeywordsComponent
+                  text={formData.abstract}
+                  onKeywordsExtracted={(keywords) => {
+                    // Keywords có thể được lưu hoặc hiển thị
+                    console.log("Extracted keywords:", keywords);
+                  }}
+                />
+              </div>
             </div>
 
             {/* PHẦN ĐỒNG TÁC GIẢ */}

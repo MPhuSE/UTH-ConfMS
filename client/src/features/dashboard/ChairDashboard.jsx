@@ -17,7 +17,11 @@ import {
   TrendingUp,
   Award,
   BarChart3,
-  ArrowRight
+  ArrowRight,
+  Calendar,
+  UserPlus,
+  Mail,
+  Sparkles
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -194,7 +198,7 @@ export default function ChairDashboard() {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold mb-4">Thao tác nhanh</h2>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <button
             onClick={() => navigate(`/dashboard/chair/assignments/${selectedConference?.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
@@ -218,12 +222,56 @@ export default function ChairDashboard() {
           </button>
 
           <button
+            onClick={() => navigate(`/dashboard/chair/review-progress/${selectedConference?.id}`)}
+            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <TrendingUp className="w-5 h-5 text-teal-500" />
+              <span className="font-medium">Monitor Progress</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          <button
+            onClick={() => navigate(`/dashboard/chair/schedule/${selectedConference?.id}`)}
+            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-teal-500" />
+              <span className="font-medium">Quản lý Schedule</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          <button
+            onClick={() => navigate(`/dashboard/chair/reviewers/${selectedConference?.id}`)}
+            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <UserPlus className="w-5 h-5 text-teal-500" />
+              <span className="font-medium">Quản lý Reviewers</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          <button
             onClick={() => navigate(`/dashboard/chair/notifications/${selectedConference?.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <BarChart3 className="w-5 h-5 text-teal-500" />
+              <Mail className="w-5 h-5 text-teal-500" />
               <span className="font-medium">Bulk email</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          <button
+            onClick={() => navigate(`/dashboard/chair/email-templates/${selectedConference?.id}`)}
+            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <FileText className="w-5 h-5 text-teal-500" />
+              <span className="font-medium">Email Templates</span>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400" />
           </button>
@@ -246,6 +294,17 @@ export default function ChairDashboard() {
             <div className="flex items-center gap-3">
               <Award className="w-5 h-5 text-teal-500" />
               <span className="font-medium">Quản lý Hội nghị</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          <button
+            onClick={() => navigate(`/dashboard/admin/ai-features/${selectedConference?.id}`)}
+            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              <span className="font-medium">AI Features</span>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400" />
           </button>

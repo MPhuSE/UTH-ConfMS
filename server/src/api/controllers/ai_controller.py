@@ -55,6 +55,17 @@ class KeywordsResponse(BaseModel):
     keywords: List[str]
 
 
+class EmailTemplateRequest(BaseModel):
+    template_type: str
+    context: str
+    conference_id: Optional[int] = None
+
+
+class EmailTemplateResponse(BaseModel):
+    subject: str
+    body: str
+
+
 @router.post("/spell-check", response_model=SpellCheckResponse)
 def check_spell_grammar(
     request: SpellCheckRequest,
@@ -105,4 +116,39 @@ def extract_keywords(
     if keywords is None:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Keyword extraction is disabled")
     return KeywordsResponse(keywords=keywords)
+
+
+@router.post("/email-template", response_model=EmailTemplateResponse)
+def generate_email_template(
+    request: EmailTemplateRequest,
+    current_user=Depends(get_current_user),
+    ai_service: AIServiceManager = Depends(get_ai_service)
+):
+    """Generate email template draft using AI."""
+    # Mock implementation - in production, this would call AI service
+    template_types = {
+        "notification": {
+            "subject": f"Notification: {request.context[:50]}",
+            "body": f"Dear Author,\n\n{request.context}\n\nBest regards,\nConference Committee"
+        },
+        "acceptance": {
+            "subject": "Paper Accepted",
+            "body": f"Dear Author,\n\nWe are pleased to inform you that your paper has been accepted.\n\n{request.context}\n\nBest regards,\nConference Committee"
+        },
+        "rejection": {
+            "subject": "Paper Decision",
+            "body": f"Dear Author,\n\nThank you for your submission. After careful review, we regret to inform you that your paper was not accepted.\n\n{request.context}\n\nBest regards,\nConference Committee"
+        },
+        "reminder": {
+            "subject": "Reminder",
+            "body": f"Dear Participant,\n\nThis is a reminder: {request.context}\n\nBest regards,\nConference Committee"
+        },
+        "invitation": {
+            "subject": "Invitation",
+            "body": f"Dear Colleague,\n\nWe would like to invite you to: {request.context}\n\nBest regards,\nConference Committee"
+        }
+    }
+    
+    template = template_types.get(request.template_type, template_types["notification"])
+    return EmailTemplateResponse(**template)
 

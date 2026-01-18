@@ -32,6 +32,7 @@ import SmtpConfigPage from "../../features/admin/pages/SmtpConfigPage";
 import QuotaConfigPage from "../../features/admin/pages/QuotaConfigPage";
 import SystemHealthPage from "../../features/admin/pages/SystemHealthPage";
 import TenantManagementPage from "../../features/admin/pages/TenantManagementPage";
+import AIFeatureFlagsPage from "../../features/admin/pages/AIFeatureFlagsPage";
 
 // Chair
 import ChairDashboard from "../../features/dashboard/ChairDashboard";
@@ -41,6 +42,10 @@ import ProceedingsExportPage from "../../features/Chair/pages/ProceedingsExportP
 import BulkNotificationsPage from "../../features/Chair/pages/BulkNotificationsPage";
 import ConferenceManagementPage from "../../features/Chair/pages/ConferenceManagementPage";
 import COIManagementPage from "../../features/Chair/pages/COIManagementPage";
+import ScheduleManagementPage from "../../features/Chair/pages/ScheduleManagementPage";
+import ReviewerManagementPage from "../../features/Chair/pages/ReviewerManagementPage";
+import ReviewProgressPage from "../../features/Chair/pages/ReviewProgressPage";
+import EmailTemplatesPage from "../../features/Chair/pages/EmailTemplatesPage";
 
 // Reviewer
 import ReviewerDashboard from "../../features/reviewer/ReviewerDashboard";
@@ -171,6 +176,38 @@ export default function AppRouter() {
                         element={
                             <ProtectedRoute allowRoles={["chair", "admin"]}>
                                 <COIManagementPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/schedule/:conferenceId"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <ScheduleManagementPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/reviewers/:conferenceId"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <ReviewerManagementPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/review-progress/:conferenceId"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <ReviewProgressPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/email-templates/:conferenceId"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <EmailTemplatesPage />
                             </ProtectedRoute>
                         }
                     />

@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { reviewService, submissionService } from "../../services";
 import { toast } from "react-hot-toast";
+import SummaryComponent from "../../components/AI/SummaryComponent";
+import SpellCheckComponent from "../../components/AI/SpellCheckComponent";
 
 const ReviewForm = () => {
   const { submissionId } = useParams();
@@ -146,6 +148,17 @@ const ReviewForm = () => {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Summary <span className="text-red-500">*</span>
           </label>
+          {submission?.abstract && (
+            <div className="mb-2">
+              <SummaryComponent
+                text={submission.abstract}
+                maxWords={200}
+                onSummaryGenerated={(summary) => {
+                  setFormData({ ...formData, summary });
+                }}
+              />
+            </div>
+          )}
           <textarea
             rows="5"
             value={formData.summary}
@@ -154,6 +167,13 @@ const ReviewForm = () => {
             placeholder="Tóm tắt nhận xét về bài báo..."
             required
           />
+          <div className="mt-2">
+            <SpellCheckComponent
+              text={formData.summary}
+              onTextChange={(correctedText) => setFormData({ ...formData, summary: correctedText })}
+              label="Kiểm tra chính tả"
+            />
+          </div>
           <p className="mt-1 text-xs text-gray-500">Tóm tắt các điểm chính của bài báo</p>
         </div>
 
@@ -168,6 +188,13 @@ const ReviewForm = () => {
             className="mt-1 block w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Điểm mạnh của bài báo..."
           />
+          <div className="mt-2">
+            <SpellCheckComponent
+              text={formData.strengths}
+              onTextChange={(correctedText) => setFormData({ ...formData, strengths: correctedText })}
+              label="Kiểm tra chính tả"
+            />
+          </div>
           <p className="mt-1 text-xs text-gray-500">Nêu các điểm mạnh của bài báo</p>
         </div>
 
@@ -182,6 +209,13 @@ const ReviewForm = () => {
             className="mt-1 block w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Điểm yếu, hạn chế và góp ý cải thiện..."
           />
+          <div className="mt-2">
+            <SpellCheckComponent
+              text={formData.weaknesses}
+              onTextChange={(correctedText) => setFormData({ ...formData, weaknesses: correctedText })}
+              label="Kiểm tra chính tả"
+            />
+          </div>
           <p className="mt-1 text-xs text-gray-500">Nêu các điểm yếu và đề xuất cải thiện</p>
         </div>
 

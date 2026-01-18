@@ -71,7 +71,7 @@ async def invite_pc_member(
 
     # Send invitation email (best-effort)
     try:
-        email_service = EmailService()
+        email_service = EmailService(db_session=db)
         accept_url = f"{email_service.frontend_url}/dashboard/pc/accept?token={token}"
         content = request.message or (
             f"<p>Bạn được mời tham gia Program Committee cho conference #{request.conference_id}.</p>"

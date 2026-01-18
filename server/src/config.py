@@ -24,11 +24,12 @@ class Settings:
     REFRESH_TOKEN_EXPIRE_DAYS = 60 * 24 * 10
     
     # --- Cấu hình Email ---
-    SMTP_HOST = "smtp.gmail.com"
-    SMTP_PORT = "587"
-    SMTP_USER = "gatv3102006@gmail.com"
-    SMTP_PASSWORD = "tpws jhia gxet paop"
-    SMTP_FROM_EMAIL = "gatv3102006@gmail.com"
-    SMTP_FROM_NAME = "UTH-ConfMS"
-    FRONTEND_URL = "http://localhost:5173"
+    # SMTP Server Configuration (Gmail, Outlook, hoặc SMTP server khác)
+    SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER = os.getenv("SMTP_USER", "")  # Email đăng nhập SMTP
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")  # App Password (Gmail) hoặc mật khẩu SMTP
+    SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "")  # Email người gửi
+    SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "UTH-ConfMS")  # Tên hiển thị
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")  # URL frontend để tạo links
 settings = Settings()

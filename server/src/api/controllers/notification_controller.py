@@ -24,7 +24,7 @@ async def notify_result(
     """
     # Khởi tạo các thành phần cần thiết
     repo = SubmissionRepositoryImpl(db)
-    email_tool = EmailService() # Class EmailService của bạn
+    email_tool = EmailService(db_session=db) # Class EmailService của bạn - ưu tiên dùng config từ database
     service = ResultNotificationService(repo, email_tool, db=db)
     
     # Thực hiện gửi email
@@ -77,7 +77,7 @@ async def notify_results_bulk(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conference not found")
 
     repo = SubmissionRepositoryImpl(db)
-    email_tool = EmailService()
+    email_tool = EmailService(db_session=db)
     service = ResultNotificationService(repo, email_tool, db=db)
 
     q = db.query(SubmissionModel).filter(SubmissionModel.conference_id == conference_id)

@@ -13,7 +13,43 @@ from domain.exceptions import AuthenticationError
 logger = logging.getLogger(__name__)
 
 class EmailService:
-    def __init__(self):
+    def __init__(self, db_session=None):
+        """
+        Initialize EmailService with SMTP configuration.
+        Priority: Database (SystemSettings) > config.py > defaults
+        """
+        self.db_session = db_session
+        self._load_smtp_config()
+    
+    def _load_smtp_config(self):
+        """Load SMTP config from database (if available) or fallback to config.py"""
+        # Try to load from database first
+        if self.db_session:
+            try:
+                from infrastructure.models.system_model import SystemSettingsModel
+                # Handle both sync and async sessions
+                if hasattr(self.db_session, 'query'):
+                    # Sync session
+                    system_settings = self.db_session.query(SystemSettingsModel).first()
+                else:
+                    # Async session - we'll skip database config for async sessions
+                    # as it requires sync query. Fallback to config.py
+                    system_settings = None
+                
+                if system_settings and system_settings.smtp_host:
+                    # Use database config
+                    self.smtp_host = system_settings.smtp_host
+                    self.smtp_port = system_settings.smtp_port or int(settings.SMTP_PORT)
+                    self.smtp_user = system_settings.smtp_user
+                    self.smtp_password = system_settings.smtp_password
+                    self.from_email = system_settings.smtp_from_email
+                    self.from_name = system_settings.smtp_from_name or settings.SMTP_FROM_NAME
+                    logger.info("Using SMTP config from database")
+                    return
+            except Exception as e:
+                logger.warning(f"Could not load SMTP config from database: {e}")
+        
+        # Fallback to config.py
         self.smtp_host = settings.SMTP_HOST
         self.smtp_port = settings.SMTP_PORT
         self.smtp_user = settings.SMTP_USER
@@ -21,6 +57,7 @@ class EmailService:
         self.from_email = settings.SMTP_FROM_EMAIL
         self.from_name = settings.SMTP_FROM_NAME
         self.frontend_url = settings.FRONTEND_URL
+        logger.info("Using SMTP config from config.py")
 
     def _create_base_message(self, to_email: str, subject: str) -> MIMEMultipart:
         """Tạo khung email MIME cơ bản hỗ trợ đính kèm"""

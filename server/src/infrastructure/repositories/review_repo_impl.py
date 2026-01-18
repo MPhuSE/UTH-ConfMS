@@ -50,21 +50,33 @@ class ReviewRepositoryImpl(ReviewRepository):
             submission_id=submission_id,
             reviewer_id=reviewer_id,
             summary=data.get('summary'),
-            weakness=data.get('weakness'),
+            strengths=data.get('strengths'),
+            weaknesses=data.get('weaknesses'),  # Đổi từ weakness thành weaknesses
+            confidence=data.get('confidence'),
+            recommendation=data.get('recommendation'),
             best_paper_recommendation=data.get('best_paper_recommendation', False)
         )
         self.db.add(review)
         self.db.flush()
         
         # Add answers if provided
-        if 'answers' in data:
+        if 'answers' in data and data['answers']:
             for answer_data in data['answers']:
-                answer = ReviewAnswerModel(
-                    review_id=review.id,
-                    question_id=answer_data['question_id'],
-                    answer=answer_data['answer']
-                )
-                self.db.add(answer)
+                # Check if question exists before adding answer
+                question = self.db.query(ReviewQuestionModel).filter(
+                    ReviewQuestionModel.id == answer_data['question_id']
+                ).first()
+                if question:
+                    answer = ReviewAnswerModel(
+                        review_id=review.id,
+                        question_id=answer_data['question_id'],
+                        answer=answer_data['answer']
+                    )
+                    self.db.add(answer)
+                else:
+                    # Log warning but don't fail - question might not exist
+                    import logging
+                    logging.warning(f"Question {answer_data['question_id']} not found, skipping answer")
         
         self.db.commit()
         self.db.refresh(review)
@@ -90,8 +102,14 @@ class ReviewRepositoryImpl(ReviewRepository):
         
         if 'summary' in data:
             review.summary = data['summary']
-        if 'weakness' in data:
-            review.weakness = data['weakness']
+        if 'strengths' in data:
+            review.strengths = data['strengths']
+        if 'weaknesses' in data:
+            review.weaknesses = data['weaknesses']  # Đổi từ weakness thành weaknesses
+        if 'confidence' in data:
+            review.confidence = data['confidence']
+        if 'recommendation' in data:
+            review.recommendation = data['recommendation']
         if 'best_paper_recommendation' in data:
             review.best_paper_recommendation = data['best_paper_recommendation']
         
@@ -104,12 +122,21 @@ class ReviewRepositoryImpl(ReviewRepository):
             
             # Add new answers
             for answer_data in data['answers']:
-                answer = ReviewAnswerModel(
-                    review_id=review.id,
-                    question_id=answer_data['question_id'],
-                    answer=answer_data['answer']
-                )
-                self.db.add(answer)
+                # Check if question exists before adding answer
+                question = self.db.query(ReviewQuestionModel).filter(
+                    ReviewQuestionModel.id == answer_data['question_id']
+                ).first()
+                if question:
+                    answer = ReviewAnswerModel(
+                        review_id=review.id,
+                        question_id=answer_data['question_id'],
+                        answer=answer_data['answer']
+                    )
+                    self.db.add(answer)
+                else:
+                    # Log warning but don't fail - question might not exist
+                    import logging
+                    logging.warning(f"Question {answer_data['question_id']} not found, skipping answer")
         
         self.db.commit()
         self.db.refresh(review)

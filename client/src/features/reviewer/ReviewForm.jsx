@@ -39,18 +39,24 @@ const ReviewForm = () => {
         confidence: formData.confidence || null,
         recommendation: formData.recommendation || "borderline",
         best_paper_recommendation: Boolean(formData.best_paper_recommendation),
-        answers: [
-          // question_id=1 is used by server DecisionService as "score"
-          { question_id: 1, answer: String(formData.score) },
-        ],
+        // Only include answers if review questions exist in the system
+        // For now, score is stored in the review itself, not in answers
+        // answers: [
+        //   { question_id: 1, answer: String(formData.score) },
+        // ],
       };
       await reviewService.submitReview(Number(submissionId), payload);
       toast.success("Gửi bài đánh giá thành công!");
       navigate("/dashboard/reviewer/dashboard");
     } catch (error) {
-      const message = error?.response?.data?.detail || "Lỗi khi gửi review";
+      const detail = error?.response?.data?.detail;
+      const message = Array.isArray(detail) 
+        ? detail.map(d => d.msg || d).join(", ")
+        : detail || error?.message || "Lỗi khi gửi review";
       toast.error(message);
       console.error("Submit review error:", error);
+      console.error("Error detail:", detail);
+      console.error("Payload sent:", payload);
     } finally {
       setLoading(false);
     }

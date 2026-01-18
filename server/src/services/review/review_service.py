@@ -63,11 +63,11 @@ class ReviewService:
             )
         
         # Validate review data
-        if not review_data.get("summary") and not review_data.get("weakness"):
-            # At least one of summary or weakness should be provided
+        if not review_data.get("summary") and not review_data.get("weaknesses") and not review_data.get("strengths"):
+            # At least one of summary, weaknesses, or strengths should be provided
             if not review_data.get("answers"):
                 raise BusinessRuleException(
-                    "Review must contain at least summary, weakness, or answers"
+                    "Review must contain at least summary, weaknesses, strengths, or answers"
                 )
         
         # Check if review already exists
@@ -95,7 +95,11 @@ class ReviewService:
             "submission_id": review.submission_id,
             "reviewer_id": review.reviewer_id,
             "summary": review.summary,
-            "weakness": review.weakness,
+            "strengths": review.strengths,
+            "weaknesses": review.weaknesses,
+            "confidence": review.confidence,
+            "recommendation": review.recommendation,
+            "submitted_at": review.submitted_at if review.submitted_at else None,
             "best_paper_recommendation": review.best_paper_recommendation,
             "answers": answers if answers else None
         }
@@ -131,7 +135,11 @@ class ReviewService:
             "submission_id": review.submission_id,
             "reviewer_id": review.reviewer_id,
             "summary": review.summary,
-            "weakness": review.weakness,
+            "strengths": review.strengths,
+            "weaknesses": review.weaknesses,
+            "confidence": review.confidence,
+            "recommendation": review.recommendation,
+            "submitted_at": review.submitted_at if review.submitted_at else None,
             "best_paper_recommendation": review.best_paper_recommendation,
             "answers": answers if answers else None
         }
@@ -166,7 +174,11 @@ class ReviewService:
                 "submission_id": r.submission_id,
                 "reviewer_id": r.reviewer_id,
                 "summary": r.summary,
-                "weakness": r.weakness,
+                "strengths": r.strengths,
+                "weaknesses": r.weaknesses,
+                "confidence": r.confidence,
+                "recommendation": r.recommendation,
+                "submitted_at": r.submitted_at if r.submitted_at else None,
                 "best_paper_recommendation": r.best_paper_recommendation,
                 "answers": answers if answers else None
             })

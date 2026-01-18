@@ -33,6 +33,8 @@ class SubmissionPatchSchema(BaseModel):
 
 class SubmissionResponseSchema(BaseModel):
     id: int
+    conference_id: Optional[int] = None
+    track_id: Optional[int] = None
     title: str
     abstract: str
     status: str

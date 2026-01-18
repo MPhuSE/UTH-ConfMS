@@ -36,6 +36,9 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         ]
     
     async def dispatch(self, request: Request, call_next):
+        # Always allow CORS preflight
+        if request.method == "OPTIONS":
+            return await call_next(request)
         # Bỏ qua các route công khai
         if any(request.url.path == route or request.url.path.startswith(route + "/") for route in self.public_routes):
             response = await call_next(request)

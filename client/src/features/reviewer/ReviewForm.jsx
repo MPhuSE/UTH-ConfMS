@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { reviewService } from "../../services";
+import { reviewService, submissionService } from "../../services";
 import { toast } from "react-hot-toast";
 
 const ReviewForm = () => {
   const { submissionId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [submission, setSubmission] = useState(null);
+  const [subLoading, setSubLoading] = useState(false);
   const [formData, setFormData] = useState({
     score: 7,
     summary: "",
@@ -39,9 +41,65 @@ const ReviewForm = () => {
     }
   };
 
+  const getDownloadUrl = (url) => {
+    if (!url) return "#";
+    try {
+      const parsed = new URL(url);
+      let filename = decodeURIComponent(parsed.pathname.split("/").pop() || "paper.pdf");
+      if (!filename.toLowerCase().endsWith(".pdf")) {
+        filename = `${filename}.pdf`;
+      }
+      if (!parsed.pathname.includes("/upload/")) return url;
+      if (parsed.pathname.includes("fl_attachment")) return url;
+      const [prefix, suffix] = parsed.pathname.split("/upload/");
+      parsed.pathname = `${prefix}/upload/fl_attachment:${filename}/${suffix}`;
+      return parsed.toString();
+    } catch (err) {
+      return url;
+    }
+  };
+
+  const fileUrl = submission?.file_url || submission?.file_path || "";
+
+  useEffect(() => {
+    const fetchSubmission = async () => {
+      if (!submissionId) return;
+      try {
+        setSubLoading(true);
+        const data = await submissionService.getById(Number(submissionId));
+        setSubmission(data);
+      } catch (error) {
+        console.error("Load submission error:", error);
+        toast.error("Không thể tải thông tin bài nộp");
+      } finally {
+        setSubLoading(false);
+      }
+    };
+    fetchSubmission();
+  }, [submissionId]);
+
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Phiếu Đánh Giá Bài Báo #{submissionId}</h2>
+
+      {submission && (
+        <div className="mb-6 border rounded-lg p-4 bg-gray-50">
+          <div className="text-sm text-gray-600">Tiêu đề:</div>
+          <div className="font-semibold text-gray-900 mb-2">{submission.title}</div>
+          {fileUrl ? (
+            <a
+              href={getDownloadUrl(fileUrl)}
+              download
+              className="inline-flex items-center gap-2 text-sm text-blue-700 hover:underline"
+            >
+              Tải PDF
+            </a>
+          ) : (
+            <div className="text-sm text-gray-500">Không có file PDF</div>
+          )}
+        </div>
+      )}
+      {subLoading && <div className="text-sm text-gray-500 mb-4">Đang tải thông tin bài nộp...</div>}
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>

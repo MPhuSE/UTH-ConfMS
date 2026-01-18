@@ -28,8 +28,9 @@ export default function DecisionManagementPage() {
     try {
       setLoading(true);
       const submissionsData = await submissionService.getAll();
+      const getConferenceId = (s) => s.conference_id ?? s.track?.conference?.id ?? null;
       const filtered = submissionsData.filter(
-        (s) => s.conference_id === parseInt(conferenceId) && s.status === "under_review"
+        (s) => getConferenceId(s) === parseInt(conferenceId) && s.status === "under_review"
       );
       setSubmissions(filtered);
 

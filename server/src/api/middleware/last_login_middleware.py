@@ -7,6 +7,8 @@ from infrastructure.repositories.user_repo_imlp import UserRepositoryImpl
 
 class LastLoginMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            return await call_next(request)
         auth = request.headers.get("Authorization")
         if auth and auth.startswith("Bearer "):
             token = auth.split(" ", 1)[1]

@@ -93,8 +93,10 @@ export default function ChairDashboard() {
     try {
       // Load submissions
       const submissions = await submissionService.getAll();
+      const getConferenceId = (s) =>
+        s.conference_id ?? s.track?.conference?.id ?? null;
       const conferenceSubmissions = submissions.filter(
-        (s) => s.conference_id === selectedConference.id
+        (s) => getConferenceId(s) === selectedConference.id
       );
 
       const totalSubmissions = conferenceSubmissions.length;

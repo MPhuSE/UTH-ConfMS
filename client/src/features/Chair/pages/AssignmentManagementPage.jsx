@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { reviewService, submissionService, userService } from "../../../services";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { reviewService, submissionService, userService, conferenceService } from "../../../services";
 import { UserPlus, Users, FileText, X } from "lucide-react";
 import Modal from "../../../components/Modal";
 import Button from "../../../components/Button";
@@ -13,22 +13,43 @@ import { toast } from "react-hot-toast";
  */
 export default function AssignmentManagementPage() {
   const { conferenceId } = useParams();
+  const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
   const [assignments, setAssignments] = useState({});
   const [assignModal, setAssignModal] = useState(null);
   const [reviewers, setReviewers] = useState([]);
   const [reviewerId, setReviewerId] = useState("");
+  const [conferences, setConferences] = useState([]);
+  const [selectedConferenceId, setSelectedConferenceId] = useState("");
   const [loading, setLoading] = useState(true);
+  const activeConferenceId = useMemo(() => {
+    const fromParam = Number(conferenceId);
+    if (!Number.isNaN(fromParam) && fromParam > 0) return fromParam;
+    const fromState = Number(selectedConferenceId);
+    if (!Number.isNaN(fromState) && fromState > 0) return fromState;
+    return null;
+  }, [conferenceId, selectedConferenceId]);
 
   useEffect(() => {
     loadData();
-  }, [conferenceId]);
+  }, [conferenceId, selectedConferenceId]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      const confData = await conferenceService.getAll();
+      const confList = confData.conferences || confData || [];
+      setConferences(confList);
+      if (!conferenceId && !selectedConferenceId && confList.length > 0) {
+        setSelectedConferenceId(String(confList[0].id));
+      }
+
       const submissionsData = await submissionService.getAll();
-      setSubmissions(submissionsData.filter((s) => s.conference_id === parseInt(conferenceId)));
+      const getConferenceId = (s) => s.conference_id ?? s.track?.conference?.id ?? null;
+      const filtered = activeConferenceId
+        ? submissionsData.filter((s) => getConferenceId(s) === activeConferenceId)
+        : [];
+      setSubmissions(filtered);
 
       // Load reviewer pool
       try {
@@ -41,7 +62,7 @@ export default function AssignmentManagementPage() {
 
       // Load assignments for each submission
       const assignmentsData = {};
-      for (const submission of submissionsData) {
+      for (const submission of filtered) {
         try {
           const assigns = await reviewService.getAssignmentsBySubmission(submission.id);
           assignmentsData[submission.id] = assigns;
@@ -51,7 +72,8 @@ export default function AssignmentManagementPage() {
       }
       setAssignments(assignmentsData);
     } catch (error) {
-      toast.error("Không thể tải dữ liệu");
+      const message = error?.response?.data?.detail || "Không thể tải dữ liệu";
+      toast.error(message);
       console.error(error);
     } finally {
       setLoading(false);
@@ -156,7 +178,43 @@ export default function AssignmentManagementPage() {
         <p className="mt-1 text-sm text-gray-500">Phân công reviewers cho các bài nộp</p>
       </div>
 
-      <Table columns={columns} data={submissions} loading={loading} />
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="text-sm text-gray-600">
+            {activeConferenceId ? (
+              <>Conference ID: <span className="font-semibold">{activeConferenceId}</span></>
+            ) : (
+              "Chưa chọn hội nghị"
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={activeConferenceId || ""}
+              onChange={(e) => {
+                setSelectedConferenceId(e.target.value);
+                if (conferenceId) {
+                  navigate(`/dashboard/chair/assignments/${e.target.value}`);
+                }
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-300"
+            >
+              <option value="">-- Chọn hội nghị --</option>
+              {conferences.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <Table
+        columns={columns}
+        data={submissions}
+        loading={loading}
+        emptyMessage="Chưa có bài nộp cho hội nghị này"
+      />
 
       {/* Assign Modal */}
       <Modal

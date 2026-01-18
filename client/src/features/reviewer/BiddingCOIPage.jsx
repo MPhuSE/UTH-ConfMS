@@ -22,7 +22,8 @@ const BiddingCOIPage = () => {
     setLoading(true);
     try {
       const all = await submissionService.getAll();
-      const filtered = (all || []).filter((s) => s.conference_id === confIdNum);
+      const getConferenceId = (s) => s.conference_id ?? s.track?.conference?.id ?? null;
+      const filtered = (all || []).filter((s) => getConferenceId(s) === confIdNum);
       setSubmissions(filtered);
 
       // 2. Lấy các Bid hiện tại của Reviewer này (để hiển thị trạng thái đã chọn)

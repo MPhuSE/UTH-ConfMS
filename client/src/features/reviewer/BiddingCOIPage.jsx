@@ -27,13 +27,15 @@ const BiddingCOIPage = () => {
       setSubmissions(filtered);
 
       // 2. Lấy các Bid hiện tại của Reviewer này (để hiển thị trạng thái đã chọn)
-      const currentBids = await reviewService.getBidsByReviewer(user.id);
+      const currentBids = await reviewService.getMyBids();
       const bidMap = {};
       currentBids.forEach(b => bidMap[b.submission_id] = b.bid);
       setBids(bidMap);
 
       // 3. Lấy các COI đã khai báo
-      // Lưu ý: Thường COI sẽ làm ẩn hoặc vô hiệu hóa các nút Bidding
+      const currentCOIs = await reviewService.getMyCOIs();
+      const coiSet = new Set(currentCOIs.map(c => c.submission_id));
+      setCois(coiSet);
     } catch (error) {
       console.error("Fetch bidding/coi error:", error);
       toast.error("Không thể tải dữ liệu bidding/COI");
@@ -50,25 +52,29 @@ const BiddingCOIPage = () => {
         bid: bidType // "Yes" | "No" | "Maybe" (server schema)
       });
       setBids({ ...bids, [submissionId]: bidType });
+      toast.success(`Đã đặt bid "${bidType}" cho Submission #${submissionId}`);
     } catch (err) {
-      toast.error("Không thể đặt bid. Vui lòng thử lại.");
+      const message = err?.response?.data?.detail || "Không thể đặt bid. Vui lòng thử lại.";
+      toast.error(message);
     }
   };
 
   const onDeclareCOI = async (submissionId) => {
     const reason = prompt("Nhập lý do xung đột (ví dụ: Đồng tác giả, cùng cơ quan...):");
-    if (!reason) return;
+    if (!reason || !reason.trim()) return;
 
     try {
       await reviewService.declareCOI({
         submission_id: submissionId,
         user_id: user.id,
-        coi_type: reason
+        coi_type: reason.trim()
       });
       setCois(new Set([...cois, submissionId]));
       toast.success("Đã xác nhận xung đột lợi ích.");
+      fetchData(); // Reload to get updated COI list
     } catch (err) {
-      toast.error("Lỗi khi khai báo COI.");
+      const message = err?.response?.data?.detail || "Lỗi khi khai báo COI.";
+      toast.error(message);
     }
   };
 

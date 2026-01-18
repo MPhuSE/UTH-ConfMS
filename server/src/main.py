@@ -45,18 +45,7 @@ app = FastAPI(title="UTH-ConfMS API")
 async def on_startup():
     await test_connection()
 
- 
-
-from api.middleware.last_login_middleware import LastLoginMiddleware
-from api.middleware.jwt_middleware import JWTAuthMiddleware
-
-# JWT Authentication Middleware - xác thực JWT và gắn user vào request state
-app.add_middleware(JWTAuthMiddleware)
-
-# Last Login Middleware - cập nhật last_login khi user đăng nhập
-app.add_middleware(LastLoginMiddleware)
-
-# CORS should be outermost to cover early auth errors
+# CORS MUST be added FIRST (will execute LAST) to wrap all responses including errors
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:3000"],
@@ -66,6 +55,15 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+from api.middleware.last_login_middleware import LastLoginMiddleware
+from api.middleware.jwt_middleware import JWTAuthMiddleware
+
+# JWT Authentication Middleware - xác thực JWT và gắn user vào request state
+app.add_middleware(JWTAuthMiddleware)
+
+# Last Login Middleware - cập nhật last_login khi user đăng nhập
+app.add_middleware(LastLoginMiddleware)
 
 
 

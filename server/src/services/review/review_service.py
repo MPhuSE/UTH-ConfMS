@@ -24,18 +24,51 @@ class ReviewService:
         reviewer_id: int,
         review_data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Submit a review."""
+        """
+        Submit a review.
+        
+        Validations:
+        1. Submission must exist
+        2. Reviewer must be assigned to the submission
+        3. Review data must be valid
+        
+        Args:
+            submission_id: ID of the submission
+            reviewer_id: ID of the reviewer
+            review_data: Dictionary containing review information
+        
+        Returns:
+            Dict with review information
+        """
         # Check if submission exists
         submission = self.submission_repo.get_by_id(submission_id)
         if not submission:
             raise NotFoundError(f"Submission {submission_id} not found")
         
         # Check if reviewer is assigned
-        assignment = self.review_repo.get_assignments_by_submission(submission_id)
-        if not any(a.reviewer_id == reviewer_id for a in assignment):
+        assignments = self.review_repo.get_assignments_by_submission(submission_id)
+        is_assigned = any(a.reviewer_id == reviewer_id for a in assignments)
+        
+        if not is_assigned:
             raise BusinessRuleException(
-                f"Reviewer {reviewer_id} is not assigned to submission {submission_id}"
+                f"Reviewer {reviewer_id} is not assigned to submission {submission_id}. "
+                "You must be assigned before submitting a review."
             )
+        
+        # Check for COI (should not happen if assignment was done correctly, but double-check)
+        has_coi = self.review_repo.check_coi(submission_id, reviewer_id)
+        if has_coi:
+            raise BusinessRuleException(
+                f"Conflict of interest detected. Reviewer {reviewer_id} cannot review submission {submission_id}."
+            )
+        
+        # Validate review data
+        if not review_data.get("summary") and not review_data.get("weakness"):
+            # At least one of summary or weakness should be provided
+            if not review_data.get("answers"):
+                raise BusinessRuleException(
+                    "Review must contain at least summary, weakness, or answers"
+                )
         
         # Check if review already exists
         existing = self.review_repo.get_review(submission_id, reviewer_id)
@@ -46,20 +79,16 @@ class ReviewService:
             # Create new review
             review = self.review_repo.create_review(submission_id, reviewer_id, review_data)
         
-        return {
-            "id": review.id,
-            "submission_id": review.submission_id,
-            "reviewer_id": review.reviewer_id,
-            "summary": review.summary,
-            "weakness": review.weakness,
-            "best_paper_recommendation": review.best_paper_recommendation
-        }
-    
-    def get_review(self, submission_id: int, reviewer_id: int) -> Optional[Dict[str, Any]]:
-        """Get a specific review."""
-        review = self.review_repo.get_review(submission_id, reviewer_id)
-        if not review:
-            return None
+        # Get answers if they exist
+        answers = []
+        if hasattr(review, 'answers') and review.answers:
+            answers = [
+                {
+                    "question_id": ans.question_id,
+                    "answer": ans.answer
+                }
+                for ans in review.answers
+            ]
         
         return {
             "id": review.id,
@@ -68,27 +97,78 @@ class ReviewService:
             "summary": review.summary,
             "weakness": review.weakness,
             "best_paper_recommendation": review.best_paper_recommendation,
-            "answers": [
+            "answers": answers if answers else None
+        }
+    
+    def get_review(self, submission_id: int, reviewer_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get a specific review.
+        
+        Args:
+            submission_id: ID of the submission
+            reviewer_id: ID of the reviewer
+        
+        Returns:
+            Dict with review information, or None if not found
+        """
+        review = self.review_repo.get_review(submission_id, reviewer_id)
+        if not review:
+            return None
+        
+        # Get answers
+        answers = []
+        if hasattr(review, 'answers') and review.answers:
+            answers = [
                 {
                     "question_id": ans.question_id,
                     "answer": ans.answer
                 }
                 for ans in review.answers
-            ] if review.answers else []
+            ]
+        
+        return {
+            "id": review.id,
+            "submission_id": review.submission_id,
+            "reviewer_id": review.reviewer_id,
+            "summary": review.summary,
+            "weakness": review.weakness,
+            "best_paper_recommendation": review.best_paper_recommendation,
+            "answers": answers if answers else None
         }
     
     def get_reviews_by_submission(self, submission_id: int) -> List[Dict[str, Any]]:
-        """Get all reviews for a submission."""
+        """
+        Get all reviews for a submission.
+        
+        Args:
+            submission_id: ID of the submission
+        
+        Returns:
+            List of review dictionaries
+        """
         reviews = self.review_repo.get_reviews_by_submission(submission_id)
-        return [
-            {
+        result = []
+        
+        for r in reviews:
+            # Get answers
+            answers = []
+            if hasattr(r, 'answers') and r.answers:
+                answers = [
+                    {
+                        "question_id": ans.question_id,
+                        "answer": ans.answer
+                    }
+                    for ans in r.answers
+                ]
+            
+            result.append({
                 "id": r.id,
                 "submission_id": r.submission_id,
                 "reviewer_id": r.reviewer_id,
                 "summary": r.summary,
                 "weakness": r.weakness,
-                "best_paper_recommendation": r.best_paper_recommendation
-            }
-            for r in reviews
-        ]
-
+                "best_paper_recommendation": r.best_paper_recommendation,
+                "answers": answers if answers else None
+            })
+        
+        return result

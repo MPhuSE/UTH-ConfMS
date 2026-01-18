@@ -138,8 +138,17 @@ class ReviewRepositoryImpl(ReviewRepository):
         ).all()
     
     def check_coi(self, submission_id: int, user_id: int) -> bool:
-        """Check if there's a COI between user and submission."""
-        # Check direct COI
+        """
+        Check if there's a COI between user and submission.
+        
+        This checks:
+        1. Direct COI declarations in conflicts_of_interest table
+        2. If user is an author of the submission (via submission_authors table)
+        
+        Returns:
+            True if COI exists, False otherwise
+        """
+        # Check direct COI declarations
         direct_coi = self.db.query(ConflictOfInterestModel).filter(
             and_(
                 ConflictOfInterestModel.submission_id == submission_id,
@@ -150,6 +159,7 @@ class ReviewRepositoryImpl(ReviewRepository):
             return True
         
         # Check if user is an author of the submission
+        # This is the most common COI: reviewer cannot review their own paper
         author_coi = self.db.query(SubmissionAuthorModel).filter(
             and_(
                 SubmissionAuthorModel.submission_id == submission_id,

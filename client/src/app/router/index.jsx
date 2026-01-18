@@ -45,6 +45,9 @@ import ConferenceManagementPage from "../../features/Chair/pages/ConferenceManag
 import ReviewerDashboard from "../../features/reviewer/ReviewerDashboard";
 import ReviewForm from "../../features/reviewer/ReviewForm";
 import BiddingCOIPage from "../../features/reviewer/BiddingCOIPage";
+import MyAssignmentsPage from "../../features/reviewer/pages/MyAssignmentsPage";
+import MyReviewsPage from "../../features/reviewer/pages/MyReviewsPage";
+import CheckCOIPage from "../../features/reviewer/pages/CheckCOIPage";
 
 // Discussion & Rebuttal
 import InternalDiscussion from "../../features/dashboard/pages/InternalDisscusion";
@@ -165,6 +168,22 @@ export default function AppRouter() {
                         }
                     />
                     <Route
+                        path="reviewer/assignments"
+                        element={
+                            <ProtectedRoute allowRoles={["reviewer"]}>
+                                <MyAssignmentsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="reviewer/reviews"
+                        element={
+                            <ProtectedRoute allowRoles={["reviewer"]}>
+                                <MyReviewsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
                         path="reviewer/review/:submissionId"
                         element={
                             <ProtectedRoute allowRoles={["reviewer"]}>
@@ -177,6 +196,14 @@ export default function AppRouter() {
                         element={
                             <ProtectedRoute allowRoles={["reviewer"]}>
                                 <BiddingCOIPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="reviewer/check-coi"
+                        element={
+                            <ProtectedRoute allowRoles={["reviewer"]}>
+                                <CheckCOIPage />
                             </ProtectedRoute>
                         }
                     />

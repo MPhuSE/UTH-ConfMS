@@ -116,6 +116,52 @@ export const reviewService = {
     const res = await api.get(`/reviews/bids/reviewers/${reviewerId}`);
     return res.data;
   },
+
+  /**
+   * Get my assignments (current reviewer)
+   * @returns {Promise<Array>} List of assignments
+   */
+  getMyAssignments: async () => {
+    const res = await api.get("/reviews/assignments/my-assignments");
+    return res.data;
+  },
+
+  /**
+   * Get my reviews (current reviewer)
+   * @returns {Promise<Array>} List of reviews
+   */
+  getMyReviews: async () => {
+    const res = await api.get("/reviews/my-reviews");
+    return res.data;
+  },
+
+  /**
+   * Get my bids (current reviewer)
+   * @returns {Promise<Array>} List of bids
+   */
+  getMyBids: async () => {
+    const res = await api.get("/reviews/bids/my-bids");
+    return res.data;
+  },
+
+  /**
+   * Get my COIs (current reviewer)
+   * @returns {Promise<Array>} List of COIs
+   */
+  getMyCOIs: async () => {
+    const res = await api.get("/reviews/coi/my-cois");
+    return res.data;
+  },
+
+  /**
+   * Check COI for a submission (current reviewer)
+   * @param {number} submissionId - Submission ID
+   * @returns {Promise<Object>} { submission_id, has_coi }
+   */
+  checkCOI: async (submissionId) => {
+    const res = await api.get(`/reviews/coi/check/${submissionId}`);
+    return res.data;
+  },
 };
 
 export default reviewService;

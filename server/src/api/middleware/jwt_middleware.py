@@ -54,10 +54,14 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             return response
         
         if not auth_header.startswith("Bearer "):
-            return JSONResponse(
+            response = JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"detail": "Invalid authorization header format. Expected 'Bearer <token>'"}
             )
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            return response
         
         token = auth_header.split(" ", 1)[1]
         
@@ -67,10 +71,14 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             user_id = payload.get("user_id")
             
             if not user_id:
-                return JSONResponse(
+                response = JSONResponse(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     content={"detail": "Invalid token: missing user_id"}
                 )
+                response.headers["Access-Control-Allow-Origin"] = "*"
+                response.headers["Access-Control-Allow-Methods"] = "*"
+                response.headers["Access-Control-Allow-Headers"] = "*"
+                return response
             
             # Load user từ database
             async with async_session() as session:
@@ -78,16 +86,24 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                 user = await repo.get_by_id(user_id)
                 
                 if not user:
-                    return JSONResponse(
+                    response = JSONResponse(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         content={"detail": "User not found"}
                     )
+                    response.headers["Access-Control-Allow-Origin"] = "*"
+                    response.headers["Access-Control-Allow-Methods"] = "*"
+                    response.headers["Access-Control-Allow-Headers"] = "*"
+                    return response
                 
                 if not user.is_active:
-                    return JSONResponse(
+                    response = JSONResponse(
                         status_code=status.HTTP_403_FORBIDDEN,
                         content={"detail": "Account is disabled"}
                     )
+                    response.headers["Access-Control-Allow-Origin"] = "*"
+                    response.headers["Access-Control-Allow-Methods"] = "*"
+                    response.headers["Access-Control-Allow-Headers"] = "*"
+                    return response
                 
                 # Gắn user vào request state để controller có thể sử dụng
                 request.state.user = user
@@ -96,10 +112,14 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         
         except Exception as e:
             # Nếu có lỗi decode token, trả về 401
-            return JSONResponse(
+            response = JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"detail": f"Authentication failed: {str(e)}"}
             )
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            return response
         
         # Tiếp tục xử lý request
         response = await call_next(request)

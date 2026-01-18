@@ -18,11 +18,18 @@ const ReviewForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.summary && !formData.weakness) {
+      toast.error("Vui lòng điền ít nhất Summary hoặc Weakness");
+      return;
+    }
+    
     setLoading(true);
     try {
       const payload = {
-        summary: formData.summary,
-        weakness: formData.weakness,
+        summary: formData.summary || null,
+        weakness: formData.weakness || null,
         best_paper_recommendation: Boolean(formData.best_paper_recommendation),
         answers: [
           // question_id=1 is used by server DecisionService as "score"
@@ -116,26 +123,31 @@ const ReviewForm = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Summary</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Summary <span className="text-red-500">*</span>
+          </label>
           <textarea
-            rows="4"
+            rows="5"
             value={formData.summary}
             onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            placeholder="Tóm tắt nhận xét..."
-            required
+            className="mt-1 block w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Tóm tắt nhận xét về bài báo..."
           />
+          <p className="mt-1 text-xs text-gray-500">Tóm tắt các điểm chính của bài báo</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Weakness</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Weakness / Suggestions
+          </label>
           <textarea
-            rows="4"
+            rows="5"
             value={formData.weakness}
             onChange={(e) => setFormData({ ...formData, weakness: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            placeholder="Điểm yếu / góp ý cải thiện..."
+            className="mt-1 block w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Điểm yếu, hạn chế và góp ý cải thiện..."
           />
+          <p className="mt-1 text-xs text-gray-500">Nêu các điểm yếu và đề xuất cải thiện</p>
         </div>
 
         <label className="flex items-center gap-2 text-sm text-gray-700">

@@ -1,21 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { userService } from "../../../services";
-import { UserPlus, Edit, Trash2, Shield } from "lucide-react";
+import { UserPlus, Edit, Trash2, Shield, UserCog } from "lucide-react";
 import Modal from "../../../components/Modal";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import Table from "../../../components/Table";
 import { toast } from "react-hot-toast";
+import { useAuthStore } from "../../../app/store/useAuthStore";
 
 /**
  * Trang quản lý người dùng cho Admin
  */
 export default function UserManagementPage() {
+  const { user: currentUser } = useAuthStore();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [createModal, setCreateModal] = useState(false);
   const [editModal, setEditModal] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
+  const [roleModal, setRoleModal] = useState(null); // user object
+  const [allRoles, setAllRoles] = useState([]); // [{id,name}]
+  const [roleLoading, setRoleLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     full_name: "",
@@ -29,6 +34,12 @@ export default function UserManagementPage() {
     loadUsers();
   }, []);
 
+  useEffect(() => {
+    if (roleModal) {
+      loadRoles();
+    }
+  }, [roleModal]);
+
   const loadUsers = async () => {
     try {
       setLoading(true);
@@ -39,6 +50,19 @@ export default function UserManagementPage() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRoles = async () => {
+    try {
+      setRoleLoading(true);
+      const data = await userService.listRoles();
+      setAllRoles(data.roles || []);
+    } catch (error) {
+      toast.error("Không thể tải danh sách roles");
+      console.error(error);
+    } finally {
+      setRoleLoading(false);
     }
   };
 
@@ -102,6 +126,44 @@ export default function UserManagementPage() {
       is_active: user.is_active,
       is_verified: user.is_verified,
     });
+  };
+
+  const updateUserInList = (updated) => {
+    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+  };
+
+  const toggleRole = async (targetUser, role) => {
+    if (!targetUser?.id || !role?.id) return;
+
+    const roleNames = targetUser.role_names || targetUser.roles || [];
+    const hasRole = roleNames.includes(role.name);
+
+    // Prevent admin from removing their own admin role (avoid lockout)
+    if (
+      targetUser.id === currentUser?.id &&
+      role.name === "admin" &&
+      hasRole
+    ) {
+      toast.error("Không thể tự gỡ quyền admin của chính mình");
+      return;
+    }
+
+    try {
+      let updated;
+      if (hasRole) {
+        updated = await userService.removeRole(targetUser.id, role.id);
+        toast.success(`Đã gỡ role '${role.name}'`);
+      } else {
+        updated = await userService.addRole(targetUser.id, { role_id: role.id });
+        toast.success(`Đã thêm role '${role.name}'`);
+      }
+      updateUserInList(updated);
+      setRoleModal(updated);
+    } catch (error) {
+      const message = error?.response?.data?.detail || "Không thể cập nhật role";
+      toast.error(message);
+      console.error(error);
+    }
   };
 
   const columns = [
@@ -172,6 +234,13 @@ export default function UserManagementPage() {
       render: (row) => (
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setRoleModal(row)}
+            className="p-2 text-teal-700 hover:bg-teal-50 rounded-lg transition-colors"
+            title="Chỉnh roles"
+          >
+            <UserCog className="w-4 h-4" />
+          </button>
+          <button
             onClick={() => openEditModal(row)}
             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
           >
@@ -202,6 +271,58 @@ export default function UserManagementPage() {
       </div>
 
       <Table columns={columns} data={users} loading={loading} />
+
+      {/* Role Modal */}
+      <Modal
+        isOpen={!!roleModal}
+        onClose={() => setRoleModal(null)}
+        title="Chỉnh vai trò (roles)"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="text-sm text-gray-700">
+            User: <span className="font-semibold">{roleModal?.email}</span>
+          </div>
+
+          {roleLoading ? (
+            <div className="text-sm text-gray-500">Đang tải roles...</div>
+          ) : (
+            <div className="space-y-2">
+              {(allRoles || []).map((r) => {
+                const roleNames = roleModal?.role_names || roleModal?.roles || [];
+                const checked = roleNames.includes(r.name);
+                const disabled =
+                  roleModal?.id === currentUser?.id && r.name === "admin" && checked;
+
+                return (
+                  <label key={r.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-900">{r.name}</span>
+                      <span className="text-xs text-gray-500">role_id: {r.id}</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={disabled}
+                      onChange={() => toggleRole(roleModal, r)}
+                      className="h-4 w-4"
+                    />
+                  </label>
+                );
+              })}
+              {(!allRoles || allRoles.length === 0) && (
+                <div className="text-sm text-gray-500">Chưa có roles trong hệ thống.</div>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={() => setRoleModal(null)} className="!w-auto">
+              Đóng
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Create Modal */}
       <Modal

@@ -12,7 +12,8 @@ from api.controllers import (
     reports_controller, email_template_controller, ai_controller,
     admin_controller, schedule_controller, notification_controller,
     tenant_controller, pc_controller,
-    discussion_controller, rebuttal_controller, proceedings_controller
+    discussion_controller, rebuttal_controller, proceedings_controller,
+    role_controller
 )
 
 from infrastructure.models import (
@@ -90,6 +91,7 @@ app.include_router(pc_controller.router)
 app.include_router(discussion_controller.router)
 app.include_router(rebuttal_controller.router)
 app.include_router(proceedings_controller.router)
+app.include_router(role_controller.router)
 
 
 

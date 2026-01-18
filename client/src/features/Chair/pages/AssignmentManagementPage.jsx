@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { reviewService, submissionService } from "../../../services";
+import { reviewService, submissionService, userService } from "../../../services";
 import { UserPlus, Users, FileText, X } from "lucide-react";
 import Modal from "../../../components/Modal";
 import Button from "../../../components/Button";
@@ -16,6 +16,7 @@ export default function AssignmentManagementPage() {
   const [submissions, setSubmissions] = useState([]);
   const [assignments, setAssignments] = useState({});
   const [assignModal, setAssignModal] = useState(null);
+  const [reviewers, setReviewers] = useState([]);
   const [reviewerId, setReviewerId] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -28,6 +29,15 @@ export default function AssignmentManagementPage() {
       setLoading(true);
       const submissionsData = await submissionService.getAll();
       setSubmissions(submissionsData.filter((s) => s.conference_id === parseInt(conferenceId)));
+
+      // Load reviewer pool
+      try {
+        const r = await userService.listUsersByRole("reviewer");
+        setReviewers(r.users || []);
+      } catch (e) {
+        // still allow manual ID, but show warning
+        setReviewers([]);
+      }
 
       // Load assignments for each submission
       const assignmentsData = {};
@@ -50,7 +60,7 @@ export default function AssignmentManagementPage() {
 
   const handleAssign = async () => {
     if (!assignModal || !reviewerId) {
-      toast.error("Vui lòng nhập Reviewer ID");
+      toast.error("Vui lòng chọn Reviewer");
       return;
     }
 
@@ -65,7 +75,8 @@ export default function AssignmentManagementPage() {
       setReviewerId("");
       loadData();
     } catch (error) {
-      toast.error("Không thể phân công reviewer");
+      const message = error?.response?.data?.detail || "Không thể phân công reviewer";
+      toast.error(message);
       console.error(error);
     }
   };
@@ -162,14 +173,34 @@ export default function AssignmentManagementPage() {
               Bài nộp: <span className="font-medium">{assignModal?.title}</span>
             </p>
           </div>
-          <Input
-            label="Reviewer ID"
-            type="number"
-            value={reviewerId}
-            onChange={(e) => setReviewerId(e.target.value)}
-            placeholder="Nhập ID của reviewer"
-            required
-          />
+          {reviewers.length > 0 ? (
+            <div className="flex flex-col gap-1 w-full">
+              <label className="text-sm font-medium text-gray-700">
+                Reviewer <span className="text-red-500 ml-1">*</span>
+              </label>
+              <select
+                value={reviewerId}
+                onChange={(e) => setReviewerId(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-300"
+              >
+                <option value="">-- Chọn reviewer --</option>
+                {reviewers.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    #{r.id} - {r.full_name || r.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <Input
+              label="Reviewer ID"
+              type="number"
+              value={reviewerId}
+              onChange={(e) => setReviewerId(e.target.value)}
+              placeholder="Nhập ID của reviewer"
+              required
+            />
+          )}
           <div className="flex gap-3 justify-end">
             <Button
               variant="secondary"

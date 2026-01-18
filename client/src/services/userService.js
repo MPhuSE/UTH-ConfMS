@@ -117,6 +117,24 @@ export const userService = {
     const res = await api.delete(`/users/${userId}/roles/${roleId}`);
     return res.data;
   },
+
+  /**
+   * List roles (Admin only)
+   * @returns {Promise<{roles: Array<{id:number,name:string}>}>}
+   */
+  listRoles: async () => {
+    const res = await api.get("/roles");
+    return res.data;
+  },
+
+  /**
+   * List users by role (Admin/Chair)
+   * @param {string} roleName
+   */
+  listUsersByRole: async (roleName) => {
+    const res = await api.get(`/roles/${roleName}/users`);
+    return res.data;
+  },
 };
 
 export default userService;

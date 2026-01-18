@@ -113,6 +113,7 @@ export default function ChairDashboard() {
         pendingDecisions,
       });
     } catch (error) {
+      toast.error("Không thể tải thống kê bài nộp");
       console.error("Error loading stats:", error);
     }
   };
@@ -237,7 +238,7 @@ export default function ChairDashboard() {
           </button>
 
           <button
-            onClick={() => navigate("/dashboard/chair/dashboard")}
+            onClick={() => navigate("/dashboard/chair/conferences")}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">

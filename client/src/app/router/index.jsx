@@ -39,6 +39,7 @@ import AssignmentManagementPage from "../../features/Chair/pages/AssignmentManag
 import DecisionManagementPage from "../../features/Chair/pages/DecisionManagementPage";
 import ProceedingsExportPage from "../../features/Chair/pages/ProceedingsExportPage";
 import BulkNotificationsPage from "../../features/Chair/pages/BulkNotificationsPage";
+import ConferenceManagementPage from "../../features/Chair/pages/ConferenceManagementPage";
 
 // Reviewer
 import ReviewerDashboard from "../../features/reviewer/ReviewerDashboard";
@@ -110,6 +111,14 @@ export default function AppRouter() {
                         element={
                             <ProtectedRoute allowRoles={["chair", "admin"]}>
                                 <ChairDashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/conferences"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <ConferenceManagementPage />
                             </ProtectedRoute>
                         }
                     />

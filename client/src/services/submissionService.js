@@ -21,6 +21,12 @@ export const submissionService = {
     return res.data;
   },
 
+  // Backward compatible alias (many Chair/Reviewer pages call getAll)
+  getAll: async () => {
+    const res = await api.get("/submissions");
+    return res.data;
+  },
+
   // Lấy danh sách bài được phân công (Reviewer)
   getAssignedReviews: async () => {
     const res = await api.get("/reviews/assigned");

@@ -15,24 +15,34 @@ import {
   BarChart,
   LogOut,
   ChevronRight,
-  Bell
+  Bell,
+  UserCog,
+  ClipboardList,
+  CheckCircle
 } from "lucide-react";
 
 export default function DashboardLayout() {
   const { role, user } = useAuthStore();
-  const isAdmin = String(role || "").toLowerCase() === "admin";
+
+  const roleNames = Array.isArray(user?.role_names) && user.role_names.length
+    ? user.role_names.map((r) => String(r || "").toLowerCase())
+    : [String(role || "").toLowerCase()].filter(Boolean);
+
+  const isAdmin = roleNames.includes("admin");
+  const isChair = roleNames.includes("chair");
+  const isReviewer = roleNames.includes("reviewer");
+  const isAuthor = roleNames.includes("author") || roleNames.includes("authors");
 
   // Map role to display name
   const getRoleName = () => {
-    const roleStr = String(role || "").toLowerCase();
-    switch(roleStr) {
-      case 'admin': return 'Quản trị viên';
-      case 'author': return 'Tác giả';
-      case 'reviewer': return 'Phản biện';
-      case 'chair': return 'Chủ tịch';
-      default: return 'Người dùng';
-    }
+    if (isAdmin) return "Quản trị viên";
+    if (isChair) return "Chủ tịch";
+    if (isReviewer) return "Phản biện";
+    if (isAuthor) return "Tác giả";
+    return "Người dùng";
   };
+
+  const displayName = user?.full_name || user?.name || user?.email || "Người dùng";
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -41,7 +51,7 @@ export default function DashboardLayout() {
         {/* Sidebar Header */}
         <div className="p-6 border-b border-gray-200">
           <Link to="/dashboard/overview" className="inline-flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-linear-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">UT</span>
             </div>
             <div>
@@ -56,11 +66,11 @@ export default function DashboardLayout() {
         {/* User Info */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
-              {user?.name?.[0]?.toUpperCase() || 'U'}
+            <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
+              {displayName?.[0]?.toUpperCase() || "U"}
             </div>
             <div>
-              <p className="font-medium text-gray-900">{user?.name || 'Người dùng'}</p>
+              <p className="font-medium text-gray-900">{displayName}</p>
               <p className="text-sm text-gray-500">{getRoleName()}</p>
             </div>
           </div>
@@ -70,15 +80,15 @@ export default function DashboardLayout() {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {/* Common Links */}
           <Link 
-            to="/dashboard/overview" 
+            to="/dashboard" 
             className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
           >
             <Home className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
             <span>Tổng quan</span>
           </Link>
 
-          {/* Non-admin Links */}
-          {!isAdmin && (
+          {/* Author Links */}
+          {isAuthor && (
             <>
               <Link 
                 to="/dashboard/my-submissions" 
@@ -110,6 +120,52 @@ export default function DashboardLayout() {
               >
                 <User className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
                 <span>Hồ sơ</span>
+              </Link>
+            </>
+          )}
+
+          {/* Reviewer Links */}
+          {isReviewer && (
+            <>
+              <div className="pt-4 pb-2">
+                <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reviewer</p>
+              </div>
+              <Link
+                to="/dashboard/reviewer/dashboard"
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+              >
+                <ClipboardList className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <span>Assignments</span>
+              </Link>
+            </>
+          )}
+
+          {/* Chair Links */}
+          {isChair && (
+            <>
+              <div className="pt-4 pb-2">
+                <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Chair</p>
+              </div>
+              <Link
+                to="/dashboard/chair/dashboard"
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+              >
+                <UserCog className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <span>Chair Dashboard</span>
+              </Link>
+              <Link
+                to="/dashboard/chair/conferences"
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+              >
+                <Award className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <span>Quản lý hội nghị</span>
+              </Link>
+              <Link
+                to="/dashboard/audit-logs"
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+              >
+                <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <span>Audit Logs</span>
               </Link>
             </>
           )}
@@ -219,11 +275,11 @@ export default function DashboardLayout() {
               {/* User Menu */}
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{user?.name || 'Người dùng'}</p>
-                  <p className="text-xs text-gray-500">{user?.email || 'example@uth.edu.vn'}</p>
+                  <p className="text-sm font-medium text-gray-900">{displayName}</p>
+                  <p className="text-xs text-gray-500">{user?.email || "example@uth.edu.vn"}</p>
                 </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
-                  {user?.name?.[0]?.toUpperCase() || 'U'}
+                <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
+                  {displayName?.[0]?.toUpperCase() || "U"}
                 </div>
               </div>
             </div>

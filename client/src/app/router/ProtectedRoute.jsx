@@ -2,7 +2,7 @@ import { Navigate } from "react-router-dom";
 import { useAuthStore } from "../../app/store/useAuthStore";
 
 export default function ProtectedRoute({ children, allowRoles }) {
-  const { isAuthenticated, role, isCheckingAuth } = useAuthStore();
+  const { isAuthenticated, role, user, isCheckingAuth } = useAuthStore();
 
   if (isCheckingAuth) {
     return (
@@ -19,9 +19,13 @@ export default function ProtectedRoute({ children, allowRoles }) {
   if (allowRoles && allowRoles.length) {
     const normalize = (r) => String(r || "").toLowerCase();
     const allowed = allowRoles.map(normalize);
-    const userRole = normalize(role);
 
-    if (!allowed.includes(userRole)) {
+    // Support multi-role users: allow if ANY role matches
+    const userRoles = Array.isArray(user?.role_names) && user.role_names.length
+      ? user.role_names.map(normalize)
+      : [normalize(role)];
+
+    if (!userRoles.some((r) => allowed.includes(r))) {
       return <Navigate to="/unauthorized" replace />;
     }
   }

@@ -168,7 +168,7 @@ def upgrade() -> None:
     op.create_index('ix_history_logs_id', 'history_logs', ['id'])
 
     op.create_table(
-        'lessons',
+        'sessions',
         sa.Column('id', sa.Integer, primary_key=True),
         sa.Column('conference_id', sa.Integer, nullable=False),
         sa.Column('name', sa.String, nullable=False),
@@ -251,12 +251,12 @@ def upgrade() -> None:
         sa.Column('id', sa.Integer, primary_key=True),
         sa.Column('conference_id', sa.Integer),
         sa.Column('submission_id', sa.Integer),
-        sa.Column('lesson_id', sa.Integer),
+        sa.Column('session_id', sa.Integer),
         sa.Column('start_time', sa.DateTime),
         sa.Column('end_time', sa.DateTime),
         sa.ForeignKeyConstraint(['conference_id'], ['conferences.id']),
         sa.ForeignKeyConstraint(['submission_id'], ['submissions.id']),
-        sa.ForeignKeyConstraint(['lesson_id'], ['lessons.id']),
+        sa.ForeignKeyConstraint(['session_id'], ['sessions.id']),
     )
 
 
@@ -271,7 +271,7 @@ def downgrade() -> None:
     op.drop_table('reviewer_expertise')
     op.drop_table('review_assignments')
     op.drop_table('notification_logs')
-    op.drop_table('lessons')
+    op.drop_table('sessions')
     op.drop_index('ix_history_logs_id', table_name='history_logs')
     op.drop_table('history_logs')
     op.drop_table('email_templates')

@@ -6,7 +6,7 @@ from datetime import datetime
 
 from infrastructure.databases.postgres import get_db
 from infrastructure.models.system_model import ScheduleItemModel
-from infrastructure.models.conference_model import LessonModel
+from infrastructure.models.conference_model import SessionModel
 from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair
 from domain.exceptions import NotFoundError
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/schedule", tags=["Schedule"])
 class ScheduleItemCreateRequest(BaseModel):
     conference_id: int
     submission_id: Optional[int] = None
-    lesson_id: int
+    session_id: int
     start_time: datetime
     end_time: datetime
     order_index: int
@@ -26,7 +26,7 @@ class ScheduleItemCreateRequest(BaseModel):
 
 class ScheduleItemUpdateRequest(BaseModel):
     submission_id: Optional[int] = None
-    lesson_id: Optional[int] = None
+    session_id: Optional[int] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     order_index: Optional[int] = None
@@ -36,7 +36,7 @@ class ScheduleItemResponse(BaseModel):
     id: int
     conference_id: int
     submission_id: Optional[int]
-    lesson_id: int
+    session_id: int
     start_time: datetime
     end_time: datetime
     order_index: int
@@ -57,7 +57,7 @@ def create_schedule_item(
         schedule_item = ScheduleItemModel(
             conference_id=request.conference_id,
             submission_id=request.submission_id,
-            lesson_id=request.lesson_id,
+            session_id=request.session_id,
             start_time=request.start_time,
             end_time=request.end_time,
             order_index=request.order_index
@@ -80,7 +80,7 @@ def create_schedule_item(
                 new_values={
                     "conference_id": request.conference_id,
                     "submission_id": request.submission_id,
-                    "lesson_id": request.lesson_id,
+                    "session_id": request.session_id,
                     "order_index": request.order_index,
                 },
             )
@@ -91,7 +91,7 @@ def create_schedule_item(
             id=schedule_item.id,
             conference_id=schedule_item.conference_id,
             submission_id=schedule_item.submission_id,
-            lesson_id=schedule_item.lesson_id,
+            session_id=schedule_item.session_id,
             start_time=schedule_item.start_time,
             end_time=schedule_item.end_time,
             order_index=schedule_item.order_index
@@ -117,7 +117,7 @@ def get_schedule_by_conference(
                 id=item.id,
                 conference_id=item.conference_id,
                 submission_id=item.submission_id,
-                lesson_id=item.lesson_id,
+                session_id=item.session_id,
                 start_time=item.start_time,
                 end_time=item.end_time,
                 order_index=item.order_index
@@ -145,7 +145,7 @@ def update_schedule_item(
         # Store old values for audit
         old_values = {
             "submission_id": item.submission_id,
-            "lesson_id": item.lesson_id,
+            "session_id": item.session_id,
             "start_time": item.start_time.isoformat() if item.start_time else None,
             "end_time": item.end_time.isoformat() if item.end_time else None,
             "order_index": item.order_index,
@@ -153,8 +153,8 @@ def update_schedule_item(
         
         if request.submission_id is not None:
             item.submission_id = request.submission_id
-        if request.lesson_id is not None:
-            item.lesson_id = request.lesson_id
+        if request.session_id is not None:
+            item.session_id = request.session_id
         if request.start_time is not None:
             item.start_time = request.start_time
         if request.end_time is not None:
@@ -179,7 +179,7 @@ def update_schedule_item(
                 old_values=old_values,
                 new_values={
                     "submission_id": item.submission_id,
-                    "lesson_id": item.lesson_id,
+                    "session_id": item.session_id,
                     "start_time": item.start_time.isoformat() if item.start_time else None,
                     "end_time": item.end_time.isoformat() if item.end_time else None,
                     "order_index": item.order_index,
@@ -192,7 +192,7 @@ def update_schedule_item(
             id=item.id,
             conference_id=item.conference_id,
             submission_id=item.submission_id,
-            lesson_id=item.lesson_id,
+            session_id=item.session_id,
             start_time=item.start_time,
             end_time=item.end_time,
             order_index=item.order_index
@@ -236,7 +236,7 @@ def delete_schedule_item(
                 old_values={
                     "conference_id": conference_id,
                     "submission_id": submission_id,
-                    "lesson_id": item.lesson_id,
+                    "session_id": item.session_id,
                 },
             )
         except Exception:

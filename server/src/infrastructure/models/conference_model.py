@@ -32,7 +32,7 @@ class ConferenceModel(Base):
 
     tracks = relationship("TrackModel", back_populates="conference", lazy="selectin")
     email_templates = relationship("EmailTemplateModel", back_populates="conference")
-    lessons = relationship("LessonModel", back_populates="conference")
+    sessions = relationship("SessionModel", back_populates="conference")
     
 class TrackModel(Base):
     """Các chủ đề/track của Hội nghị."""
@@ -57,13 +57,13 @@ class EmailTemplateModel(Base):
 
     conference = relationship("ConferenceModel", back_populates="email_templates")
 
-class LessonModel(Base):
-    """Tên bảng là lessons trong ERD, có thể là Sessions."""
-    __tablename__ = "lessons"
+class SessionModel(Base):
+    """Tên bảng là sessions trong ERD, có thể là Sessions."""
+    __tablename__ = "sessions"
     id = Column(Integer, primary_key=True)
     conference_id = Column(ForeignKey("conferences.id"), nullable=False)
     name = Column(String, nullable=False)
-    conference = relationship("ConferenceModel", back_populates="lessons")
-    schedule_items = relationship("ScheduleItemModel", back_populates="lesson", lazy="selectin")
+    conference = relationship("ConferenceModel", back_populates="sessions")
+    schedule_items = relationship("ScheduleItemModel", back_populates="session", lazy="selectin")
 
 from infrastructure.models import submission_model  

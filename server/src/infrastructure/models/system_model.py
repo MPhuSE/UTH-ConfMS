@@ -28,12 +28,12 @@ class ScheduleItemModel(Base):
     id = Column(Integer, primary_key=True)
     conference_id = Column(ForeignKey("conferences.id"))
     submission_id = Column(ForeignKey("submissions.id"))
-    lesson_id = Column(ForeignKey("lessons.id"))
+    session_id = Column(ForeignKey("sessions.id"))
     start_time = Column(DateTime)
     end_time = Column(DateTime)
     order_index = Column(Integer)
 
-    lesson = relationship("LessonModel", back_populates="schedule_items")
+    session = relationship("SessionModel", back_populates="schedule_items")
     conference = relationship("ConferenceModel")
     submission = relationship("SubmissionModel")
 

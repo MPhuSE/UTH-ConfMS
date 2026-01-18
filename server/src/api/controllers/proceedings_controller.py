@@ -51,7 +51,7 @@ def export_proceedings(
         schedule_items = [
             {
                 "id": it.id,
-                "lesson_id": it.lesson_id,
+                "session_id": it.session_id,
                 "start_time": it.start_time,
                 "end_time": it.end_time,
                 "order_index": it.order_index,

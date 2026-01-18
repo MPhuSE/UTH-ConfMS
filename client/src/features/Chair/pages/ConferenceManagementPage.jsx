@@ -15,8 +15,21 @@ const toDateInput = (value) => {
 };
 
 const fromDateInput = (value) => {
-  if (!value) return null;
-  return new Date(`${value}T00:00:00`).toISOString();
+  if (!value || !value.trim()) return null;
+  try {
+    // Parse date string (YYYY-MM-DD) and convert to ISO string
+    // Use UTC midnight to avoid timezone issues
+    const date = new Date(`${value}T00:00:00.000Z`);
+    if (isNaN(date.getTime())) {
+      console.warn(`Invalid date: ${value}`);
+      return null;
+    }
+    // Return ISO string format that Pydantic expects
+    return date.toISOString();
+  } catch (error) {
+    console.warn(`Error parsing date: ${value}`, error);
+    return null;
+  }
 };
 
 export default function ConferenceManagementPage() {
@@ -86,18 +99,29 @@ export default function ConferenceManagementPage() {
     });
   };
 
-  const buildPayload = () => ({
-    name: form.name,
-    abbreviation: form.abbreviation || null,
-    description: form.description || null,
-    website_url: form.website_url || null,
-    start_date: fromDateInput(form.start_date),
-    end_date: fromDateInput(form.end_date),
-    submission_deadline: fromDateInput(form.submission_deadline),
-    review_deadline: fromDateInput(form.review_deadline),
-    is_open: !!form.is_open,
-    double_blind: !!form.double_blind,
-  });
+  const buildPayload = () => {
+    const payload = {
+      name: form.name.trim(),
+      abbreviation: form.abbreviation?.trim() || null,
+      description: form.description?.trim() || null,
+      website_url: form.website_url?.trim() || null,
+      is_open: Boolean(form.is_open),
+      double_blind: Boolean(form.double_blind),
+    };
+    
+    // Add dates only if they exist (Pydantic expects Optional[datetime] or None)
+    const startDate = fromDateInput(form.start_date);
+    const endDate = fromDateInput(form.end_date);
+    const submissionDeadline = fromDateInput(form.submission_deadline);
+    const reviewDeadline = fromDateInput(form.review_deadline);
+    
+    if (startDate) payload.start_date = startDate;
+    if (endDate) payload.end_date = endDate;
+    if (submissionDeadline) payload.submission_deadline = submissionDeadline;
+    if (reviewDeadline) payload.review_deadline = reviewDeadline;
+    
+    return payload;
+  };
 
   const handleCreate = async () => {
     try {
@@ -105,15 +129,37 @@ export default function ConferenceManagementPage() {
         toast.error("Tên hội nghị không được để trống");
         return;
       }
-      await conferenceService.create(buildPayload());
+      
+      const payload = buildPayload();
+      console.log("Creating conference with payload:", payload);
+      
+      await conferenceService.create(payload);
       toast.success("Tạo hội nghị thành công");
       setCreateModal(false);
       resetForm();
       loadConferences();
     } catch (err) {
-      const message = err?.response?.data?.detail || "Không thể tạo hội nghị";
+      console.error("Create conference error:", err);
+      console.error("Error response:", err?.response?.data);
+      console.error("Error detail:", err?.response?.data?.detail);
+      
+      const detail = err?.response?.data?.detail;
+      let message = "Không thể tạo hội nghị";
+      
+      if (typeof detail === "string") {
+        message = detail;
+      } else if (Array.isArray(detail)) {
+        // Pydantic validation errors
+        const errors = detail.map((e) => {
+          const field = Array.isArray(e.loc) ? e.loc.slice(1).join(".") : "unknown";
+          return `${field}: ${e.msg}`;
+        }).join(", ");
+        message = `Validation error: ${errors}`;
+      } else if (detail && typeof detail === "object") {
+        message = JSON.stringify(detail, null, 2);
+      }
+      
       toast.error(message);
-      console.error(err);
     }
   };
 

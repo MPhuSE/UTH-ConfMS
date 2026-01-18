@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -13,6 +13,7 @@ from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair
 from services.decision.decision_service import DecisionService
 from domain.exceptions import NotFoundError, BusinessRuleException
+from api.utils.audit_utils import create_audit_log_sync
 
 router = APIRouter(prefix="/decisions", tags=["Decisions"])
 
@@ -36,16 +37,44 @@ def get_decision_service(
 @router.post("", response_model=DecisionResponse, status_code=status.HTTP_201_CREATED)
 def make_decision(
     request: DecisionRequest,
+    req: Request,
     current_user=Depends(require_admin_or_chair),
-    service=Depends(get_decision_service)
+    service=Depends(get_decision_service),
+    db: Session = Depends(get_db)
 ):
     """Make a decision on a submission - only admin or chair can make decisions."""
     try:
+        # Get old decision for audit
+        submission_repo = get_submission_repo(db)
+        old_submission = submission_repo.get_by_id(request.submission_id)
+        old_decision = old_submission.decision if old_submission else None
+        
         result = service.make_decision(
             submission_id=request.submission_id,
             decision=request.decision,
             decision_notes=request.decision_notes
         )
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="DECIDE",
+                resource_type="SUBMISSION",
+                user_id=current_user.id,
+                resource_id=request.submission_id,
+                description=f"Made decision: {request.decision} on submission {request.submission_id}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                old_values={"decision": old_decision} if old_decision else None,
+                new_values={
+                    "decision": request.decision,
+                    "decision_notes": request.decision_notes,
+                },
+            )
+        except Exception:
+            pass
+        
         return DecisionResponse(**result)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

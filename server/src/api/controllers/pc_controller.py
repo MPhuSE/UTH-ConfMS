@@ -1,6 +1,6 @@
 import secrets
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from infrastructure.databases.postgres import get_db
@@ -17,6 +17,7 @@ from api.schemas.pc_schema import (
     PCMemberResponse,
     PCMemberListResponse,
 )
+from api.utils.audit_utils import create_audit_log_sync
 
 router = APIRouter(prefix="/pc", tags=["PC & Assignments"])
 
@@ -28,6 +29,7 @@ def _now_utc():
 @router.post("/invitations", response_model=PCInvitationResponse, status_code=status.HTTP_201_CREATED)
 async def invite_pc_member(
     request: PCInviteRequest,
+    req: Request,
     db: Session = Depends(get_db),
     current_user=Depends(require_admin_or_chair),
 ):
@@ -46,6 +48,26 @@ async def invite_pc_member(
     db.add(invitation)
     db.commit()
     db.refresh(invitation)
+
+    # Audit logging
+    try:
+        create_audit_log_sync(
+            db,
+            action_type="INVITE",
+            resource_type="PC",
+            user_id=current_user.id,
+            resource_id=invitation.id,
+            description=f"Invited PC member: {request.email} to conference {request.conference_id}",
+            ip_address=req.client.host if req and req.client else None,
+            user_agent=req.headers.get("user-agent") if req else None,
+            new_values={
+                "email": request.email,
+                "conference_id": request.conference_id,
+                "role": invitation.role,
+            },
+        )
+    except Exception:
+        pass
 
     # Send invitation email (best-effort)
     try:
@@ -85,6 +107,7 @@ def list_invitations(
 @router.post("/invitations/accept", response_model=PCMemberResponse)
 def accept_invitation(
     request: PCAcceptRequest,
+    req: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -149,6 +172,26 @@ def accept_invitation(
         )
         .first()
     )
+    
+    # Audit logging
+    try:
+        create_audit_log_sync(
+            db,
+            action_type="ACCEPT",
+            resource_type="PC",
+            user_id=current_user.id,
+            resource_id=invitation.id,
+            description=f"Accepted PC invitation for conference {invitation.conference_id}",
+            ip_address=req.client.host if req and req.client else None,
+            user_agent=req.headers.get("user-agent") if req else None,
+            new_values={
+                "conference_id": invitation.conference_id,
+                "role": desired_role,
+            },
+        )
+    except Exception:
+        pass
+    
     return PCMemberResponse(
         conference_id=member_row.conference_id,
         user_id=member_row.user_id,

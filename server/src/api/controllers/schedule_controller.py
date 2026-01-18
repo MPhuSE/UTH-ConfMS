@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
@@ -10,6 +10,7 @@ from infrastructure.models.conference_model import LessonModel
 from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair
 from domain.exceptions import NotFoundError
+from api.utils.audit_utils import create_audit_log_sync
 
 router = APIRouter(prefix="/schedule", tags=["Schedule"])
 
@@ -47,6 +48,7 @@ class ScheduleItemResponse(BaseModel):
 @router.post("", response_model=ScheduleItemResponse, status_code=status.HTTP_201_CREATED)
 def create_schedule_item(
     request: ScheduleItemCreateRequest,
+    req: Request,
     current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
@@ -63,6 +65,27 @@ def create_schedule_item(
         db.add(schedule_item)
         db.commit()
         db.refresh(schedule_item)
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="CREATE",
+                resource_type="SCHEDULE",
+                user_id=current_user.id,
+                resource_id=schedule_item.id,
+                description=f"Created schedule item for conference {request.conference_id}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                new_values={
+                    "conference_id": request.conference_id,
+                    "submission_id": request.submission_id,
+                    "lesson_id": request.lesson_id,
+                    "order_index": request.order_index,
+                },
+            )
+        except Exception:
+            pass
         
         return ScheduleItemResponse(
             id=schedule_item.id,
@@ -109,6 +132,7 @@ def get_schedule_by_conference(
 def update_schedule_item(
     item_id: int,
     request: ScheduleItemUpdateRequest,
+    req: Request,
     current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
@@ -117,6 +141,15 @@ def update_schedule_item(
         item = db.query(ScheduleItemModel).filter(ScheduleItemModel.id == item_id).first()
         if not item:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule item not found")
+        
+        # Store old values for audit
+        old_values = {
+            "submission_id": item.submission_id,
+            "lesson_id": item.lesson_id,
+            "start_time": item.start_time.isoformat() if item.start_time else None,
+            "end_time": item.end_time.isoformat() if item.end_time else None,
+            "order_index": item.order_index,
+        }
         
         if request.submission_id is not None:
             item.submission_id = request.submission_id
@@ -131,6 +164,29 @@ def update_schedule_item(
         
         db.commit()
         db.refresh(item)
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="UPDATE",
+                resource_type="SCHEDULE",
+                user_id=current_user.id,
+                resource_id=item_id,
+                description=f"Updated schedule item {item_id} for conference {item.conference_id}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                old_values=old_values,
+                new_values={
+                    "submission_id": item.submission_id,
+                    "lesson_id": item.lesson_id,
+                    "start_time": item.start_time.isoformat() if item.start_time else None,
+                    "end_time": item.end_time.isoformat() if item.end_time else None,
+                    "order_index": item.order_index,
+                },
+            )
+        except Exception:
+            pass
         
         return ScheduleItemResponse(
             id=item.id,
@@ -150,6 +206,7 @@ def update_schedule_item(
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_schedule_item(
     item_id: int,
+    req: Request,
     current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
@@ -159,8 +216,31 @@ def delete_schedule_item(
         if not item:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule item not found")
         
+        conference_id = item.conference_id
+        submission_id = item.submission_id
+        
         db.delete(item)
         db.commit()
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="DELETE",
+                resource_type="SCHEDULE",
+                user_id=current_user.id,
+                resource_id=item_id,
+                description=f"Deleted schedule item {item_id} for conference {conference_id}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                old_values={
+                    "conference_id": conference_id,
+                    "submission_id": submission_id,
+                    "lesson_id": item.lesson_id,
+                },
+            )
+        except Exception:
+            pass
     except HTTPException:
         raise
     except Exception as e:

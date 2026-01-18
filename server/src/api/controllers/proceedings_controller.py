@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import Any, Dict, List, Optional
 
@@ -7,13 +7,19 @@ from infrastructure.security.rbac import require_admin_or_chair
 from infrastructure.models.conference_model import ConferenceModel
 from infrastructure.models.submission_model import SubmissionModel, SubmissionAuthorModel
 from infrastructure.models.system_model import ScheduleItemModel
+from api.utils.audit_utils import create_audit_log_sync
 
 
 router = APIRouter(prefix="/proceedings", tags=["Proceedings"])
 
 
 @router.get("/conferences/{conference_id}/export")
-def export_proceedings(conference_id: int, current_user=Depends(require_admin_or_chair), db: Session = Depends(get_db)):
+def export_proceedings(
+    conference_id: int,
+    req: Request,
+    current_user=Depends(require_admin_or_chair),
+    db: Session = Depends(get_db)
+):
     """
     Export accepted papers for program/proceedings.
     Returns JSON (easy to download and post-process to PDF/LaTeX later).
@@ -78,7 +84,7 @@ def export_proceedings(conference_id: int, current_user=Depends(require_admin_or
             }
         )
 
-    return {
+    result = {
         "conference": {
             "id": conf.id,
             "name": conf.name,
@@ -87,4 +93,25 @@ def export_proceedings(conference_id: int, current_user=Depends(require_admin_or
         "count": len(accepted),
         "papers": accepted,
     }
+    
+    # Audit logging
+    try:
+        create_audit_log_sync(
+            db,
+            action_type="EXPORT",
+            resource_type="PROCEEDINGS",
+            user_id=current_user.id,
+            resource_id=conference_id,
+            description=f"Exported proceedings for conference {conference_id} ({len(accepted)} papers)",
+            ip_address=req.client.host if req and req.client else None,
+            user_agent=req.headers.get("user-agent") if req else None,
+            metadata={
+                "paper_count": len(accepted),
+                "conference_name": conf.name,
+            },
+        )
+    except Exception:
+        pass
+    
+    return result
 

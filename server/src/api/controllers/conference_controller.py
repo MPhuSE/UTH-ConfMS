@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 
 # Import các schema (đảm bảo file schema của bạn đã dán code tôi gửi ở bước trước)
@@ -15,6 +15,7 @@ from infrastructure.databases.postgres import get_db
 from infrastructure.repositories.conference_repo_impl import ConferenceRepositoryImpl 
 from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair
+from api.utils.audit_utils import create_audit_log_sync
 
 # Import các services cũ
 from services.conference.create_conference import CreateConferenceService
@@ -36,6 +37,7 @@ router = APIRouter(prefix="/conferences", tags=["Conferences"])
 @router.post("", response_model=dict)
 def create_conference(
     request: ConferenceCreateRequest,
+    req: Request,
     current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
@@ -51,6 +53,28 @@ def create_conference(
             is_open=request.is_open, double_blind=request.double_blind
         )
         result = service.execute(conference)
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="CREATE",
+                resource_type="CONFERENCE",
+                user_id=current_user.id,
+                resource_id=result.id,
+                description=f"Created conference: {request.name}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                new_values={
+                    "name": request.name,
+                    "abbreviation": request.abbreviation,
+                    "is_open": request.is_open,
+                    "double_blind": request.double_blind,
+                },
+            )
+        except Exception:
+            pass
+        
         return {"message": "Conference created successfully", "data": result}
     except BusinessRuleException as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -92,19 +116,66 @@ def get_all_conferences(skip: int = Query(0), limit: int = Query(100), db: Sessi
     )
 
 @router.delete("/{conference_id}", response_model=dict)
-def delete_conference_by_id(conference_id: int, current_user=Depends(require_admin_or_chair), db: Session = Depends(get_db)):
+def delete_conference_by_id(
+    conference_id: int,
+    req: Request,
+    current_user=Depends(require_admin_or_chair),
+    db: Session = Depends(get_db)
+):
     try:
+        # Get conference info before deletion for audit
         repo = ConferenceRepositoryImpl(db)
+        get_service = GetConferenceService(repo)
+        conf_before = None
+        try:
+            conf_before = get_service.get_by_id(conference_id)
+        except:
+            pass
+        
         service = DeleteConferenceService(repo)
         service.delete(conference_id)
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="DELETE",
+                resource_type="CONFERENCE",
+                user_id=current_user.id,
+                resource_id=conference_id,
+                description=f"Deleted conference: {conf_before.name if conf_before else f'#{conference_id}'}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                old_values={
+                    "name": conf_before.name if conf_before else None,
+                    "id": conference_id,
+                } if conf_before else None,
+            )
+        except Exception:
+            pass
+        
         return {"message": "Conference deleted successfully", "id": conference_id}
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 @router.put("/{conference_id}", response_model=ConferenceResponse)
-def update_conference_by_id(conference_id: int, request: ConferenceCreateRequest, current_user=Depends(require_admin_or_chair), db: Session = Depends(get_db)):
+def update_conference_by_id(
+    conference_id: int,
+    request: ConferenceCreateRequest,
+    req: Request,
+    current_user=Depends(require_admin_or_chair),
+    db: Session = Depends(get_db)
+):
     try:
+        # Get old values for audit
         repo = ConferenceRepositoryImpl(db)
+        get_service = GetConferenceService(repo)
+        old_conf = None
+        try:
+            old_conf = get_service.get_by_id(conference_id)
+        except:
+            pass
+        
         service = UpdateConferenceService(repo)
         conf = Conference(
             id=conference_id, name=request.name, abbreviation=request.abbreviation,
@@ -115,6 +186,32 @@ def update_conference_by_id(conference_id: int, request: ConferenceCreateRequest
             is_open=request.is_open, double_blind=request.double_blind
         )
         updated = service.update(conf)
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="UPDATE",
+                resource_type="CONFERENCE",
+                user_id=current_user.id,
+                resource_id=conference_id,
+                description=f"Updated conference: {request.name}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                old_values={
+                    "name": old_conf.name if old_conf else None,
+                    "is_open": old_conf.is_open if old_conf else None,
+                    "double_blind": old_conf.double_blind if old_conf else None,
+                } if old_conf else None,
+                new_values={
+                    "name": request.name,
+                    "is_open": request.is_open,
+                    "double_blind": request.double_blind,
+                },
+            )
+        except Exception:
+            pass
+        
         return ConferenceResponse(
             id=updated.id, name=updated.name, abbreviation=updated.abbreviation,
             description=updated.description, website_url=updated.website_url,
@@ -133,6 +230,7 @@ def update_conference_by_id(conference_id: int, request: ConferenceCreateRequest
 def update_cfp_content(
     conference_id: int,
     request: UpdateCFPRequest,
+    req: Request,
     current_user=Depends(require_admin_or_chair), # Chỉ Admin/Chair mới được sửa
     db: Session = Depends(get_db)
 ):
@@ -141,6 +239,25 @@ def update_cfp_content(
         repo = ConferenceRepositoryImpl(db)
         service = CFPService(repo)
         service.update_cfp_content(conference_id, request.description, request.submission_deadline)
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="UPDATE",
+                resource_type="CFP",
+                user_id=current_user.id,
+                resource_id=conference_id,
+                description=f"Updated CFP content for conference {conference_id}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                new_values={
+                    "submission_deadline": request.submission_deadline.isoformat() if request.submission_deadline else None,
+                },
+            )
+        except Exception:
+            pass
+        
         return {"message": "CFP content updated successfully"}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -175,12 +292,21 @@ class WorkflowSettingsUpdateRequest(BaseModel):
 def update_workflow_settings(
     conference_id: int,
     request: WorkflowSettingsUpdateRequest,
+    req: Request,
     current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db),
 ):
     conf = db.query(ConferenceModel).filter(ConferenceModel.id == conference_id).first()
     if not conf:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conference not found")
+
+    # Store old values for audit
+    old_values = {
+        "rebuttal_open": conf.rebuttal_open,
+        "rebuttal_deadline": conf.rebuttal_deadline.isoformat() if conf.rebuttal_deadline else None,
+        "camera_ready_open": conf.camera_ready_open,
+        "camera_ready_deadline": conf.camera_ready_deadline.isoformat() if conf.camera_ready_deadline else None,
+    }
 
     if request.rebuttal_open is not None:
         conf.rebuttal_open = request.rebuttal_open
@@ -194,6 +320,28 @@ def update_workflow_settings(
     db.add(conf)
     db.commit()
     db.refresh(conf)
+
+    # Audit logging
+    try:
+        create_audit_log_sync(
+            db,
+            action_type="UPDATE",
+            resource_type="WORKFLOW",
+            user_id=current_user.id,
+            resource_id=conference_id,
+            description=f"Updated workflow settings for conference {conference_id}",
+            ip_address=req.client.host if req and req.client else None,
+            user_agent=req.headers.get("user-agent") if req else None,
+            old_values=old_values,
+            new_values={
+                "rebuttal_open": conf.rebuttal_open,
+                "rebuttal_deadline": conf.rebuttal_deadline.isoformat() if conf.rebuttal_deadline else None,
+                "camera_ready_open": conf.camera_ready_open,
+                "camera_ready_deadline": conf.camera_ready_deadline.isoformat() if conf.camera_ready_deadline else None,
+            },
+        )
+    except Exception:
+        pass
 
     return {
         "id": conf.id,

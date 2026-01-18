@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from infrastructure.databases.postgres import get_db
 from infrastructure.repositories.submission_repo_impl import SubmissionRepositoryImpl
@@ -14,6 +14,7 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 @router.post("/send-result/{submission_id}")
 async def notify_result(
     submission_id: int,
+    req: Request,
     hide_reviewer: bool = True,  # CNPM-159: Mặc định là ẩn danh
     current_user = Depends(require_admin_or_chair), # Chỉ Chair/Admin được gửi
     db: Session = Depends(get_db)
@@ -34,6 +35,26 @@ async def notify_result(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Gửi email thất bại. Vui lòng kiểm tra lại cấu hình SMTP hoặc trạng thái bài nộp."
         )
+    
+    # Audit logging
+    try:
+        create_audit_log_sync(
+            db,
+            action_type="SEND",
+            resource_type="NOTIFICATION",
+            user_id=current_user.id,
+            resource_id=submission_id,
+            description=f"Sent result notification for submission {submission_id}",
+            ip_address=req.client.host if req and req.client else None,
+            user_agent=req.headers.get("user-agent") if req else None,
+            metadata={
+                "event": "send_result_notification",
+                "submission_id": submission_id,
+                "hide_reviewer": hide_reviewer,
+            },
+        )
+    except Exception:
+        pass
         
     return {"status": "success", "message": f"Đã gửi thông báo kết quả bài {submission_id} thành công."}
 
@@ -41,6 +62,7 @@ async def notify_result(
 @router.post("/send-results/conferences/{conference_id}")
 async def notify_results_bulk(
     conference_id: int,
+    req: Request,
     hide_reviewer: bool = True,
     only_decided: bool = True,
     current_user = Depends(require_admin_or_chair),
@@ -83,8 +105,18 @@ async def notify_results_bulk(
             resource_type="NOTIFICATION",
             user_id=current_user.id,
             resource_id=conference_id,
-            description="Sent bulk decision notifications",
-            metadata={"event": "bulk_notify_results", "conference_id": conference_id, "sent": sent, "failed": failed, "failures": failures[:50]},
+            description=f"Sent bulk decision notifications for conference {conference_id}",
+            ip_address=req.client.host if req and req.client else None,
+            user_agent=req.headers.get("user-agent") if req else None,
+            metadata={
+                "event": "bulk_notify_results",
+                "conference_id": conference_id,
+                "sent": sent,
+                "failed": failed,
+                "failures": failures[:50],
+                "hide_reviewer": hide_reviewer,
+                "only_decided": only_decided,
+            },
         )
     except Exception:
         pass

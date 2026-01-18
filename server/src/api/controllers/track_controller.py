@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -9,6 +9,7 @@ from infrastructure.models.conference_model import TrackModel
 from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair
 from domain.exceptions import NotFoundError
+from api.utils.audit_utils import create_audit_log_sync
 
 router = APIRouter(prefix="/tracks", tags=["Tracks"])
 
@@ -20,7 +21,9 @@ def get_track_repo(db: Session = Depends(get_db)):
 @router.post("", response_model=TrackResponse, status_code=status.HTTP_201_CREATED)
 def create_track(
     request: TrackCreateRequest,
+    req: Request,
     current_user=Depends(require_admin_or_chair),
+    db: Session = Depends(get_db),
     repo=Depends(get_track_repo)
 ):
     """Create a new track - only admin or chair can create."""
@@ -31,6 +34,27 @@ def create_track(
             max_reviewers=request.max_reviewers
         )
         created = repo.create(track)
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="CREATE",
+                resource_type="TRACK",
+                user_id=current_user.id,
+                resource_id=created.id,
+                description=f"Created track: {request.name} for conference {request.conference_id}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                new_values={
+                    "name": request.name,
+                    "conference_id": request.conference_id,
+                    "max_reviewers": request.max_reviewers,
+                },
+            )
+        except Exception:
+            pass
+        
         return TrackResponse(
             id=created.id,
             conference_id=created.conference_id,
@@ -90,7 +114,9 @@ def get_tracks_by_conference(
 def update_track(
     track_id: int,
     request: TrackUpdateRequest,
+    req: Request,
     current_user=Depends(require_admin_or_chair),
+    db: Session = Depends(get_db),
     repo=Depends(get_track_repo)
 ):
     """Update a track - only admin or chair can update."""
@@ -99,12 +125,39 @@ def update_track(
         if not track:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
         
+        # Store old values for audit
+        old_values = {
+            "name": track.name,
+            "max_reviewers": track.max_reviewers,
+        }
+        
         if request.name is not None:
             track.name = request.name
         if request.max_reviewers is not None:
             track.max_reviewers = request.max_reviewers
         
         updated = repo.update(track)
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="UPDATE",
+                resource_type="TRACK",
+                user_id=current_user.id,
+                resource_id=track_id,
+                description=f"Updated track: {updated.name}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                old_values=old_values,
+                new_values={
+                    "name": updated.name,
+                    "max_reviewers": updated.max_reviewers,
+                },
+            )
+        except Exception:
+            pass
+        
         return TrackResponse(
             id=updated.id,
             conference_id=updated.conference_id,
@@ -120,12 +173,37 @@ def update_track(
 @router.delete("/{track_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_track(
     track_id: int,
+    req: Request,
     current_user=Depends(require_admin_or_chair),
+    db: Session = Depends(get_db),
     repo=Depends(get_track_repo)
 ):
     """Delete a track - only admin or chair can delete."""
     try:
+        # Get track info before deletion for audit
+        track = repo.get_by_id(track_id)
+        track_name = track.name if track else None
+        
         repo.delete(track_id)
+        
+        # Audit logging
+        try:
+            create_audit_log_sync(
+                db,
+                action_type="DELETE",
+                resource_type="TRACK",
+                user_id=current_user.id,
+                resource_id=track_id,
+                description=f"Deleted track: {track_name or f'#{track_id}'}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                old_values={
+                    "name": track_name,
+                    "conference_id": track.conference_id if track else None,
+                } if track else None,
+            )
+        except Exception:
+            pass
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:

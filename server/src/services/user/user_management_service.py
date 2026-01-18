@@ -17,6 +17,10 @@ class UserManagementService:
         """Lấy danh sách tất cả người dùng."""
         return await self.user_repo.get_all(skip=skip, limit=limit)
 
+    async def search_users(self, query: str, limit: int = 10) -> List[UserModel]:
+        """Tìm kiếm người dùng theo email hoặc tên."""
+        return await self.user_repo.search_users(query=query, limit=limit)
+
     async def get_user_by_id(self, user_id: int) -> UserModel:
         """Lấy thông tin người dùng theo ID."""
         user = await self.user_repo.get_by_id(user_id)

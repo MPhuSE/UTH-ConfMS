@@ -159,6 +159,21 @@ export default function SubmissionDetailPage() {
               </div>
             </div>
 
+            <div className="mt-6 pt-6 border-t">
+              <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Authors</span>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(subData?.authors || []).length > 0 ? (
+                  subData.authors.map((author, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-gray-100 rounded-full text-[10px] font-black text-gray-700">
+                      {author.name || author.full_name || "N/A"}{author.email ? ` • ${author.email}` : ""}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-gray-400 font-bold">---</span>
+                )}
+              </div>
+            </div>
+
             {/* Reviews Section */}
             <div className="mt-12 pt-8 border-t">
               <div className="flex items-center justify-between mb-4">

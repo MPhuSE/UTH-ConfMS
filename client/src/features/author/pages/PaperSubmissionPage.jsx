@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { submissionService } from "../../../services/submissionService";
+import { userService } from "../../../services/userService";
 import { trackService } from "../../../services/trackService";
 import { useConferenceStore } from "../../../app/store/useConferenceStore";
 import {
@@ -33,6 +34,9 @@ export default function PaperSubmissionPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(isEditMode);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
 
   const [formData, setFormData] = useState({
     conference_id: confIdFromUrl ? Number(confIdFromUrl) : "",
@@ -92,6 +96,25 @@ export default function PaperSubmissionPage() {
     });
   };
 
+  const addAuthorFromSearch = (user) => {
+    const exists = formData.authors.some(a => (a.email || "").toLowerCase() === user.email.toLowerCase());
+    if (exists) return;
+    setFormData({
+      ...formData,
+      authors: [
+        ...formData.authors,
+        {
+          name: user.full_name || "",
+          email: user.email,
+          affiliation: user.affiliation || "",
+          is_main: false
+        }
+      ]
+    });
+    setSearchTerm("");
+    setSearchResults([]);
+  };
+
   const removeAuthor = (index) => {
     const newAuthors = formData.authors.filter((_, i) => i !== index);
     setFormData({ ...formData, authors: newAuthors });
@@ -101,6 +124,19 @@ export default function PaperSubmissionPage() {
     const newAuthors = [...formData.authors];
     newAuthors[index][field] = value;
     setFormData({ ...formData, authors: newAuthors });
+  };
+
+  const handleSearchUsers = async () => {
+    if (!searchTerm.trim()) return;
+    setSearching(true);
+    try {
+      const res = await userService.search({ q: searchTerm.trim(), limit: 10 });
+      setSearchResults(res?.users || []);
+    } catch (err) {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
   };
 
   // ===== XỬ LÝ PDF PREVIEW =====
@@ -141,7 +177,17 @@ export default function PaperSubmissionPage() {
       }
       navigate("/dashboard/my-submissions");
     } catch (err) {
-      alert(err.response?.data?.detail || "Thao tác thất bại");
+      const detail = err?.response?.data?.detail;
+      let message = "Thao tác thất bại";
+      if (typeof detail === "string") {
+        message = detail;
+      } else if (Array.isArray(detail)) {
+        const msgs = detail.map((d) => d?.msg || d?.message).filter(Boolean);
+        message = msgs.length ? msgs.join(", ") : message;
+      } else if (detail && typeof detail === "object") {
+        message = detail.message || detail.error || message;
+      }
+      alert(message);
     } finally { setSubmitLoading(false); }
   };
 
@@ -200,7 +246,7 @@ export default function PaperSubmissionPage() {
             </div>
 
             {selectedConf && (
-              <div className="flex items-center gap-2 text-[11px] font-bold text-blue-600 bg-blue-50 p-2 rounded-lg inline-flex">
+              <div className="inline-flex items-center gap-2 text-[11px] font-bold text-blue-600 bg-blue-50 p-2 rounded-lg">
                 <Clock className="w-3.5 h-3.5" />
                 Hạn chót: {new Date(selectedConf.submission_deadline).toLocaleString('vi-VN')}
               </div>
@@ -222,6 +268,37 @@ export default function PaperSubmissionPage() {
                 <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2"><UserPlus className="w-4 h-4" /> Danh sách tác giả</h3>
                 <button type="button" onClick={addAuthor} className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 flex items-center gap-1 transition-colors"><Plus className="w-3 h-3" /> Thêm tác giả</button>
               </div>
+
+              <div className="flex flex-col md:flex-row gap-3">
+                <input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Tìm theo email hoặc tên để chọn đồng tác giả..."
+                  className="flex-1 p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleSearchUsers}
+                  className="px-4 py-2.5 bg-gray-100 rounded-lg text-xs font-bold hover:bg-gray-200"
+                >
+                  {searching ? "Đang tìm..." : "Tìm"}
+                </button>
+              </div>
+
+              {searchResults.length > 0 && (
+                <div className="border rounded-xl bg-white shadow-sm divide-y">
+                  {searchResults.map((user) => (
+                    <button
+                      type="button"
+                      key={user.id}
+                      onClick={() => addAuthorFromSearch(user)}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 text-xs font-bold"
+                    >
+                      {user.full_name || "N/A"} • {user.email} {user.affiliation ? `• ${user.affiliation}` : ""}
+                    </button>
+                  ))}
+                </div>
+              )}
               
               <div className="grid grid-cols-1 gap-3">
                 {formData.authors.map((author, index) => (

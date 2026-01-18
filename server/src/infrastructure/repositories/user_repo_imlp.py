@@ -2,7 +2,7 @@
 from typing import Optional, List
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete, update
+from sqlalchemy import delete, update, or_
 from infrastructure.repositories_interfaces.user_repository import UserRepository
 from infrastructure.models.user_model import UserModel, UserRoleModel, RoleModel
 
@@ -75,3 +75,18 @@ class UserRepositoryImpl(UserRepository):
         await self.db_session.commit()
         await self.db_session.refresh(user)
         return user
+
+    async def search_users(self, query: str, limit: int = 10) -> List[UserModel]:
+        keyword = f"%{query.strip().lower()}%"
+        stmt = (
+            select(UserModel)
+            .where(
+                or_(
+                    UserModel.email.ilike(keyword),
+                    UserModel.full_name.ilike(keyword)
+                )
+            )
+            .limit(limit)
+        )
+        result = await self.db_session.execute(stmt)
+        return list(result.scalars().all())

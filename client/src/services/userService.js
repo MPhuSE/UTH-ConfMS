@@ -6,6 +6,17 @@ import api from "../lib/axios";
  */
 export const userService = {
   /**
+   * Search users (for co-author lookup)
+   * @param {Object} params - { q, limit }
+   * @returns {Promise<Object>} User lookup list
+   */
+  search: async (params = {}) => {
+    const { q, limit = 10 } = params;
+    const res = await api.get("/users/search", { params: { q, limit } });
+    return res.data;
+  },
+
+  /**
    * Get current user profile
    * @returns {Promise<Object>} User data
    */

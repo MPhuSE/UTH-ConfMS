@@ -9,6 +9,7 @@ from api.schemas.user_schema import (
     UserResponse,
     UserListResponse,
     UserProfileUpdateRequest,
+    UserLookupListResponse,
 )
 from services.user.user_management_service import UserManagementService
 from infrastructure.models.user_model import UserModel
@@ -39,6 +40,24 @@ async def get_all_users(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi khi lấy danh sách người dùng: {str(e)}",
+        )
+
+
+@router.get("/search", response_model=UserLookupListResponse)
+async def search_users(
+    q: str = Query(..., min_length=2, description="Từ khóa tìm kiếm (email hoặc tên)"),
+    limit: int = Query(10, ge=1, le=20),
+    user_service: UserManagementService = Depends(get_user_management_service),
+    current_user: UserModel = Depends(get_current_user),
+):
+    """Tìm user theo email hoặc tên - dùng cho chọn đồng tác giả."""
+    try:
+        users = await user_service.search_users(query=q, limit=limit)
+        return UserLookupListResponse(users=users)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi khi tìm người dùng: {str(e)}",
         )
 
 

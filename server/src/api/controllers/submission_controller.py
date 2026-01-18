@@ -1,4 +1,5 @@
 import datetime
+import json
 from fastapi import APIRouter, Depends
 from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile 
 from typing import List
@@ -29,6 +30,7 @@ async def submit_paper(
     track_id: int = Form(...),
     conference_id: int = Form(...),
     file: UploadFile = File(...),
+    authors: str = Form(None),
     current_user = Depends(get_current_user),
     repo = Depends(get_submission_repo),
     conf_repo = Depends(get_conference_repo) 
@@ -55,6 +57,15 @@ async def submit_paper(
         
         # 5. Thực thi tạo submission qua Service
         # Service này sẽ gọi repo.create mà chúng ta đã sửa để copy full_name/email
+        authors_payload = None
+        if authors:
+            try:
+                authors_payload = json.loads(authors)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid authors payload")
+            if not isinstance(authors_payload, list):
+                raise HTTPException(status_code=400, detail="Authors must be a list")
+
         service = CreateSubmissionService(repo)
         result = service.execute(
             title=title,
@@ -62,7 +73,8 @@ async def submit_paper(
             track_id=track_id,
             conference_id=conference_id,
             author_id=current_user.id,
-            file_url=file_url
+            file_url=file_url,
+            authors=authors_payload
         )
 
         # 6. QUAN TRỌNG: Lấy lại bản ghi đầy đủ từ DB
@@ -115,6 +127,7 @@ async def update_submission(
     abstract: str = Form(None),
     status: str = Form(None),
     file: UploadFile = File(None), 
+    authors: str = Form(None),
     current_user = Depends(get_current_user),
     repo = Depends(get_submission_repo)
 ):
@@ -130,6 +143,15 @@ async def update_submission(
     if title is not None: update_data["title"] = title
     if abstract is not None: update_data["abstract"] = abstract
     if status is not None: update_data["status"] = status
+    if authors is not None:
+        try:
+            authors_payload = json.loads(authors)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid authors payload")
+        if not isinstance(authors_payload, list):
+            raise HTTPException(status_code=400, detail="Authors must be a list")
+        update_data["authors"] = authors_payload
+        update_data["author_id"] = current_user.id
 
  
     if file:

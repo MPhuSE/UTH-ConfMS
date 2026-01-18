@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSubmissionStore } from "../../../app/store/useSubmissionStore";
-import { Save, Trash2, FileUp, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
+import { userService } from "../../../services/userService";
+import { Save, Trash2, FileUp, ArrowLeft, Loader2, CheckCircle, UserPlus, Plus } from "lucide-react";
 
 export default function EditSubmissionPage() {
   const { paperId } = useParams(); 
@@ -19,8 +20,12 @@ export default function EditSubmissionPage() {
   const [formData, setFormData] = useState({
     title: "",
     abstract: "",
-    file: null
+    file: null,
+    authors: [{ name: "", email: "", affiliation: "", is_main: true }]
   });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
 
   // 1. Tải dữ liệu khi mount
   useEffect(() => {
@@ -32,10 +37,21 @@ export default function EditSubmissionPage() {
   // 2. Cập nhật state nội bộ khi Store có dữ liệu mới
   useEffect(() => {
     if (currentSubmission) {
+      const rawAuthors = currentSubmission.authors || [];
+      const mappedAuthors = rawAuthors.length > 0
+        ? rawAuthors.map((author, index) => ({
+            name: author.name || author.full_name || "",
+            email: author.email || "",
+            affiliation: author.affiliation || "",
+            is_main: author.is_main === true || author.order_index === 0 || index === 0
+          }))
+        : [{ name: "", email: "", affiliation: "", is_main: true }];
+
       setFormData({
         title: currentSubmission.title || "",
         abstract: currentSubmission.abstract || "",
-        file: null
+        file: null,
+        authors: mappedAuthors
       });
     }
   }, [currentSubmission]);
@@ -48,6 +64,7 @@ export default function EditSubmissionPage() {
     const data = new FormData();
     data.append("title", formData.title);
     data.append("abstract", formData.abstract);
+    data.append("authors", JSON.stringify(formData.authors));
     
     // Chỉ gửi file nếu người dùng thực sự chọn file mới
     if (formData.file) {
@@ -61,6 +78,57 @@ export default function EditSubmissionPage() {
       setTimeout(() => {
         navigate(`/dashboard/submission/${paperId}`);
       }, 500);
+    }
+  };
+
+  const addAuthor = () => {
+    setFormData({
+      ...formData,
+      authors: [...formData.authors, { name: "", email: "", affiliation: "", is_main: false }]
+    });
+  };
+
+  const removeAuthor = (index) => {
+    if (index === 0) return;
+    const newAuthors = formData.authors.filter((_, i) => i !== index);
+    setFormData({ ...formData, authors: newAuthors });
+  };
+
+  const updateAuthor = (index, field, value) => {
+    const newAuthors = [...formData.authors];
+    newAuthors[index][field] = value;
+    setFormData({ ...formData, authors: newAuthors });
+  };
+
+  const addAuthorFromSearch = (user) => {
+    const exists = formData.authors.some(a => (a.email || "").toLowerCase() === user.email.toLowerCase());
+    if (exists) return;
+    setFormData({
+      ...formData,
+      authors: [
+        ...formData.authors,
+        {
+          name: user.full_name || "",
+          email: user.email,
+          affiliation: user.affiliation || "",
+          is_main: false
+        }
+      ]
+    });
+    setSearchTerm("");
+    setSearchResults([]);
+  };
+
+  const handleSearchUsers = async () => {
+    if (!searchTerm.trim()) return;
+    setSearching(true);
+    try {
+      const res = await userService.search({ q: searchTerm.trim(), limit: 10 });
+      setSearchResults(res?.users || []);
+    } catch (err) {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -133,6 +201,96 @@ export default function EditSubmissionPage() {
             />
           </div>
 
+          {/* Co-authors */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                <UserPlus className="w-4 h-4" /> Danh sách đồng tác giả
+              </h3>
+              <button
+                type="button"
+                onClick={addAuthor}
+                className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 flex items-center gap-1 transition-colors"
+              >
+                <Plus className="w-3 h-3" /> Thêm tác giả
+              </button>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-3">
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm theo email hoặc tên để chọn đồng tác giả..."
+                className="flex-1 p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={handleSearchUsers}
+                className="px-4 py-2.5 bg-gray-100 rounded-lg text-xs font-bold hover:bg-gray-200"
+              >
+                {searching ? "Đang tìm..." : "Tìm"}
+              </button>
+            </div>
+
+            {searchResults.length > 0 && (
+              <div className="border rounded-xl bg-white shadow-sm divide-y">
+                {searchResults.map((user) => (
+                  <button
+                    type="button"
+                    key={user.id}
+                    onClick={() => addAuthorFromSearch(user)}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 text-xs font-bold"
+                  >
+                    {user.full_name || "N/A"} • {user.email} {user.affiliation ? `• ${user.affiliation}` : ""}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-3">
+              {formData.authors.map((author, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-xl border border-gray-200 relative group transition-all hover:bg-white hover:shadow-md">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      required
+                      placeholder="Họ tên"
+                      value={author.name}
+                      onChange={(e) => updateAuthor(index, "name", e.target.value)}
+                      className="p-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400 bg-transparent focus:bg-white"
+                    />
+                    <input
+                      required
+                      type="email"
+                      placeholder="Email"
+                      value={author.email}
+                      onChange={(e) => updateAuthor(index, "email", e.target.value)}
+                      className="p-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400 bg-transparent focus:bg-white"
+                    />
+                    <input
+                      required
+                      placeholder="Đơn vị công tác"
+                      value={author.affiliation}
+                      onChange={(e) => updateAuthor(index, "affiliation", e.target.value)}
+                      className="p-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400 bg-transparent focus:bg-white"
+                    />
+                  </div>
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => removeAuthor(index)}
+                      className="absolute -top-2 -right-2 bg-white text-red-500 p-1.5 rounded-full shadow-md border border-red-100 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                  <span className="text-[10px] font-black text-blue-900/30 mt-2 block uppercase tracking-widest">
+                    {index === 0 ? "Tác giả chính (Corresponding)" : `Đồng tác giả ${index}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* File Upload */}
           <div className="relative group">
             <div className={`p-8 border-2 border-dashed rounded-3xl transition-all text-center ${formData.file ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50 group-hover:bg-blue-50'}`}>
@@ -160,7 +318,7 @@ export default function EditSubmissionPage() {
           <button 
             type="submit" 
             disabled={isLoading}
-            className="flex-[2] bg-blue-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50"
+            className="flex-2 bg-blue-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50"
           >
             {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
             {isLoading ? "UPDATING..." : "SAVE CHANGES"}

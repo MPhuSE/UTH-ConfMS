@@ -64,3 +64,15 @@ class UserListResponse(BaseModel):
     skip: int
     limit: int
 
+
+class UserLookupResponse(BaseModel):
+    id: int
+    email: EmailStr
+    full_name: Optional[str] = None
+    affiliation: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserLookupListResponse(BaseModel):
+    users: List[UserLookupResponse]

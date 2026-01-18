@@ -38,3 +38,8 @@ class UserRepository(ABC):
     async def create(self, user: UserModel) -> UserModel:
         """Tạo người dùng."""
         pass
+
+    @abstractmethod
+    async def search_users(self, query: str, limit: int = 10) -> List[UserModel]:
+        """Tìm kiếm người dùng theo email hoặc tên."""
+        pass

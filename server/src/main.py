@@ -11,7 +11,7 @@ from api.controllers import (
     track_controller, decision_controller, camera_ready_controller,
     reports_controller, email_template_controller, ai_controller,
     admin_controller, schedule_controller, notification_controller,
-    tenant_controller
+    tenant_controller, pc_controller
 )
 
 from infrastructure.models import (
@@ -21,7 +21,8 @@ from infrastructure.models import (
     review_model,
     audit_log_model,
     system_model,
-    tenant_model
+    tenant_model,
+    pc_model
 )
 
 
@@ -82,6 +83,7 @@ app.include_router(admin_controller.router)
 app.include_router(schedule_controller.router)
 app.include_router(notification_controller.router)
 app.include_router(tenant_controller.router)
+app.include_router(pc_controller.router)
 
 
 

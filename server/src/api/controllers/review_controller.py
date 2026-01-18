@@ -92,6 +92,78 @@ def assign_reviewer(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
+@router.post("/assignments/auto")
+def auto_assign_reviewers(
+    conference_id: int,
+    reviewers_per_paper: int = 3,
+    current_user=Depends(require_admin_or_chair),
+    db: Session = Depends(get_db),
+    review_repo=Depends(get_review_repo),
+    submission_repo=Depends(get_submission_repo),
+):
+    """
+    Auto-assign reviewers for a conference.
+    Simple heuristic: assign reviewers with smallest current load, skip COI and existing assignments.
+    """
+    from infrastructure.models.submission_model import SubmissionModel
+    from infrastructure.models.conference_model import TrackModel
+    from infrastructure.models.user_model import UserModel, RoleModel, UserRoleModel
+
+    # Get track ids for this conference
+    track_ids = [t.id for t in db.query(TrackModel).filter(TrackModel.conference_id == conference_id).all()]
+    submissions = db.query(SubmissionModel).filter(SubmissionModel.track_id.in_(track_ids)).all()
+
+    # Reviewer pool (users having global "reviewer" role)
+    reviewer_users = (
+        db.query(UserModel)
+        .join(UserRoleModel, UserRoleModel.user_id == UserModel.id)
+        .join(RoleModel, RoleModel.id == UserRoleModel.role_id)
+        .filter(RoleModel.name == "reviewer")
+        .all()
+    )
+    reviewer_ids = [u.id for u in reviewer_users]
+
+    # Current load: number of assignments per reviewer in this conference
+    from infrastructure.models.review_model import ReviewAssignmentModel
+    submission_ids = [s.id for s in submissions]
+    assignments = db.query(ReviewAssignmentModel).filter(ReviewAssignmentModel.submission_id.in_(submission_ids)).all()
+    load = {rid: 0 for rid in reviewer_ids}
+    for a in assignments:
+        if a.reviewer_id in load:
+            load[a.reviewer_id] += 1
+
+    created = 0
+    skipped = 0
+    details = []
+
+    for sub in submissions:
+        existing_reviewer_ids = {a.reviewer_id for a in assignments if a.submission_id == sub.id}
+        needed = max(0, reviewers_per_paper - len(existing_reviewer_ids))
+        if needed == 0:
+            continue
+
+        # pick least-loaded reviewers
+        candidates = sorted(reviewer_ids, key=lambda rid: load.get(rid, 0))
+        for rid in candidates:
+            if needed == 0:
+                break
+            if rid in existing_reviewer_ids:
+                continue
+            if review_repo.check_coi(sub.id, rid):
+                skipped += 1
+                continue
+            try:
+                review_repo.create_assignment(sub.id, rid, auto_assigned=True)
+                created += 1
+                needed -= 1
+                load[rid] = load.get(rid, 0) + 1
+                details.append({"submission_id": sub.id, "reviewer_id": rid})
+            except Exception:
+                skipped += 1
+
+    return {"created": created, "skipped": skipped, "assignments": details}
+
+
 @router.delete("/assignments/{submission_id}/{reviewer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def unassign_reviewer(
     submission_id: int,
@@ -266,4 +338,57 @@ def get_bids_by_reviewer(
         return [BidResponse(**b) for b in bids]
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/progress/conferences/{conference_id}")
+def get_review_progress_by_conference(
+    conference_id: int,
+    current_user=Depends(require_admin_or_chair),
+    db: Session = Depends(get_db),
+):
+    """
+    Progress tracking for chairs:
+    - total assignments / completed reviews / pending reviews
+    - per reviewer completion counts
+    """
+    from infrastructure.models.conference_model import TrackModel
+    from infrastructure.models.submission_model import SubmissionModel
+    from infrastructure.models.review_model import ReviewAssignmentModel, ReviewModel
+
+    track_ids = [t.id for t in db.query(TrackModel).filter(TrackModel.conference_id == conference_id).all()]
+    submissions = db.query(SubmissionModel).filter(SubmissionModel.track_id.in_(track_ids)).all()
+    submission_ids = [s.id for s in submissions]
+
+    assignments = db.query(ReviewAssignmentModel).filter(ReviewAssignmentModel.submission_id.in_(submission_ids)).all()
+    reviews = db.query(ReviewModel).filter(ReviewModel.submission_id.in_(submission_ids)).all()
+
+    total_assignments = len(assignments)
+    completed_reviews = len(reviews)
+    pending = total_assignments - completed_reviews
+
+    # per reviewer
+    per_reviewer = {}
+    for a in assignments:
+        per_reviewer.setdefault(a.reviewer_id, {"assignments": 0, "completed": 0})
+        per_reviewer[a.reviewer_id]["assignments"] += 1
+    for r in reviews:
+        per_reviewer.setdefault(r.reviewer_id, {"assignments": 0, "completed": 0})
+        per_reviewer[r.reviewer_id]["completed"] += 1
+
+    reviewer_progress = [
+        {"reviewer_id": rid, **vals, "pending": vals["assignments"] - vals["completed"]}
+        for rid, vals in per_reviewer.items()
+    ]
+
+    reviewer_progress.sort(key=lambda x: (x["pending"], -x["completed"]))
+
+    return {
+        "conference_id": conference_id,
+        "total_submissions": len(submissions),
+        "total_assignments": total_assignments,
+        "completed_reviews": completed_reviews,
+        "pending_reviews": pending,
+        "completion_rate": round((completed_reviews / total_assignments * 100), 2) if total_assignments else 0.0,
+        "reviewers": reviewer_progress,
+    }
 

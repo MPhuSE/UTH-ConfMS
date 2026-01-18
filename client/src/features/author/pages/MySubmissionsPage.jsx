@@ -41,9 +41,17 @@ export default function MySubmissionsPage() {
   useEffect(() => {
     const statsData = {
       total: submissions.length,
-      underReview: submissions.filter(s => s.status?.toLowerCase() === 'under review').length,
-      accepted: submissions.filter(s => s.status?.toLowerCase() === 'accept').length,
-      rejected: submissions.filter(s => s.status?.toLowerCase() === 'reject').length
+      underReview: submissions.filter(s => (s.status?.toLowerCase() || '').includes('review')).length,
+      accepted: submissions.filter(s => {
+        const decision = s.decision?.toLowerCase();
+        const status = s.status?.toLowerCase();
+        return decision === 'accepted' || status === 'accept' || status === 'accepted';
+      }).length,
+      rejected: submissions.filter(s => {
+        const decision = s.decision?.toLowerCase();
+        const status = s.status?.toLowerCase();
+        return decision === 'rejected' || status === 'reject' || status === 'rejected';
+      }).length
     };
     setStats(statsData);
   }, [submissions]);
@@ -66,16 +74,27 @@ export default function MySubmissionsPage() {
     }
   };
 
-  const getStatusInfo = (status) => {
-    const s = status?.toLowerCase() || '';
+  const getStatusInfo = (submission) => {
+    const decision = submission?.decision?.toLowerCase();
+    if (decision === 'accepted') {
+      return { text: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', bg: 'bg-green-100', textCol: 'text-green-700', icon: CheckCircle };
+    }
+    if (decision === 'rejected') {
+      return { text: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', bg: 'bg-red-100', textCol: 'text-red-700', icon: XCircle };
+    }
+
+    const s = submission?.status?.toLowerCase() || '';
     const config = {
       'submitted': { label: language === 'VI' ? 'ĐÃ NỘP' : 'SUBMITTED', color: 'blue', icon: Clock },
       'under review': { label: language === 'VI' ? 'ĐANG PHẢN BIỆN' : 'UNDER REVIEW', color: 'yellow', icon: Clock },
       'accept': { label: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', color: 'green', icon: CheckCircle },
+      'accepted': { label: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', color: 'green', icon: CheckCircle },
       'reject': { label: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', color: 'red', icon: XCircle },
-      'camera ready': { label: language === 'VI' ? 'BẢN CUỐI' : 'CAMERA READY', color: 'purple', icon: CheckCircle }
+      'rejected': { label: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', color: 'red', icon: XCircle },
+      'camera ready': { label: language === 'VI' ? 'BẢN CUỐI' : 'CAMERA READY', color: 'purple', icon: CheckCircle },
+      'camera-ready submitted': { label: language === 'VI' ? 'ĐÃ NỘP BẢN CUỐI' : 'CAMERA READY', color: 'purple', icon: CheckCircle }
     };
-    const res = config[s] || { label: s.toUpperCase(), color: 'gray', icon: AlertCircle };
+    const res = config[s] || { label: s.toUpperCase() || '---', color: 'gray', icon: AlertCircle };
     return {
       text: res.label,
       bg: `bg-${res.color}-100`,
@@ -106,6 +125,9 @@ export default function MySubmissionsPage() {
           <button onClick={() => setLanguage(l => l === 'VI' ? 'EN' : 'VI')} className="p-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2">
             <Globe size={18} /> {language}
           </button>
+          <button onClick={() => navigate('/dashboard/results')} className="bg-white border px-5 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition-all flex items-center gap-2">
+            <MessageSquare size={20} /> {language === 'VI' ? 'Kết quả & Reviews' : 'Results & Reviews'}
+          </button>
           <button onClick={() => navigate('/dashboard/submission')} className="bg-[#2C7A7B] text-white px-5 py-2.5 rounded-lg font-bold hover:bg-[#1A365D] transition-all flex items-center gap-2">
             <Plus size={20} /> {language === 'VI' ? 'Nộp bài mới' : 'New Submission'}
           </button>
@@ -133,7 +155,7 @@ export default function MySubmissionsPage() {
       {/* List */}
       <div className="space-y-4">
         {filteredSubmissions.map((sub) => {
-          const sInfo = getStatusInfo(sub.status);
+          const sInfo = getStatusInfo(sub);
           const StatusIcon = sInfo.icon;
           return (
             <div key={sub.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden">

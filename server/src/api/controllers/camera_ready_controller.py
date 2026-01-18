@@ -55,12 +55,17 @@ def get_camera_ready(
     current_user=Depends(get_current_user),
     service=Depends(get_camera_ready_service)
 ):
-    """Get camera-ready file for a submission."""
     try:
+        # Service này phải truy vấn vào bảng 'submissions' để lấy cột 'camera_ready_submission'
         result = service.get_camera_ready(submission_id)
         if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Camera-ready not found")
-        return CameraReadyResponse(**result)
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
+             raise HTTPException(status_code=404, detail="Camera-ready not found")
+             
+        # Đảm bảo CameraReadyResponse chấp nhận trường 'camera_ready_submission' thay vì 'id'
+        return CameraReadyResponse(
+            submission_id=result["submission_id"],
+            camera_ready_submission=result["camera_ready_submission"],
+            file_url=result["file_url"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))

@@ -9,6 +9,6 @@ class CameraReadyUploadRequest(BaseModel):
 
 class CameraReadyResponse(BaseModel):
     submission_id: int
-    camera_ready_file_id: int
+    camera_ready_submission: Optional[int] = None
     file_url: str
 

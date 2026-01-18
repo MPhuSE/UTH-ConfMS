@@ -39,8 +39,7 @@ async def submit_paper(
         if not conference:
             raise HTTPException(status_code=404, detail="Conference not found")
         
-        # 2. Kiểm tra hạn chót nộp bài
-        # Đảm bảo so sánh cùng múi giờ nếu cần thiết
+        # 2. Kiểm tra hạn chót nộp bài (so sánh datetime)
         if datetime.datetime.now() > conference.submission_deadline:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
@@ -55,6 +54,7 @@ async def submit_paper(
         file_url = await CloudinaryService.upload_pdf(file)
         
         # 5. Thực thi tạo submission qua Service
+        # Service này sẽ gọi repo.create mà chúng ta đã sửa để copy full_name/email
         service = CreateSubmissionService(repo)
         result = service.execute(
             title=title,
@@ -65,18 +65,17 @@ async def submit_paper(
             file_url=file_url
         )
 
-        # 6. FIX: Đảm bảo các trường ID không bị None trước khi trả về (tránh lỗi Validation)
-        if not hasattr(result, 'conference_id') or result.conference_id is None:
-            result.conference_id = conference_id
-        if not hasattr(result, 'track_id') or result.track_id is None:
-            result.track_id = track_id
-
-        return result
+        # 6. QUAN TRỌNG: Lấy lại bản ghi đầy đủ từ DB
+        # Việc này đảm bảo các quan hệ (authors, files) được nạp đầy đủ 
+        # giúp vượt qua bước kiểm tra ResponseValidationError của FastAPI.
+        full_submission = repo.get_by_id(result.id)
+        
+        return full_submission
 
     except HTTPException as he:
         raise he
     except Exception as e:
-        print(f"Submission Error: {str(e)}") # Log lỗi ra console để debug
+        print(f"Submission Error Traceback: {str(e)}") 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"An error occurred during submission: {str(e)}"

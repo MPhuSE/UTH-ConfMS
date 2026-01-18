@@ -26,8 +26,8 @@ class CameraReadyService:
         if not submission:
             raise NotFoundError(f"Submission {submission_id} not found")
         
-        # Check if submission is accepted
-        if submission.status != "Accept":
+        # SỬA LỖI: Kiểm tra cả status hoặc decision tùy theo logic DB của bạn
+        if submission.status != "accepted" and submission.decision != "accepted":
             raise BusinessRuleException(
                 "Camera-ready can only be uploaded for accepted submissions"
             )
@@ -49,38 +49,31 @@ class CameraReadyService:
         }
         updated = self.submission_repo.update(submission_id, update_data)
         
+        # ĐỒNG BỘ KEY TRẢ VỀ:
         return {
             "submission_id": updated.id,
-            "camera_ready_file_id": camera_ready_file.id,
+            "camera_ready_submission": camera_ready_file.id, # Sửa từ camera_ready_file_id
             "file_url": file_url
         }
     
     def get_camera_ready(self, submission_id: int) -> Optional[Dict[str, Any]]:
         """Get camera-ready file for a submission."""
+        # Truy vấn lấy cả quan hệ camera_ready_file để có file_path
         submission = self.submission_repo.get_by_id(submission_id)
+        
         if not submission:
             raise NotFoundError(f"Submission {submission_id} not found")
         
         if not submission.camera_ready_submission:
             return None
         
-        camera_ready_file = None
-        if hasattr(submission, 'camera_ready_file') and submission.camera_ready_file:
-            camera_ready_file = submission.camera_ready_file
-        else:
-            # Query directly if relationship doesn't work
-            from infrastructure.models.submission_model import SubmissionFileModel
-            camera_ready_file = self.db.query(SubmissionFileModel).filter(
-                SubmissionFileModel.id == submission.camera_ready_submission
-            ).first()
+        # Lấy file path từ property hoặc relationship
+        file_url = submission.file_path 
         
-        if not camera_ready_file:
-            return None
-        
+        # QUAN TRỌNG: Key trả về phải khớp 100% với Schema CameraReadyResponse
         return {
-            "submission_id": submission_id,
-            "file_id": camera_ready_file.id,
-            "file_url": camera_ready_file.file_path,
-            "version": camera_ready_file.version
+            "submission_id": submission.id,
+            "camera_ready_submission": submission.camera_ready_submission, # Trả về số 25, 26
+            "file_url": file_url,
+            "version": 1
         }
-

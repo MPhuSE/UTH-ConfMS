@@ -18,15 +18,12 @@ class TrackShortSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class AuthorShortSchema(BaseModel):
-    full_name: str
-    email: str
+    full_name: Optional[str] = "N/A"
+    email: Optional[str] = "N/A"
     affiliation: Optional[str] = None
     order_index: int
     
     model_config = ConfigDict(from_attributes=True)
-
-# --- CÁC SCHEMA CHÍNH ---
-
 class SubmissionPatchSchema(BaseModel):
     title: Optional[str] = None
     abstract: Optional[str] = None
@@ -41,8 +38,7 @@ class SubmissionResponseSchema(BaseModel):
     status: str
     decision: Optional[str] = None
     file_path: Optional[str] = None
-    # Bây giờ các class dưới đây đã tồn tại nên sẽ không lỗi NameError
     track: Optional[TrackShortSchema] = None 
     authors: List[AuthorShortSchema] = [] 
-    
+    camera_ready_submission: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)

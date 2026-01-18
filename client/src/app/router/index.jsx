@@ -18,6 +18,8 @@ import DashboardSelector from "../../features/dashboard/pages/DashboardSelector"
 import MySubmissionsPage from "../../features/author/pages/MySubmissionsPage";
 import SubmissionDetailPage from "../../features/author/pages/SubmissionDetailPage";
 import PaperSubmissionPage from "../../features/author/pages/PaperSubmissionPage";
+import CameraReadyUploadPage from "../../features/author/pages/CameraReadyUploadPage";
+import ViewResultsPage from "../../features/author/pages/ViewResultsPage";
 import AuthorProfile from "../../features/auth/pages/AuthorProfile";
 import AuditLogs from "../../features/dashboard/pages/AuditLogs";
 import AuthorDashboard from "../../features/dashboard/AuthorDashboard";
@@ -55,6 +57,8 @@ export default function AppRouter() {
                     <Route path="submission" element={<PaperSubmissionPage />} />
                     <Route path="submission/edit/:paperId" element={<EditSubmissionPage />} />
                     <Route path="submission/:id" element={<SubmissionDetailPage />} /> 
+                    <Route path="submission/:id/camera-ready" element={<CameraReadyUploadPage />} />
+                    <Route path="results" element={<ViewResultsPage />} />
                     <Route path="profile" element={<AuthorProfile />} />
 
                     {/* Admin/Chair Only Routes (Chỉ cho phép Admin truy cập) */}

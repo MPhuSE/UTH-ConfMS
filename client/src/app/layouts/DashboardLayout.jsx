@@ -12,7 +12,10 @@ export default function DashboardLayout() {
   </h2>
 </Link>
         <nav className="space-y-4">
+          <Link to="/dashboard/overview" className="block hover:text-indigo-300">Tổng quan</Link>
           <Link to="/dashboard/my-submissions" className="block hover:text-indigo-300">Bài nộp của tôi</Link>
+          <Link to="/dashboard/submission" className="block hover:text-indigo-300">Nộp bài mới</Link>
+          <Link to="/dashboard/results" className="block hover:text-indigo-300">Kết quả & Reviews</Link>
           <Link to="/dashboard/profile" className="block hover:text-indigo-300">Hồ sơ</Link>
           <Link to="/login" className="block text-red-400 mt-10">Đăng xuất</Link>
         </nav>

@@ -1,29 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import reviewService from '../services/reviewService';
+import React, { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { reviewService } from "../../services";
+import { toast } from "react-hot-toast";
 
 const ReviewForm = () => {
   const { submissionId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    originality: 5,
-    quality: 5,
-    relevance: 5,
-    overall: 5,
-    comments: '',
-    confidence_score: 3
+    score: 7,
+    summary: "",
+    weakness: "",
+    best_paper_recommendation: false,
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await reviewService.submitReview(submissionId, formData);
-      alert('Gửi bài đánh giá thành công!');
-      navigate('/reviewer/dashboard');
+      const payload = {
+        summary: formData.summary,
+        weakness: formData.weakness,
+        best_paper_recommendation: Boolean(formData.best_paper_recommendation),
+        answers: [
+          // question_id=1 is used by server DecisionService as "score"
+          { question_id: 1, answer: String(formData.score) },
+        ],
+      };
+      await reviewService.submitReview(Number(submissionId), payload);
+      toast.success("Gửi bài đánh giá thành công!");
+      navigate("/dashboard/reviewer/dashboard");
     } catch (error) {
-      console.error("Lỗi khi gửi review:", error);
+      const message = error?.response?.data?.detail || "Lỗi khi gửi review";
+      toast.error(message);
+      console.error("Submit review error:", error);
     } finally {
       setLoading(false);
     }
@@ -34,32 +44,52 @@ const ReviewForm = () => {
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Phiếu Đánh Giá Bài Báo #{submissionId}</h2>
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          {['originality', 'quality', 'relevance', 'overall'].map((field) => (
-            <div key={field}>
-              <label className="block text-sm font-medium text-gray-700 capitalize">{field} (1-10)</label>
-              <input
-                type="number" min="1" max="10"
-                value={formData[field]}
-                onChange={(e) => setFormData({...formData, [field]: parseInt(e.target.value)})}
-                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                required
-              />
-            </div>
-          ))}
-        </div>
-
         <div>
-          <label className="block text-sm font-medium text-gray-700">Nhận xét chi tiết (Comments)</label>
-          <textarea
-            rows="6"
-            value={formData.comments}
-            onChange={(e) => setFormData({...formData, comments: e.target.value})}
+          <label className="block text-sm font-medium text-gray-700">Score (1-10)</label>
+          <input
+            type="number"
+            min="1"
+            max="10"
+            value={formData.score}
+            onChange={(e) => setFormData({ ...formData, score: Number(e.target.value) })}
             className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            placeholder="Nhận xét ưu điểm, nhược điểm và góp ý..."
             required
           />
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Summary</label>
+          <textarea
+            rows="4"
+            value={formData.summary}
+            onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            placeholder="Tóm tắt nhận xét..."
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Weakness</label>
+          <textarea
+            rows="4"
+            value={formData.weakness}
+            onChange={(e) => setFormData({ ...formData, weakness: e.target.value })}
+            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            placeholder="Điểm yếu / góp ý cải thiện..."
+          />
+        </div>
+
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={formData.best_paper_recommendation}
+            onChange={(e) =>
+              setFormData({ ...formData, best_paper_recommendation: e.target.checked })
+            }
+          />
+          Recommend as best paper
+        </label>
 
         <button
           type="submit"

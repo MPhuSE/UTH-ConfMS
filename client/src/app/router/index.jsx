@@ -33,6 +33,23 @@ import QuotaConfigPage from "../../features/admin/pages/QuotaConfigPage";
 import SystemHealthPage from "../../features/admin/pages/SystemHealthPage";
 import TenantManagementPage from "../../features/admin/pages/TenantManagementPage";
 
+// Chair
+import ChairDashboard from "../../features/dashboard/ChairDashboard";
+import AssignmentManagementPage from "../../features/Chair/pages/AssignmentManagementPage";
+import DecisionManagementPage from "../../features/Chair/pages/DecisionManagementPage";
+import ProceedingsExportPage from "../../features/Chair/pages/ProceedingsExportPage";
+import BulkNotificationsPage from "../../features/Chair/pages/BulkNotificationsPage";
+
+// Reviewer
+import ReviewerDashboard from "../../features/reviewer/ReviewerDashboard";
+import ReviewForm from "../../features/reviewer/ReviewForm";
+import BiddingCOIPage from "../../features/reviewer/BiddingCOIPage";
+
+// Discussion & Rebuttal
+import InternalDiscussion from "../../features/dashboard/pages/InternalDisscusion";
+import AuthorRebuttalPage from "../../features/rebuttal/AuthorRebuttalPage";
+import ReviewerRebuttalPage from "../../features/rebuttal/ReviewerRebuttalPage";
+
 export default function AppRouter() {
     return (
         <BrowserRouter>
@@ -68,6 +85,100 @@ export default function AppRouter() {
                     <Route path="submission/:id/camera-ready" element={<CameraReadyUploadPage />} />
                     <Route path="results" element={<ViewResultsPage />} />
                     <Route path="profile" element={<AuthorProfile />} />
+                    <Route
+                        path="rebuttal/:submissionId"
+                        element={
+                            <ProtectedRoute allowRoles={["author"]}>
+                                <AuthorRebuttalPage />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* Internal discussion (Chair/Reviewer) */}
+                    <Route
+                        path="submission/:id/discussion"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "reviewer", "admin"]}>
+                                <InternalDiscussion />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* Chair Routes */}
+                    <Route
+                        path="chair/dashboard"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <ChairDashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/assignments/:conferenceId"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <AssignmentManagementPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/decisions/:conferenceId"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <DecisionManagementPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/notifications/:conferenceId"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <BulkNotificationsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chair/proceedings/:conferenceId"
+                        element={
+                            <ProtectedRoute allowRoles={["chair", "admin"]}>
+                                <ProceedingsExportPage />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* Reviewer Routes */}
+                    <Route
+                        path="reviewer/dashboard"
+                        element={
+                            <ProtectedRoute allowRoles={["reviewer"]}>
+                                <ReviewerDashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="reviewer/review/:submissionId"
+                        element={
+                            <ProtectedRoute allowRoles={["reviewer"]}>
+                                <ReviewForm />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="reviewer/bidding/:conferenceId"
+                        element={
+                            <ProtectedRoute allowRoles={["reviewer"]}>
+                                <BiddingCOIPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="reviewer/rebuttal/:submissionId"
+                        element={
+                            <ProtectedRoute allowRoles={["reviewer", "chair", "admin"]}>
+                                <ReviewerRebuttalPage />
+                            </ProtectedRoute>
+                        }
+                    />
 
                     {/* Admin/Chair Only Routes */}
                     <Route

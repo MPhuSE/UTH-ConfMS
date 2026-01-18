@@ -15,6 +15,7 @@ class SubmissionModel(Base):
     title = Column(String, nullable=False)
     abstract = Column(String)
     decision = Column(String, nullable=True)
+    decision_notes = Column(String, nullable=True)
     
     # Status & Score
     status = Column(String) 

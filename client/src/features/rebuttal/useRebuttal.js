@@ -5,7 +5,7 @@ import axios from "../../lib/axios";
  * @param {string|number} paperId
  */
 export async function getRebuttalByPaper(paperId) {
-  const res = await axios.get(`/api/rebuttals/${paperId}`);
+  const res = await axios.get(`/rebuttals/${paperId}`);
   return res.data;
 }
 
@@ -14,6 +14,9 @@ export async function getRebuttalByPaper(paperId) {
  * @param {{ paperId: string|number, content: string }} data
  */
 export async function submitRebuttal(data) {
-  const res = await axios.post("/api/rebuttals", data);
+  const res = await axios.post("/rebuttals", {
+    submission_id: Number(data.paperId),
+    content: data.content,
+  });
   return res.data;
 }

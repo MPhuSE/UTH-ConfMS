@@ -1,27 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import reviewService from '../services/reviewService';
-import submissionService from '../services/submissionService';
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { reviewService, submissionService } from "../../services";
+import { useAuthStore } from "../../app/store/useAuthStore";
 
-const BiddingCOIPage = ({ conferenceId }) => {
+const BiddingCOIPage = () => {
+  const { conferenceId } = useParams();
+  const confIdNum = useMemo(() => Number(conferenceId), [conferenceId]);
+  const { user } = useAuthStore();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bids, setBids] = useState({}); // Lưu trạng thái bid của user hiện tại
   const [cois, setCois] = useState(new Set()); // Lưu danh sách ID bài báo bị xung đột
 
   useEffect(() => {
+    if (!confIdNum || !user?.id) return;
     fetchData();
-  }, [conferenceId]);
+  }, [confIdNum, user?.id]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Lấy tất cả bài báo thuộc conference này (Giả định có API này)
-      // Nếu chưa có, bạn có thể thay bằng API lấy bài báo cho Reviewer
-      const subData = await api.get(`/submissions/conference/${conferenceId}`);
-      setSubmissions(subData.data);
+      const all = await submissionService.getAll();
+      const filtered = (all || []).filter((s) => s.conference_id === confIdNum);
+      setSubmissions(filtered);
 
       // 2. Lấy các Bid hiện tại của Reviewer này (để hiển thị trạng thái đã chọn)
-      const currentBids = await reviewService.getBidsByReviewer("me"); 
+      const currentBids = await reviewService.getBidsByReviewer(user.id);
       const bidMap = {};
       currentBids.forEach(b => bidMap[b.submission_id] = b.bid);
       setBids(bidMap);
@@ -29,7 +34,8 @@ const BiddingCOIPage = ({ conferenceId }) => {
       // 3. Lấy các COI đã khai báo
       // Lưu ý: Thường COI sẽ làm ẩn hoặc vô hiệu hóa các nút Bidding
     } catch (error) {
-      console.error("Lỗi khi tải dữ liệu:", error);
+      console.error("Fetch bidding/coi error:", error);
+      toast.error("Không thể tải dữ liệu bidding/COI");
     } finally {
       setLoading(false);
     }
@@ -39,11 +45,12 @@ const BiddingCOIPage = ({ conferenceId }) => {
     try {
       await reviewService.placeBid({
         submission_id: submissionId,
-        bid: bidType // 'eager', 'willing', 'not_willing'
+        reviewer_id: user.id,
+        bid: bidType // "Yes" | "No" | "Maybe" (server schema)
       });
       setBids({ ...bids, [submissionId]: bidType });
     } catch (err) {
-      alert("Không thể đặt bid. Vui lòng thử lại.");
+      toast.error("Không thể đặt bid. Vui lòng thử lại.");
     }
   };
 
@@ -54,12 +61,13 @@ const BiddingCOIPage = ({ conferenceId }) => {
     try {
       await reviewService.declareCOI({
         submission_id: submissionId,
+        user_id: user.id,
         coi_type: reason
       });
       setCois(new Set([...cois, submissionId]));
-      alert("Đã xác nhận xung đột lợi ích.");
+      toast.success("Đã xác nhận xung đột lợi ích.");
     } catch (err) {
-      alert("Lỗi khi khai báo COI.");
+      toast.error("Lỗi khi khai báo COI.");
     }
   };
 
@@ -97,20 +105,20 @@ const BiddingCOIPage = ({ conferenceId }) => {
                     <>
                       <div className="inline-flex rounded-md shadow-sm" role="group">
                         <button
-                          onClick={() => onPlaceBid(sub.id, 'eager')}
-                          className={`px-4 py-2 text-sm font-medium border rounded-l-lg ${currentBid === 'eager' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                          onClick={() => onPlaceBid(sub.id, "Yes")}
+                          className={`px-4 py-2 text-sm font-medium border rounded-l-lg ${currentBid === "Yes" ? "bg-green-600 text-white border-green-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
                         >
                           Rất muốn
                         </button>
                         <button
-                          onClick={() => onPlaceBid(sub.id, 'willing')}
-                          className={`px-4 py-2 text-sm font-medium border-t border-b ${currentBid === 'willing' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                          onClick={() => onPlaceBid(sub.id, "Maybe")}
+                          className={`px-4 py-2 text-sm font-medium border-t border-b ${currentBid === "Maybe" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
                         >
                           Sẵn sàng
                         </button>
                         <button
-                          onClick={() => onPlaceBid(sub.id, 'not_willing')}
-                          className={`px-4 py-2 text-sm font-medium border rounded-r-lg ${currentBid === 'not_willing' ? 'bg-gray-600 text-white border-gray-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                          onClick={() => onPlaceBid(sub.id, "No")}
+                          className={`px-4 py-2 text-sm font-medium border rounded-r-lg ${currentBid === "No" ? "bg-gray-600 text-white border-gray-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
                         >
                           Không muốn
                         </button>

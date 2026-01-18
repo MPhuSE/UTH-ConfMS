@@ -41,7 +41,7 @@ export default function DashboardSelector() {
         navigate("/dashboard/admin/users");
         break;
       case "chair":
-        navigate("/dashboard/conference-list");
+        navigate("/dashboard/chair/dashboard");
         break;
       case "reviewer":
         navigate("/dashboard/reviewer/dashboard");

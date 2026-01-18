@@ -18,6 +18,12 @@ class ConferenceModel(Base):
     end_date = Column(DateTime)
     submission_deadline = Column(DateTime)
     review_deadline = Column(DateTime)
+
+    # TP5/TP7 workflow windows
+    rebuttal_open = Column(Boolean, default=False)
+    rebuttal_deadline = Column(DateTime, nullable=True)
+    camera_ready_open = Column(Boolean, default=False)
+    camera_ready_deadline = Column(DateTime, nullable=True)
     
 
     is_open = Column(Boolean, default=True)

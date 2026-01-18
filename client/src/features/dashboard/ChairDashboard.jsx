@@ -191,7 +191,7 @@ export default function ChairDashboard() {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold mb-4">Thao tác nhanh</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <button
             onClick={() => navigate(`/dashboard/chair/assignments/${selectedConference?.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
@@ -215,7 +215,29 @@ export default function ChairDashboard() {
           </button>
 
           <button
-            onClick={() => navigate("/dashboard/conference-list")}
+            onClick={() => navigate(`/dashboard/chair/notifications/${selectedConference?.id}`)}
+            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <BarChart3 className="w-5 h-5 text-teal-500" />
+              <span className="font-medium">Bulk email</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          <button
+            onClick={() => navigate(`/dashboard/chair/proceedings/${selectedConference?.id}`)}
+            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <FileText className="w-5 h-5 text-teal-500" />
+              <span className="font-medium">Proceedings export</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          <button
+            onClick={() => navigate("/dashboard/chair/dashboard")}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">

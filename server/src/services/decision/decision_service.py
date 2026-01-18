@@ -47,7 +47,7 @@ class DecisionService:
     def make_decision(
         self,
         submission_id: int,
-        decision: str,  # "Accept", "Reject", "Minor Revision", "Major Revision"
+        decision: str,  # "accept" / "reject" / ...
         decision_notes: Optional[str] = None
     ) -> Dict[str, Any]:
         """Make a decision on a submission."""
@@ -58,9 +58,26 @@ class DecisionService:
         # Calculate average score
         avg_score = self.calculate_average_score(submission_id)
         
+        normalized = (decision or "").strip().lower()
+        norm_map = {
+            "accept": "accepted",
+            "accepted": "accepted",
+            "reject": "rejected",
+            "rejected": "rejected",
+            "minor revision": "minor_revision",
+            "minor_revision": "minor_revision",
+            "major revision": "major_revision",
+            "major_revision": "major_revision",
+        }
+        normalized = norm_map.get(normalized, normalized)
+        if normalized not in ("accepted", "rejected", "minor_revision", "major_revision"):
+            raise BusinessRuleException("Invalid decision value")
+
         # Update submission status
         update_data = {
-            "status": decision,
+            # Keep both fields in sync for client + services
+            "status": normalized,
+            "decision": normalized,
             "avg_score": avg_score
         }
         if decision_notes:
@@ -71,6 +88,7 @@ class DecisionService:
         return {
             "submission_id": updated.id,
             "status": updated.status,
+            "decision": getattr(updated, "decision", None) or updated.status,
             "avg_score": float(avg_score) if avg_score else None,
             "decision_notes": getattr(updated, 'decision_notes', None)
         }
@@ -91,6 +109,7 @@ class DecisionService:
                         "submission_id": submission.id,
                         "title": submission.title,
                         "status": submission.status,
+                        "decision": getattr(submission, "decision", None) or submission.status,
                         "avg_score": float(avg_score) if avg_score else None
                     })
         
@@ -101,8 +120,8 @@ class DecisionService:
         decisions = self.get_decisions_by_conference(conference_id)
         
         total = len(decisions)
-        accepted = len([d for d in decisions if d["status"] == "Accept"])
-        rejected = len([d for d in decisions if d["status"] == "Reject"])
+        accepted = len([d for d in decisions if (d.get("status") or "").lower() in ("accepted", "accept")])
+        rejected = len([d for d in decisions if (d.get("status") or "").lower() in ("rejected", "reject")])
         
         acceptance_rate = (accepted / total * 100) if total > 0 else 0
         

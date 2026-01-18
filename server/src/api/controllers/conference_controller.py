@@ -24,6 +24,10 @@ from services.conference.update_conference import UpdateConferenceService
 
 # Import service CFP mới
 from services.conference.cfp_service import CFPService
+from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+from infrastructure.models.conference_model import ConferenceModel
 
 router = APIRouter(prefix="/conferences", tags=["Conferences"])
 
@@ -158,3 +162,43 @@ def get_public_cfp(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class WorkflowSettingsUpdateRequest(BaseModel):
+    rebuttal_open: Optional[bool] = None
+    rebuttal_deadline: Optional[datetime] = None
+    camera_ready_open: Optional[bool] = None
+    camera_ready_deadline: Optional[datetime] = None
+
+
+@router.patch("/{conference_id}/workflow", response_model=dict)
+def update_workflow_settings(
+    conference_id: int,
+    request: WorkflowSettingsUpdateRequest,
+    current_user=Depends(require_admin_or_chair),
+    db: Session = Depends(get_db),
+):
+    conf = db.query(ConferenceModel).filter(ConferenceModel.id == conference_id).first()
+    if not conf:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conference not found")
+
+    if request.rebuttal_open is not None:
+        conf.rebuttal_open = request.rebuttal_open
+    if request.rebuttal_deadline is not None:
+        conf.rebuttal_deadline = request.rebuttal_deadline
+    if request.camera_ready_open is not None:
+        conf.camera_ready_open = request.camera_ready_open
+    if request.camera_ready_deadline is not None:
+        conf.camera_ready_deadline = request.camera_ready_deadline
+
+    db.add(conf)
+    db.commit()
+    db.refresh(conf)
+
+    return {
+        "id": conf.id,
+        "rebuttal_open": conf.rebuttal_open,
+        "rebuttal_deadline": conf.rebuttal_deadline,
+        "camera_ready_open": conf.camera_ready_open,
+        "camera_ready_deadline": conf.camera_ready_deadline,
+    }

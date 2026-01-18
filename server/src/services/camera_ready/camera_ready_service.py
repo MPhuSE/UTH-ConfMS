@@ -2,7 +2,9 @@ from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from infrastructure.repositories_interfaces.submission_repository import SubmissionRepository
 from infrastructure.models.submission_model import SubmissionModel, SubmissionFileModel
+from infrastructure.models.conference_model import ConferenceModel
 from domain.exceptions import NotFoundError, BusinessRuleException
+from datetime import datetime, timezone
 
 
 class CameraReadyService:
@@ -26,8 +28,21 @@ class CameraReadyService:
         if not submission:
             raise NotFoundError(f"Submission {submission_id} not found")
         
-        # SỬA LỖI: Kiểm tra cả status hoặc decision tùy theo logic DB của bạn
-        if submission.status != "accepted" and submission.decision != "accepted":
+        # Conference gate (TP7): only allow during camera-ready window (if configured)
+        conf = self.db.query(ConferenceModel).filter(ConferenceModel.id == submission.conference_id).first()
+        if conf is not None:
+            open_flag = bool(getattr(conf, "camera_ready_open", False))
+            deadline = getattr(conf, "camera_ready_deadline", None)
+            now = datetime.now(timezone.utc)
+            if not open_flag:
+                raise BusinessRuleException("Camera-ready phase is not open")
+            if deadline is not None and now > deadline:
+                raise BusinessRuleException("Camera-ready deadline has passed")
+
+        # Only accepted submissions can upload camera-ready
+        status_val = (getattr(submission, "status", None) or "").lower().strip()
+        decision_val = (getattr(submission, "decision", None) or "").lower().strip()
+        if status_val not in ("accepted", "accept") and decision_val not in ("accepted", "accept"):
             raise BusinessRuleException(
                 "Camera-ready can only be uploaded for accepted submissions"
             )

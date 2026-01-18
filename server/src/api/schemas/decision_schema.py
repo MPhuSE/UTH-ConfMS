@@ -11,6 +11,7 @@ class DecisionRequest(BaseModel):
 class DecisionResponse(BaseModel):
     submission_id: int
     status: str
+    decision: Optional[str] = None
     avg_score: Optional[float]
     decision_notes: Optional[str] = None
 
@@ -26,5 +27,6 @@ class SubmissionDecisionResponse(BaseModel):
     submission_id: int
     title: str
     status: str
+    decision: Optional[str] = None
     avg_score: Optional[float]
 

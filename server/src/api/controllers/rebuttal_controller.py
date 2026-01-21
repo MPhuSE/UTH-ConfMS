@@ -62,7 +62,6 @@ def submit_rebuttal(
     if not submission:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
 
-    # Must be an author of this submission
     is_author = (
         db.query(SubmissionAuthorModel)
         .filter(
@@ -75,7 +74,6 @@ def submit_rebuttal(
     if not is_author:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed to rebut for this submission")
 
-    # Conference gate (optional): require rebuttal_open and before rebuttal_deadline if set
     conf = db.query(ConferenceModel).filter(ConferenceModel.id == submission.conference_id).first()
     if conf is not None:
         rebuttal_open = bool(getattr(conf, "rebuttal_open", False))

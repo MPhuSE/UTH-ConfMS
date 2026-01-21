@@ -94,7 +94,6 @@ def export_proceedings(
         "papers": accepted,
     }
     
-    # Audit logging
     try:
         create_audit_log_sync(
             db,

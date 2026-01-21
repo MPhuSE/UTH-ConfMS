@@ -38,27 +38,21 @@ async def submit_paper(
     conf_repo = Depends(get_conference_repo) 
 ):
     try:
-        # 1. Kiểm tra tồn tại của hội nghị
         conference = conf_repo.get_by_id(conference_id)
         if not conference:
             raise HTTPException(status_code=404, detail="Conference not found")
         
-        # 2. Kiểm tra hạn chót nộp bài (so sánh datetime)
         if datetime.datetime.now() > conference.submission_deadline:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
                 detail="The submission deadline for this conference has passed."
             )
 
-        # 3. Kiểm tra định dạng file
         if file.content_type != "application/pdf":
             raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
 
-        # 4. Upload file lên Cloudinary
         file_url = await CloudinaryService.upload_pdf(file)
         
-        # 5. Thực thi tạo submission qua Service
-        # Service này sẽ gọi repo.create mà chúng ta đã sửa để copy full_name/email
         authors_payload = None
         if authors:
             try:
@@ -79,12 +73,8 @@ async def submit_paper(
             authors=authors_payload
         )
 
-        # 6. QUAN TRỌNG: Lấy lại bản ghi đầy đủ từ DB
-        # Việc này đảm bảo các quan hệ (authors, files) được nạp đầy đủ 
-        # giúp vượt qua bước kiểm tra ResponseValidationError của FastAPI.
         full_submission = repo.get_by_id(result.id)
 
-        # Audit: SUBMIT submission (includes initial PDF upload)
         try:
             create_audit_log_sync(
                 repo.db,
@@ -105,7 +95,6 @@ async def submit_paper(
                 metadata={"event": "submission_create", "pdf_uploaded": True},
             )
         except Exception:
-            # Don't block submission on audit failure
             pass
         
         return full_submission
@@ -146,7 +135,6 @@ def get_submission(
     """Lấy chi tiết bài nộp - Yêu cầu đăng nhập."""
     submission = GetSubmissionService(repo).execute(submission_id)
 
-    # Audit: VIEW submission detail
     try:
         create_audit_log_sync(
             repo.db,
@@ -177,15 +165,12 @@ async def update_submission(
 ):
     """Update submission - Hỗ trợ cả text và file PDF."""
     
-    # 1. Kiểm tra quyền sở hữu (Tùy chọn nhưng nên có)
     submission = GetSubmissionService(repo).execute(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
     
-    # Audit: snapshot before
     before = submission
 
-    # Gom dữ liệu chữ vào dict
     update_data = {}
     if title is not None: update_data["title"] = title
     if abstract is not None: update_data["abstract"] = abstract
@@ -209,10 +194,8 @@ async def update_submission(
         new_file_url = await CloudinaryService.upload_pdf(file)
         update_data["file_url"] = new_file_url
 
-    # 3. Gọi service để thực thi update vào Database
     updated = EditSubmissionService(repo).execute(submission_id, update_data)
 
-    # Audit: UPDATE submission (and optionally PDF upload)
     try:
         create_audit_log_sync(
             repo.db,
@@ -241,11 +224,9 @@ def delete_submission(
     repo=Depends(get_submission_repo)
 ):
     """Delete submission - only author or admin/chair can delete."""
-    # TODO: Add ownership check - only author or admin/chair can delete
     submission = GetSubmissionService(repo).execute(submission_id)
     DeleteSubmissionService(repo).execute(submission_id)
 
-    # Audit: WITHDRAW (DELETE submission)
     try:
         create_audit_log_sync(
             repo.db,

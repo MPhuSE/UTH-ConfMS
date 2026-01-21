@@ -36,7 +36,6 @@ def create_email_template(
             body=request.body
         )
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -103,7 +102,6 @@ def update_email_template(
 ):
     """Update an email template - only admin or chair can update."""
     try:
-        # Get old template for audit
         old_template = None
         try:
             old_template = service.get_template(template_id)
@@ -117,7 +115,6 @@ def update_email_template(
             body=request.body
         )
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -155,7 +152,6 @@ def delete_email_template(
 ):
     """Delete an email template - only admin or chair can delete."""
     try:
-        # Get template info before deletion for audit
         old_template = None
         try:
             old_template = service.get_template(template_id)
@@ -164,7 +160,6 @@ def delete_email_template(
         
         service.delete_template(template_id)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,

@@ -142,7 +142,6 @@ def update_schedule_item(
         if not item:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule item not found")
         
-        # Store old values for audit
         old_values = {
             "submission_id": item.submission_id,
             "session_id": item.session_id,
@@ -165,7 +164,6 @@ def update_schedule_item(
         db.commit()
         db.refresh(item)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -222,7 +220,6 @@ def delete_schedule_item(
         db.delete(item)
         db.commit()
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,

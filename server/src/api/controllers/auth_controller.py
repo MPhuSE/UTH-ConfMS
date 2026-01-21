@@ -46,7 +46,6 @@ async def register_user_endpoint(
             password=request.password,    
         )
 
-        # Audit: REGISTER (CREATE USER)
         await audit_log_service.create_audit_log(
             action_type=ActionType.CREATE,
             resource_type=ResourceType.USER,
@@ -78,7 +77,6 @@ async def login_for_access_token_endpoint(
             email=request.email, 
             password=request.password
         )
-        # Audit: LOGIN
         await audit_log_service.create_audit_log(
             action_type=ActionType.LOGIN,
             resource_type=ResourceType.USER,
@@ -90,7 +88,6 @@ async def login_for_access_token_endpoint(
             metadata={"event": "login", "roles": user.role_names},
         )
 
-        # trả về accesstoken và refreshtoken + user
         return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=user) 
         
     except AuthenticationError as e:

@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 
-# Import các schema (đảm bảo file schema của bạn đã dán code tôi gửi ở bước trước)
 from api.schemas.conference_schema import (
     ConferenceCreateRequest, 
     ConferenceResponse, 
     ConferenceListResponse,
-    UpdateCFPRequest,      # Mới thêm
-    PublicCFPResponse     # Mới thêm
+    UpdateCFPRequest,     
+    PublicCFPResponse    
 )
 from domain.models.conference import Conference
 from domain.exceptions import BusinessRuleException, NotFoundError
@@ -17,13 +16,11 @@ from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair
 from api.utils.audit_utils import create_audit_log_sync
 
-# Import các services cũ
 from services.conference.create_conference import CreateConferenceService
 from services.conference.get_conference import GetConferenceService
 from services.conference.delete_conference import DeleteConferenceService
 from services.conference.update_conference import UpdateConferenceService
 
-# Import service CFP mới
 from services.conference.cfp_service import CFPService
 from pydantic import BaseModel
 from datetime import datetime
@@ -31,8 +28,6 @@ from typing import Optional
 from infrastructure.models.conference_model import ConferenceModel
 
 router = APIRouter(prefix="/conferences", tags=["Conferences"])
-
-# --- CÁC ENDPOINT CŨ CỦA BẠN (GIỮ NGUYÊN) ---
 
 @router.post("", response_model=dict)
 def create_conference(
@@ -54,7 +49,6 @@ def create_conference(
         )
         result = service.execute(conference)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -123,7 +117,6 @@ def delete_conference_by_id(
     db: Session = Depends(get_db)
 ):
     try:
-        # Get conference info before deletion for audit
         repo = ConferenceRepositoryImpl(db)
         get_service = GetConferenceService(repo)
         conf_before = None
@@ -135,7 +128,6 @@ def delete_conference_by_id(
         service = DeleteConferenceService(repo)
         service.delete(conference_id)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -167,7 +159,6 @@ def update_conference_by_id(
     db: Session = Depends(get_db)
 ):
     try:
-        # Get old values for audit
         repo = ConferenceRepositoryImpl(db)
         get_service = GetConferenceService(repo)
         old_conf = None
@@ -187,7 +178,6 @@ def update_conference_by_id(
         )
         updated = service.update(conf)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -224,14 +214,12 @@ def update_conference_by_id(
         raise HTTPException(status_code=404, detail=str(e))
 
 
-# --- CNPM-54 & CNPM-55: CÁC ENDPOINT CFP MỚI ---
-
 @router.put("/{conference_id}/cfp", response_model=dict)
 def update_cfp_content(
     conference_id: int,
     request: UpdateCFPRequest,
     req: Request,
-    current_user=Depends(require_admin_or_chair), # Chỉ Admin/Chair mới được sửa
+    current_user=Depends(require_admin_or_chair), 
     db: Session = Depends(get_db)
 ):
     """Cập nhật nội dung CFP (CNPM-54)"""
@@ -240,7 +228,6 @@ def update_cfp_content(
         service = CFPService(repo)
         service.update_cfp_content(conference_id, request.description, request.submission_deadline)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -321,7 +308,6 @@ def update_workflow_settings(
     db.commit()
     db.refresh(conf)
 
-    # Audit logging
     try:
         create_audit_log_sync(
             db,

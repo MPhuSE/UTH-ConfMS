@@ -125,7 +125,6 @@ def generate_email_template(
     ai_service: AIServiceManager = Depends(get_ai_service)
 ):
     """Generate email template draft using AI."""
-    # Mock implementation - in production, this would call AI service
     template_types = {
         "notification": {
             "subject": f"Notification: {request.context[:50]}",

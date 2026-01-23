@@ -1,7 +1,6 @@
 import datetime
 import json
-from fastapi import APIRouter, Depends
-from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile, Request, Query
 from typing import List
 from dependency_container import get_submission_repo, get_conference_repo
 from api.schemas.submission_schema import (
@@ -50,9 +49,13 @@ async def submit_paper(
                 detail="The submission deadline for this conference has passed."
             )
 
-        # 3. Kiểm tra định dạng file
-        if file.content_type != "application/pdf":
-            raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+        # 3. Kiểm tra định dạng file - CHỈ CHẤP NHẬN PDF
+        if not file.content_type or file.content_type != "application/pdf":
+            raise HTTPException(status_code=400, detail="Chỉ chấp nhận file PDF (.pdf). File hiện tại không phải PDF.")
+        
+        # Kiểm tra đuôi file phải là .pdf
+        if file.filename and not file.filename.lower().endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="Chỉ chấp nhận file có đuôi .pdf")
 
         # 4. Upload file lên Cloudinary
         file_url = await CloudinaryService.upload_pdf(file)
@@ -136,6 +139,67 @@ def list_my_submissions(
     return repo.get_by_author(current_user.id)
 
 
+@router.get("/{submission_id}/download")
+async def download_submission_pdf(
+    submission_id: int,
+    req: Request,
+    current_user=Depends(get_current_user),
+    repo=Depends(get_submission_repo),
+    redirect: bool = Query(True, description="Whether to redirect or return JSON")
+):
+    """Download PDF file của submission - Trả về download URL hoặc redirect"""
+    from fastapi.responses import RedirectResponse
+    
+    try:
+        # Lấy submission từ database (qua GetSubmissionService)
+        submission = GetSubmissionService(repo).execute(submission_id)
+        
+        if not submission:
+            raise HTTPException(status_code=404, detail="Submission not found")
+        
+        # Lấy file_path từ database (bảng submission_files)
+        # GetSubmissionService đã lấy file_path từ submission.files[0].file_path trong DB
+        file_url = submission.get("file_path") or submission.get("file_url")
+        if not file_url:
+            raise HTTPException(status_code=404, detail="File not found for this submission")
+        
+        # Tạo download URL với fl_attachment
+        # Lấy tên file từ submission title hoặc dùng tên mặc định
+        submission_title = submission.get("title", "")
+        filename = f"{submission_title[:50] if submission_title else 'paper'}_{submission_id}.pdf"
+        # Làm sạch filename
+        filename = "".join(c if c.isalnum() or c in ['_', '-', '.'] else '_' for c in filename)
+        
+        download_url = CloudinaryService.get_download_url(file_url, filename)
+        
+        # Audit: DOWNLOAD submission PDF
+        try:
+            create_audit_log_sync(
+                repo.db,
+                action_type="DOWNLOAD",
+                resource_type="SUBMISSION",
+                user_id=current_user.id,
+                resource_id=submission_id,
+                description="Downloaded submission PDF",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                metadata={"event": "submission_download", "file_url": file_url},
+            )
+        except Exception:
+            pass
+        
+        # Nếu redirect=false, trả về JSON
+        if not redirect:
+            return {"download_url": download_url, "filename": filename}
+        
+        # Mặc định: Redirect đến Cloudinary URL với fl_attachment
+        return RedirectResponse(url=download_url, status_code=302)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Download error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error downloading file: {str(e)}")
+
 @router.get("/{submission_id}", response_model=SubmissionResponseSchema)
 def get_submission(
     submission_id: int,
@@ -202,8 +266,13 @@ async def update_submission(
 
  
     if file:
-        if file.content_type != "application/pdf":
-            raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+        # Kiểm tra định dạng file - CHỈ CHẤP NHẬN PDF
+        if not file.content_type or file.content_type != "application/pdf":
+            raise HTTPException(status_code=400, detail="Chỉ chấp nhận file PDF (.pdf). File hiện tại không phải PDF.")
+        
+        # Kiểm tra đuôi file phải là .pdf
+        if file.filename and not file.filename.lower().endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="Chỉ chấp nhận file có đuôi .pdf")
         
 
         new_file_url = await CloudinaryService.upload_pdf(file)
@@ -214,6 +283,16 @@ async def update_submission(
 
     # Audit: UPDATE submission (and optionally PDF upload)
     try:
+        # before là dict từ GetSubmissionService
+        # updated có thể là dict hoặc object, cần xử lý an toàn
+        old_title = before.get("title") if isinstance(before, dict) else getattr(before, "title", None)
+        old_abstract = before.get("abstract") if isinstance(before, dict) else getattr(before, "abstract", None)
+        old_status = before.get("status") if isinstance(before, dict) else getattr(before, "status", None)
+        
+        new_title = updated.get("title") if isinstance(updated, dict) else getattr(updated, "title", None)
+        new_abstract = updated.get("abstract") if isinstance(updated, dict) else getattr(updated, "abstract", None)
+        new_status = updated.get("status") if isinstance(updated, dict) else getattr(updated, "status", None)
+        
         create_audit_log_sync(
             repo.db,
             action_type="UPDATE",
@@ -221,8 +300,8 @@ async def update_submission(
             user_id=current_user.id,
             resource_id=submission_id,
             description="Updated submission",
-            old_values={"title": before.title, "abstract": before.abstract, "status": before.status},
-            new_values={"title": updated.title, "abstract": updated.abstract, "status": updated.status},
+            old_values={"title": old_title, "abstract": old_abstract, "status": old_status},
+            new_values={"title": new_title, "abstract": new_abstract, "status": new_status},
             ip_address=req.client.host if req and req.client else None,
             user_agent=req.headers.get("user-agent") if req else None,
             metadata={"event": "submission_update", "pdf_uploaded": bool(file)},
@@ -247,6 +326,8 @@ def delete_submission(
 
     # Audit: WITHDRAW (DELETE submission)
     try:
+        # submission là dict từ GetSubmissionService
+        submission_title = submission.get("title") if isinstance(submission, dict) else getattr(submission, "title", None)
         create_audit_log_sync(
             repo.db,
             action_type="DELETE",
@@ -254,7 +335,7 @@ def delete_submission(
             user_id=current_user.id,
             resource_id=submission_id,
             description="Author withdrew a submission",
-            old_values={"id": submission_id, "title": getattr(submission, "title", None)},
+            old_values={"id": submission_id, "title": submission_title},
             ip_address=req.client.host if req and req.client else None,
             user_agent=req.headers.get("user-agent") if req else None,
             metadata={"event": "submission_withdraw"},

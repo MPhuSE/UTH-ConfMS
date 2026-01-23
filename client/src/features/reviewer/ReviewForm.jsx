@@ -66,16 +66,64 @@ const ReviewForm = () => {
     if (!url) return "#";
     try {
       const parsed = new URL(url);
+      
+      // Extract filename from URL path
       let filename = decodeURIComponent(parsed.pathname.split("/").pop() || "paper.pdf");
+      
+      // Fix: Nếu filename là "stream" hoặc không hợp lệ, dùng tên mặc định
+      const invalidNames = ["stream", "blob", "file", "upload"];
+      if (invalidNames.includes(filename.toLowerCase()) || !filename.toLowerCase().endsWith(".pdf")) {
+        // Lấy tên từ public_id trong URL hoặc dùng tên mặc định
+        const pathParts = parsed.pathname.split("/");
+        const folderIndex = pathParts.findIndex(p => p === "uth_conf_papers" || p.includes("papers"));
+        if (folderIndex !== -1 && folderIndex < pathParts.length - 1) {
+          filename = pathParts[folderIndex + 1] || "paper.pdf";
+        } else {
+          filename = "paper.pdf";
+        }
+      }
+      
+      // Đảm bảo có đuôi .pdf
       if (!filename.toLowerCase().endsWith(".pdf")) {
         filename = `${filename}.pdf`;
       }
-      if (!parsed.pathname.includes("/upload/")) return url;
-      if (parsed.pathname.includes("fl_attachment")) return url;
-      const [prefix, suffix] = parsed.pathname.split("/upload/");
-      parsed.pathname = `${prefix}/upload/fl_attachment:${filename}/${suffix}`;
-      return parsed.toString();
+      
+      // Check if it's a Cloudinary URL
+      if (parsed.hostname.includes("cloudinary.com") || parsed.hostname.includes("res.cloudinary.com")) {
+        // If already has fl_attachment, return as is
+        if (parsed.pathname.includes("fl_attachment") || parsed.searchParams.has("fl_attachment")) {
+          return url;
+        }
+        
+        // Fix: Convert /image/upload/ to /raw/upload/ for PDF files
+        if (parsed.pathname.includes("/image/upload/")) {
+          parsed.pathname = parsed.pathname.replace("/image/upload/", "/raw/upload/");
+        }
+        
+        // For raw files, Cloudinary uses /raw/upload/ path
+        if (parsed.pathname.includes("/raw/upload/")) {
+          // Extract the path parts
+          const parts = parsed.pathname.split("/raw/upload/");
+          if (parts.length === 2) {
+            // Split suffix to get version and file path
+            const suffixParts = parts[1].split("/");
+            // Reconstruct with fl_attachment as transformation
+            parsed.pathname = `${parts[0]}/raw/upload/fl_attachment:${filename}/${suffixParts.join("/")}`;
+            return parsed.toString();
+          }
+        }
+        // For regular image uploads (legacy support - but shouldn't be used for PDFs)
+        if (parsed.pathname.includes("/upload/") && !parsed.pathname.includes("/raw/") && !parsed.pathname.includes("/image/")) {
+          const [prefix, suffix] = parsed.pathname.split("/upload/");
+          parsed.pathname = `${prefix}/upload/fl_attachment:${filename}/${suffix}`;
+          return parsed.toString();
+        }
+      }
+      
+      // If not Cloudinary URL, return as is
+      return url;
     } catch (err) {
+      console.error("Error processing download URL:", err);
       return url;
     }
   };
@@ -108,13 +156,12 @@ const ReviewForm = () => {
           <div className="text-sm text-gray-600">Tiêu đề:</div>
           <div className="font-semibold text-gray-900 mb-2">{submission.title}</div>
           {fileUrl ? (
-            <a
-              href={getDownloadUrl(fileUrl)}
-              download
+            <button
+              onClick={() => submissionService.downloadPdf(Number(submissionId))}
               className="inline-flex items-center gap-2 text-sm text-blue-700 hover:underline"
             >
               Tải PDF
-            </a>
+            </button>
           ) : (
             <div className="text-sm text-gray-500">Không có file PDF</div>
           )}

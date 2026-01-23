@@ -34,8 +34,13 @@ async def upload_camera_ready(
 ):
     """Upload camera-ready version of a submission."""
     try:
-        if file.content_type != "application/pdf":
-            raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+        # Kiểm tra định dạng file - CHỈ CHẤP NHẬN PDF
+        if not file.content_type or file.content_type != "application/pdf":
+            raise HTTPException(status_code=400, detail="Chỉ chấp nhận file PDF (.pdf). File hiện tại không phải PDF.")
+        
+        # Kiểm tra đuôi file phải là .pdf
+        if file.filename and not file.filename.lower().endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="Chỉ chấp nhận file có đuôi .pdf")
         
         # Upload to cloud
         file_url = await CloudinaryService.upload_pdf(file)

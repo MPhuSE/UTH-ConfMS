@@ -4,9 +4,6 @@ import { submissionService } from "../../../services/submissionService";
 import { userService } from "../../../services/userService";
 import { trackService } from "../../../services/trackService";
 import { useConferenceStore } from "../../../app/store/useConferenceStore";
-import SpellCheckComponent from "../../../components/AI/SpellCheckComponent";
-import SummaryComponent from "../../../components/AI/SummaryComponent";
-import KeywordsComponent from "../../../components/AI/KeywordsComponent";
 import {
   Loader2,
   Layout,
@@ -29,7 +26,7 @@ export default function PaperSubmissionPage() {
   const fileInputRef = useRef(null);
   const isEditMode = Boolean(paperId);
 
-  // Lấy ID hội nghị từ URL nếu có (ví dụ: /submission?confId=1)
+  
   const confIdFromUrl = searchParams.get("confId");
 
   const { conferences, fetchConferences, loading } = useConferenceStore();
@@ -47,13 +44,36 @@ export default function PaperSubmissionPage() {
     title: "",
     abstract: "",
     file: null,
-    authors: [{ name: "", email: "", affiliation: "", is_main: true }]
+    authors: [{ name: "", email: "", is_main: true }]
   });
 
   useEffect(() => {
     fetchConferences();
-    if (isEditMode) loadOldPaper();
+    if (isEditMode) {
+      loadOldPaper();
+    } else {
+      // Tự động điền thông tin người nộp bài vào tác giả chính
+      loadCurrentUser();
+    }
   }, [paperId]);
+
+  const loadCurrentUser = async () => {
+    try {
+      const user = await userService.getMe();
+      if (user) {
+        setFormData(prev => ({
+          ...prev,
+          authors: [{
+            name: user.full_name || "",
+            email: user.email || "",
+            is_main: true
+          }]
+        }));
+      }
+    } catch (err) {
+      console.error("Không thể tải thông tin người dùng:", err);
+    }
+  };
 
   const loadOldPaper = async () => {
     try {
@@ -65,7 +85,7 @@ export default function PaperSubmissionPage() {
         title: paper.title,
         abstract: paper.abstract,
         file: null,
-        authors: paper.authors || [{ name: "", email: "", affiliation: "", is_main: true }]
+        authors: paper.authors || [{ name: "", email: "", is_main: true }]
       });
       if (paper.file_url || paper.file_path) setPdfPreviewUrl(paper.file_url || paper.file_path);
     } catch (err) {
@@ -95,7 +115,7 @@ export default function PaperSubmissionPage() {
   const addAuthor = () => {
     setFormData({
       ...formData,
-      authors: [...formData.authors, { name: "", email: "", affiliation: "", is_main: false }]
+      authors: [...formData.authors, { name: "", email: "", is_main: false }]
     });
   };
 
@@ -109,7 +129,6 @@ export default function PaperSubmissionPage() {
         {
           name: user.full_name || "",
           email: user.email,
-          affiliation: user.affiliation || "",
           is_main: false
         }
       ]
@@ -119,6 +138,8 @@ export default function PaperSubmissionPage() {
   };
 
   const removeAuthor = (index) => {
+    // Không cho phép xóa tác giả chính (index 0)
+    if (index === 0) return;
     const newAuthors = formData.authors.filter((_, i) => i !== index);
     setFormData({ ...formData, authors: newAuthors });
   };
@@ -145,11 +166,34 @@ export default function PaperSubmissionPage() {
   // ===== XỬ LÝ PDF PREVIEW =====
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
-    if (file && file.type === "application/pdf") {
-      setFormData({ ...formData, file });
-      const url = URL.createObjectURL(file);
-      setPdfPreviewUrl(url);
+    if (!file) return;
+    
+    // Kiểm tra đuôi file phải là .pdf
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      alert("Chỉ chấp nhận file PDF (.pdf)");
+      e.target.value = ""; // Reset input
+      return;
     }
+    
+    // Kiểm tra MIME type
+    if (file.type && file.type !== "application/pdf") {
+      alert("Chỉ chấp nhận file PDF. File hiện tại không phải PDF.");
+      e.target.value = ""; // Reset input
+      return;
+    }
+    
+    // Kiểm tra kích thước (10MB)
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_SIZE) {
+      alert(`File quá lớn. Kích thước tối đa: 10MB. File hiện tại: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+      e.target.value = ""; // Reset input
+      return;
+    }
+    
+    // File hợp lệ - set vào form
+    setFormData({ ...formData, file });
+    const url = URL.createObjectURL(file);
+    setPdfPreviewUrl(url);
   };
 
   const handleSubmit = async (e) => {
@@ -258,40 +302,11 @@ export default function PaperSubmissionPage() {
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Tiêu đề bài báo *</label>
               <input required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập tiêu đề bài báo..." />
-              <div className="mt-2">
-                <SpellCheckComponent
-                  text={formData.title}
-                  onTextChange={(correctedText) => setFormData({...formData, title: correctedText})}
-                  label="Kiểm tra chính tả tiêu đề"
-                />
-              </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Tóm tắt *</label>
               <textarea required rows={4} value={formData.abstract} onChange={(e) => setFormData({...formData, abstract: e.target.value})} className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập tóm tắt (Abstract)..." />
-              <div className="mt-2 space-y-2">
-                <SpellCheckComponent
-                  text={formData.abstract}
-                  onTextChange={(correctedText) => setFormData({...formData, abstract: correctedText})}
-                  label="Kiểm tra chính tả tóm tắt"
-                />
-                <SummaryComponent
-                  text={formData.abstract}
-                  maxWords={200}
-                  onSummaryGenerated={(summary) => {
-                    // Optional: có thể tự động thay thế abstract bằng summary
-                    // setFormData({...formData, abstract: summary});
-                  }}
-                />
-                <KeywordsComponent
-                  text={formData.abstract}
-                  onKeywordsExtracted={(keywords) => {
-                    // Keywords có thể được lưu hoặc hiển thị
-                    console.log("Extracted keywords:", keywords);
-                  }}
-                />
-              </div>
             </div>
 
             {/* PHẦN ĐỒNG TÁC GIẢ */}
@@ -326,7 +341,7 @@ export default function PaperSubmissionPage() {
                       onClick={() => addAuthorFromSearch(user)}
                       className="w-full text-left px-4 py-2 hover:bg-gray-50 text-xs font-bold"
                     >
-                      {user.full_name || "N/A"} • {user.email} {user.affiliation ? `• ${user.affiliation}` : ""}
+                      {user.full_name || "N/A"} • {user.email}
                     </button>
                   ))}
                 </div>
@@ -335,26 +350,45 @@ export default function PaperSubmissionPage() {
               <div className="grid grid-cols-1 gap-3">
                 {formData.authors.map((author, index) => (
                   <div key={index} className="p-4 bg-gray-50 rounded-xl border border-gray-200 relative group transition-all hover:bg-white hover:shadow-md">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <input required placeholder="Họ tên" value={author.name} onChange={(e) => updateAuthor(index, 'name', e.target.value)} className="p-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400 bg-transparent focus:bg-white" />
                       <input required type="email" placeholder="Email" value={author.email} onChange={(e) => updateAuthor(index, 'email', e.target.value)} className="p-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400 bg-transparent focus:bg-white" />
-                      <input required placeholder="Đơn vị công tác" value={author.affiliation} onChange={(e) => updateAuthor(index, 'affiliation', e.target.value)} className="p-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400 bg-transparent focus:bg-white" />
                     </div>
                     {index > 0 && (
                       <button type="button" onClick={() => removeAuthor(index)} className="absolute -top-2 -right-2 bg-white text-red-500 p-1.5 rounded-full shadow-md border border-red-100 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-3 h-3" /></button>
                     )}
-                    <span className="text-[10px] font-black text-blue-900/30 mt-2 block uppercase tracking-widest">{index === 0 ? "Tác giả chính (Corresponding)" : `Đồng tác giả ${index}`}</span>
+                    <span className="text-[10px] font-black text-blue-900/30 mt-2 block uppercase tracking-widest">
+                      {index === 0 ? "Tác giả chính (Corresponding) - Người nộp bài" : `Đồng tác giả ${index}`}
+                    </span>
+                    {index === 0 && (
+                      <p className="text-[9px] text-gray-400 mt-1 italic">Thông tin này được tự động điền từ tài khoản của bạn</p>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="pt-4">
-              <input ref={fileInputRef} type="file" hidden accept=".pdf" onChange={handleFileChange} />
+              <input 
+                ref={fileInputRef} 
+                type="file" 
+                hidden 
+                accept=".pdf,application/pdf" 
+                onChange={handleFileChange} 
+              />
               <div onClick={() => fileInputRef.current.click()} className="border-2 border-dashed border-blue-200 bg-blue-50/30 rounded-xl p-8 text-center cursor-pointer hover:bg-blue-50 transition-all group">
                 <Upload className="mx-auto mb-2 text-blue-400 w-8 h-8 group-hover:-translate-y-1 transition-transform" />
-                <p className="text-sm font-bold text-blue-800">{formData.file ? formData.file.name : "Nhấp để tải lên bài báo (PDF)"}</p>
-                <p className="text-[10px] text-gray-400 mt-2">Dung lượng tối đa 10MB • Định dạng .pdf duy nhất</p>
+                <p className="text-sm font-bold text-blue-800">
+                  {formData.file ? formData.file.name : "Nhấp để tải lên bài báo (PDF)"}
+                </p>
+                <p className="text-[10px] text-gray-400 mt-2">
+                  Dung lượng tối đa 10MB • Chỉ chấp nhận file PDF (.pdf)
+                </p>
+                {formData.file && (
+                  <p className="text-[10px] text-green-600 mt-1 font-bold">
+                    ✓ File PDF hợp lệ: {(formData.file.size / 1024 / 1024).toFixed(2)}MB
+                  </p>
+                )}
               </div>
             </div>
 

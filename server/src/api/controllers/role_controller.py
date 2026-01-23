@@ -29,7 +29,6 @@ def list_users_by_role(
     current_user: UserModel = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """List users having a given role (Admin/Chair only)."""
     role = db.query(RoleModel).filter(RoleModel.name == role_name).first()
     if not role:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")

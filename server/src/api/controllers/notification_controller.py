@@ -15,19 +15,17 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 async def notify_result(
     submission_id: int,
     req: Request,
-    hide_reviewer: bool = True,  # CNPM-159: Mặc định là ẩn danh
-    current_user = Depends(require_admin_or_chair), # Chỉ Chair/Admin được gửi
+    hide_reviewer: bool = True,  
+    current_user = Depends(require_admin_or_chair),
     db: Session = Depends(get_db)
 ):
     """
     API gửi thông báo kết quả bài nộp cho tác giả qua Email.
     """
-    # Khởi tạo các thành phần cần thiết
     repo = SubmissionRepositoryImpl(db)
-    email_tool = EmailService(db_session=db) # Class EmailService của bạn - ưu tiên dùng config từ database
+    email_tool = EmailService(db_session=db)
     service = ResultNotificationService(repo, email_tool, db=db)
     
-    # Thực hiện gửi email
     success = await service.send_result_notification(submission_id, hide_reviewer)
     
     if not success:
@@ -36,7 +34,6 @@ async def notify_result(
             detail="Gửi email thất bại. Vui lòng kiểm tra lại cấu hình SMTP hoặc trạng thái bài nộp."
         )
     
-    # Audit logging
     try:
         create_audit_log_sync(
             db,

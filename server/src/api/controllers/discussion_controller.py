@@ -29,7 +29,6 @@ def list_discussion_messages(
             .all()
         )
 
-        # Audit
         try:
             create_audit_log_sync(
                 db,
@@ -84,7 +83,6 @@ def create_discussion_message(
         db.commit()
         db.refresh(msg)
 
-        # Audit
         try:
             create_audit_log_sync(
                 db,

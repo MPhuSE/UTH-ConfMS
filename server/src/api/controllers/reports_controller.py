@@ -35,7 +35,6 @@ def get_submissions_by_track(
     try:
         result = service.get_submissions_by_track(conference_id)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -68,7 +67,6 @@ def get_review_sla(
     try:
         result = service.get_review_sla(conference_id)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -102,7 +100,6 @@ def get_activity_logs(
     try:
         result = service.get_activity_logs(conference_id, limit)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -135,7 +132,6 @@ def get_acceptance_rate_by_school(
     try:
         result = service.get_acceptance_rate_by_school(conference_id)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,

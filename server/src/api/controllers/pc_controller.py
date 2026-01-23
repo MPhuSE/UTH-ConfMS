@@ -49,7 +49,6 @@ async def invite_pc_member(
     db.commit()
     db.refresh(invitation)
 
-    # Audit logging
     try:
         create_audit_log_sync(
             db,
@@ -69,7 +68,6 @@ async def invite_pc_member(
     except Exception:
         pass
 
-    # Send invitation email (best-effort)
     try:
         email_service = EmailService(db_session=db)
         accept_url = f"{email_service.frontend_url}/dashboard/pc/accept?token={token}"
@@ -130,7 +128,6 @@ def accept_invitation(
     if current_user.email.lower() != invitation.email.lower():
         raise HTTPException(status_code=403, detail="This invitation does not belong to your account")
 
-    # Ensure global role exists and is assigned (so reviewer endpoints work)
     desired_role = invitation.role or "reviewer"
     role_model = db.query(RoleModel).filter(RoleModel.name == desired_role).first()
     if not role_model:
@@ -139,13 +136,11 @@ def accept_invitation(
         db.commit()
         db.refresh(role_model)
 
-    # attach role if missing
     if role_model not in current_user.roles:
         current_user.roles.append(role_model)
         db.commit()
         db.refresh(current_user)
 
-    # Create membership row
     existing = (
         db.query(ConferencePCMemberModel)
         .filter(
@@ -173,7 +168,6 @@ def accept_invitation(
         .first()
     )
     
-    # Audit logging
     try:
         create_audit_log_sync(
             db,

@@ -35,7 +35,6 @@ def create_track(
         )
         created = repo.create(track)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -125,7 +124,6 @@ def update_track(
         if not track:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
         
-        # Store old values for audit
         old_values = {
             "name": track.name,
             "max_reviewers": track.max_reviewers,
@@ -138,7 +136,6 @@ def update_track(
         
         updated = repo.update(track)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,
@@ -178,15 +175,12 @@ def delete_track(
     db: Session = Depends(get_db),
     repo=Depends(get_track_repo)
 ):
-    """Delete a track - only admin or chair can delete."""
     try:
-        # Get track info before deletion for audit
         track = repo.get_by_id(track_id)
         track_name = track.name if track else None
         
         repo.delete(track_id)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 db,

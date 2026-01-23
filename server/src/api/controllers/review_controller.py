@@ -62,7 +62,6 @@ def get_bidding_service(
     return BiddingService(review_repo, db)
 
 
-# ==================== ASSIGNMENT ENDPOINTS ====================
 
 @router.post("/assignments", response_model=ReviewAssignmentResponse, status_code=status.HTTP_201_CREATED)
 def assign_reviewer(
@@ -83,7 +82,6 @@ def assign_reviewer(
             check_coi=True
         )
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 service.db,
@@ -131,7 +129,6 @@ def auto_assign_reviewers(
     from infrastructure.models.conference_model import TrackModel
     from infrastructure.models.user_model import UserModel, RoleModel, UserRoleModel
 
-    # Get track ids for this conference
     track_ids = [t.id for t in db.query(TrackModel).filter(TrackModel.conference_id == conference_id).all()]
     if not track_ids:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Conference {conference_id} has no tracks")
@@ -140,7 +137,6 @@ def auto_assign_reviewers(
     if not submissions:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No submissions found for conference {conference_id}")
 
-    # Reviewer pool (users having global "reviewer" role)
     reviewer_users = (
         db.query(UserModel)
         .join(UserRoleModel, UserRoleModel.user_id == UserModel.id)
@@ -154,7 +150,6 @@ def auto_assign_reviewers(
     if not reviewer_ids:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active reviewers found")
 
-    # Current load: number of assignments per reviewer in this conference
     from infrastructure.models.review_model import ReviewAssignmentModel
     submission_ids = [s.id for s in submissions]
     assignments = db.query(ReviewAssignmentModel).filter(ReviewAssignmentModel.submission_id.in_(submission_ids)).all()
@@ -173,14 +168,12 @@ def auto_assign_reviewers(
         if needed == 0:
             continue
 
-        # Pick least-loaded reviewers, skip COI and existing assignments
         candidates = sorted(reviewer_ids, key=lambda rid: load.get(rid, 0))
         for rid in candidates:
             if needed == 0:
                 break
             if rid in existing_reviewer_ids:
                 continue
-            # Check COI
             if review_repo.check_coi(sub.id, rid):
                 skipped += 1
                 continue
@@ -193,7 +186,6 @@ def auto_assign_reviewers(
             except Exception:
                 skipped += 1
 
-    # Audit logging
     try:
         create_audit_log_sync(
             db,
@@ -229,7 +221,6 @@ def unassign_reviewer(
     try:
         service.unassign_reviewer(submission_id, reviewer_id)
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 service.db,
@@ -258,11 +249,9 @@ def get_assignments_by_submission(
 ):
     """Get all assignments for a submission - accessible by admin, chair, and assigned reviewers."""
     try:
-        # Check if user is admin/chair or assigned reviewer
         assignments = service.get_assignments_by_submission(submission_id)
         user_roles = current_user.role_names
         
-        # If not admin/chair, only show their own assignment
         if "admin" not in user_roles and "chair" not in user_roles:
             assignments = [a for a in assignments if a.get("reviewer_id") == current_user.id]
         
@@ -280,7 +269,6 @@ def get_assignments_by_reviewer(
     """Get all assignments for a reviewer - reviewers can only see their own assignments."""
     user_roles = current_user.role_names
     
-    # Reviewers can only see their own assignments
     if "admin" not in user_roles and "chair" not in user_roles:
         if reviewer_id != current_user.id:
             raise HTTPException(
@@ -308,7 +296,6 @@ def get_my_assignments(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# ==================== REVIEW ENDPOINTS ====================
 
 @router.post("/submit/{submission_id}", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
 def submit_review(
@@ -323,7 +310,6 @@ def submit_review(
     Reviewer must be assigned to the submission.
     """
     try:
-        # Use model_dump for Pydantic v2, fallback to dict for v1
         try:
             review_data = request.model_dump(exclude_none=True)
         except AttributeError:
@@ -335,7 +321,6 @@ def submit_review(
             review_data=review_data
         )
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 service.db,
@@ -351,23 +336,19 @@ def submit_review(
         except Exception:
             pass
         
-        # Convert result to ReviewResponse, handling missing fields
         try:
             return ReviewResponse(**result)
         except Exception as e:
-            # If ReviewResponse validation fails, return result as dict
             import traceback
             print(f"Error creating ReviewResponse: {str(e)}")
             print(f"Result: {result}")
             print(traceback.format_exc())
-            # Return as dict instead of ReviewResponse to avoid validation errors
             return result
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except BusinessRuleException as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        # Log full error for debugging
         import traceback
         print(f"Error in submit_review: {str(e)}")
         print(traceback.format_exc())
@@ -384,21 +365,13 @@ def get_reviews_by_submission(
     current_user=Depends(get_current_user),
     service=Depends(get_review_service)
 ):
-    """
-    Get all reviews for a submission.
-    - Admin/Chair: See all reviews
-    - Author: See anonymized reviews (reviewer_id hidden)
-    - Reviewer: See only their own review
-    """
     try:
         reviews = service.get_reviews_by_submission(submission_id)
         user_roles = current_user.role_names
         
-        # If reviewer, only show their own review
         if "reviewer" in user_roles and "admin" not in user_roles and "chair" not in user_roles:
             reviews = [r for r in reviews if r.get("reviewer_id") == current_user.id]
         
-        # Audit: VIEW reviews
         try:
             create_audit_log_sync(
                 service.db,
@@ -426,13 +399,9 @@ def get_review(
     current_user=Depends(get_current_user),
     service=Depends(get_review_service)
 ):
-    """
-    Get a specific review.
-    Reviewers can only see their own reviews.
-    """
+   
     user_roles = current_user.role_names
     
-    # Reviewers can only see their own reviews
     if "reviewer" in user_roles and "admin" not in user_roles and "chair" not in user_roles:
         if reviewer_id != current_user.id:
             raise HTTPException(
@@ -458,7 +427,6 @@ def get_my_reviews(
     submission_repo=Depends(get_submission_repo),
     current_user=Depends(require_reviewer)
 ):
-    """Get all reviews submitted by the current reviewer."""
     try:
         # Get all assignments for this reviewer
         assignment_service = AssignmentService(review_repo, submission_repo, None, db)
@@ -477,7 +445,6 @@ def get_my_reviews(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# ==================== COI ENDPOINTS ====================
 
 @router.post("/coi", response_model=COIResponse, status_code=status.HTTP_201_CREATED)
 def declare_coi(
@@ -486,14 +453,8 @@ def declare_coi(
     current_user=Depends(get_current_user),
     service=Depends(get_coi_service)
 ):
-    """
-    Declare a conflict of interest.
-    - Reviewers can declare COI for themselves
-    - Admin/Chair can declare COI for any user
-    """
     user_roles = current_user.role_names
     
-    # Reviewers can only declare COI for themselves
     if "reviewer" in user_roles and "admin" not in user_roles and "chair" not in user_roles:
         if request.user_id != current_user.id:
             raise HTTPException(
@@ -508,7 +469,6 @@ def declare_coi(
             coi_type=request.coi_type
         )
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 service.db,
@@ -540,7 +500,6 @@ def get_cois_by_submission(
     current_user=Depends(get_current_user),
     service=Depends(get_coi_service)
 ):
-    """Get all COIs for a submission - accessible by admin and chair."""
     user_roles = current_user.role_names
     if "admin" not in user_roles and "chair" not in user_roles:
         raise HTTPException(
@@ -560,7 +519,6 @@ def get_my_cois(
     current_user=Depends(require_reviewer),
     service=Depends(get_coi_service)
 ):
-    """Get all COIs declared by the current reviewer."""
     try:
         cois = service.get_cois_by_user(current_user.id)
         return [COIResponse(**c) for c in cois]
@@ -574,7 +532,6 @@ def check_coi(
     current_user=Depends(require_reviewer),
     service=Depends(get_coi_service)
 ):
-    """Check if the current reviewer has a COI with a submission."""
     try:
         has_coi = service.check_coi(submission_id, current_user.id)
         return {"submission_id": submission_id, "has_coi": has_coi}
@@ -589,14 +546,10 @@ def get_cois_by_conference(
     db: Session = Depends(get_db),
     service=Depends(get_coi_service)
 ):
-    """
-    Get all COIs for submissions in a conference - accessible by admin and chair.
-    """
     from infrastructure.models.conference_model import TrackModel
     from infrastructure.models.submission_model import SubmissionModel
     
     try:
-        # Get all submissions in the conference
         track_ids = [t.id for t in db.query(TrackModel).filter(TrackModel.conference_id == conference_id).all()]
         if not track_ids:
             return []
@@ -607,7 +560,6 @@ def get_cois_by_conference(
         if not submission_ids:
             return []
         
-        # Get all COIs for these submissions
         all_cois = []
         for sub_id in submission_ids:
             cois = service.get_cois_by_submission(sub_id)
@@ -618,7 +570,6 @@ def get_cois_by_conference(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# ==================== BIDDING ENDPOINTS ====================
 
 @router.post("/bids", response_model=BidResponse, status_code=status.HTTP_201_CREATED)
 def place_bid(
@@ -627,11 +578,6 @@ def place_bid(
     current_user=Depends(require_reviewer),
     service=Depends(get_bidding_service)
 ):
-    """
-    Place a bid on a submission.
-    Reviewers can only bid for themselves.
-    """
-    # Reviewers can only bid for themselves
     if request.reviewer_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -645,7 +591,6 @@ def place_bid(
             bid=request.bid
         )
         
-        # Audit logging
         try:
             create_audit_log_sync(
                 service.db,
@@ -672,10 +617,8 @@ def get_bids_by_reviewer(
     current_user=Depends(get_current_user),
     service=Depends(get_bidding_service)
 ):
-    """Get all bids by a reviewer - reviewers can only see their own bids."""
     user_roles = current_user.role_names
     
-    # Reviewers can only see their own bids
     if "reviewer" in user_roles and "admin" not in user_roles and "chair" not in user_roles:
         if reviewer_id != current_user.id:
             raise HTTPException(
@@ -703,7 +646,6 @@ def get_my_bids(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# ==================== PROGRESS TRACKING ====================
 
 @router.get("/progress/conferences/{conference_id}")
 def get_review_progress_by_conference(
@@ -711,11 +653,6 @@ def get_review_progress_by_conference(
     current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db),
 ):
-    """
-    Progress tracking for chairs:
-    - total assignments / completed reviews / pending reviews
-    - per reviewer completion counts
-    """
     from infrastructure.models.conference_model import TrackModel
     from infrastructure.models.submission_model import SubmissionModel
     from infrastructure.models.review_model import ReviewAssignmentModel, ReviewModel
@@ -734,7 +671,6 @@ def get_review_progress_by_conference(
     completed_reviews = len(reviews)
     pending = total_assignments - completed_reviews
 
-    # Per reviewer
     per_reviewer = {}
     for a in assignments:
         per_reviewer.setdefault(a.reviewer_id, {"assignments": 0, "completed": 0})

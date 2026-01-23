@@ -42,7 +42,6 @@ async def upload_camera_ready(
         if file.filename and not file.filename.lower().endswith(".pdf"):
             raise HTTPException(status_code=400, detail="Chỉ chấp nhận file có đuôi .pdf")
         
-        # Upload to cloud
         file_url = await CloudinaryService.upload_pdf(file)
         
         result = service.upload_camera_ready(
@@ -50,7 +49,6 @@ async def upload_camera_ready(
             file_url=file_url
         )
 
-        # Audit: SUBMIT camera-ready
         try:
             create_audit_log_sync(
                 service.db,
@@ -81,19 +79,16 @@ def get_camera_ready(
     service=Depends(get_camera_ready_service)
 ):
     try:
-        # Service này phải truy vấn vào bảng 'submissions' để lấy cột 'camera_ready_submission'
         result = service.get_camera_ready(submission_id)
         if not result:
              raise HTTPException(status_code=404, detail="Camera-ready not found")
              
-        # Đảm bảo CameraReadyResponse chấp nhận trường 'camera_ready_submission' thay vì 'id'
         resp = CameraReadyResponse(
             submission_id=result["submission_id"],
             camera_ready_submission=result["camera_ready_submission"],
             file_url=result["file_url"]
         )
 
-        # Audit: VIEW camera-ready
         try:
             create_audit_log_sync(
                 service.db,

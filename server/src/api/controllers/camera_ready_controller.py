@@ -42,12 +42,15 @@ async def upload_camera_ready(
         if file.filename and not file.filename.lower().endswith(".pdf"):
             raise HTTPException(status_code=400, detail="Chỉ chấp nhận file có đuôi .pdf")
         
+        print(f"[CameraReady Controller] Uploading for submission_id={submission_id}")
         file_url = await CloudinaryService.upload_pdf(file)
+        print(f"[CameraReady Controller] File uploaded to Cloudinary: {file_url}")
         
         result = service.upload_camera_ready(
             submission_id=submission_id,
             file_url=file_url
         )
+        print(f"[CameraReady Controller] Service returned: {result}")
 
         try:
             create_audit_log_sync(
@@ -66,9 +69,16 @@ async def upload_camera_ready(
             pass
         return CameraReadyResponse(**result)
     except NotFoundError as e:
+        print(f"[CameraReady Controller] NotFoundError: {e}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except BusinessRuleException as e:
+        print(f"[CameraReady Controller] BusinessRuleException: {e}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        print(f"[CameraReady Controller] Unexpected error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Internal server error: {str(e)}")
 
 
 @router.get("/submissions/{submission_id}", response_model=CameraReadyResponse)

@@ -1,17 +1,17 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Download, FileText, Clock, Award, CheckCircle, XCircle, Calendar, Shield, Edit, Eye, User, UploadCloud, Loader2, Trash2, MessageSquare 
+  ArrowLeft, Download, FileText, Clock, Award, CheckCircle, XCircle, Calendar, Shield, Edit, Eye, User, UploadCloud, Loader2, Trash2, MessageSquare, RefreshCw
 } from "lucide-react";
 import { useSubmissionStore } from "../../../app/store/useSubmissionStore";
 import { submissionService } from "../../../services/submissionService";
 
 const isCameraReadyDone = (submission) => {
-  const status = submission?.status?.toLowerCase() || "";
-  return Number(submission?.camera_ready_submission) > 0
-    || status.includes("camera-ready")
-    || status.includes("camera ready")
-    || status.includes("published");
+  // Theo SUBMISSION_WORKFLOW.md: Sau khi upload camera-ready, status = "published"
+  // Kiểm tra cả camera_ready_submission ID và status để biết đã upload chưa
+  const hasCameraReady = Number(submission?.camera_ready_submission) > 0;
+  const isPublished = submission?.status?.toLowerCase() === 'published';
+  return hasCameraReady || isPublished;
 };
 
 const getFileUrl = (submission) => submission?.file_url || submission?.file_path || "";
@@ -101,7 +101,14 @@ const CameraReadyBox = ({ submission, onUpload, isLoading }) => {
     );
   }
 
-  if (submission?.decision?.toLowerCase() === 'accepted') {
+  // Chỉ hiển thị form upload khi:
+  // 1. decision = "accepted" 
+  // 2. VÀ chưa upload camera-ready (status != "published" và camera_ready_submission = null)
+  const isAccepted = submission?.decision?.toLowerCase() === 'accepted';
+  const isPublished = submission?.status?.toLowerCase() === 'published';
+  const hasCameraReady = Number(submission?.camera_ready_submission) > 0;
+  
+  if (isAccepted && !isPublished && !hasCameraReady) {
     return (
       <div className="mt-8 bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10">
@@ -139,13 +146,45 @@ export default function SubmissionDetailPage() {
   const submissionId = Number(id);
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const subData = useMemo(() => {
     const fromList = submissions.find(s => s.id === Number(id));
     return currentSubmission?.id === Number(id) ? currentSubmission : fromList;
   }, [currentSubmission, submissions, id]);
 
-  useEffect(() => { if (id) fetchSubmissionById(id); }, [id, fetchSubmissionById]);
+  // Fetch submission khi component mount hoặc id thay đổi
+  useEffect(() => { 
+    if (id) fetchSubmissionById(id); 
+  }, [id, fetchSubmissionById]);
+
+  // Auto-refresh status mỗi 30 giây để theo dõi trạng thái
+  useEffect(() => {
+    if (!id) return;
+    
+    const intervalId = setInterval(() => {
+      fetchSubmissionById(id).then(() => {
+        setLastRefresh(new Date());
+      });
+    }, 30000); // Refresh mỗi 30 giây
+
+    return () => clearInterval(intervalId); // Cleanup khi unmount
+  }, [id, fetchSubmissionById]);
+
+  // Hàm refresh thủ công
+  const handleRefresh = async () => {
+    if (!id || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await fetchSubmissionById(id);
+      setLastRefresh(new Date());
+    } catch (error) {
+      console.error("Error refreshing:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // LOGIC TÁCH BIỆT DECISION
   const decisionInfo = useMemo(() => {
@@ -191,11 +230,27 @@ export default function SubmissionDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 min-h-screen bg-gray-50/20">
-      <div className="flex items-center gap-6 mb-10">
-        <button onClick={() => navigate(-1)} className="p-4 bg-white border rounded-3xl"><ArrowLeft size={24} /></button>
-        <div>
-          <h1 className="text-3xl font-black uppercase italic underline decoration-blue-500 decoration-8">SUBMISSION DETAIL</h1>
-          <p className="text-[10px] text-gray-400 font-black mt-1 uppercase">ID: <span className="text-blue-600">#{subData?.id}</span></p>
+      <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center gap-6">
+          <button onClick={() => navigate(-1)} className="p-4 bg-white border rounded-3xl"><ArrowLeft size={24} /></button>
+          <div>
+            <h1 className="text-3xl font-black uppercase italic underline decoration-blue-500 decoration-8">SUBMISSION DETAIL</h1>
+            <p className="text-[10px] text-gray-400 font-black mt-1 uppercase">ID: <span className="text-blue-600">#{subData?.id}</span></p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-xl text-[10px] font-black uppercase hover:bg-blue-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+            title="Làm mới trạng thái"
+          >
+            <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} /> 
+            {isRefreshing ? "Đang tải..." : "Làm mới"}
+          </button>
+          <p className="text-[9px] text-gray-400 font-bold">
+            Cập nhật: {lastRefresh.toLocaleTimeString('vi-VN')}
+          </p>
         </div>
       </div>
 
@@ -346,7 +401,14 @@ export default function SubmissionDetailPage() {
           <div className="space-y-10 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-1 before:bg-gray-50">
             <TimelineStep active={true} icon={CheckCircle} label="Submitted" date="Success" color="bg-green-500" />
             <TimelineStep active={decisionInfo.label !== 'PENDING'} icon={Shield} label="Review" date={decisionInfo.label} color="bg-blue-500" />
-            <TimelineStep active={Number(subData?.camera_ready_submission) > 0} icon={Award} label="Final" date={statusInfo.label} color="bg-purple-600" />
+            {/* Final stage sáng khi đã có camera_ready_submission HOẶC status = "published" */}
+            <TimelineStep 
+              active={Number(subData?.camera_ready_submission) > 0 || subData?.status?.toLowerCase() === 'published'} 
+              icon={Award} 
+              label="Final" 
+              date={statusInfo.label} 
+              color="bg-purple-600" 
+            />
           </div>
         </div>
       </div>

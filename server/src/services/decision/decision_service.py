@@ -73,11 +73,29 @@ class DecisionService:
         if normalized not in ("accepted", "rejected", "minor_revision", "major_revision"):
             raise BusinessRuleException("Invalid decision value")
 
-        # Update submission status
+        # Map decision to appropriate status
+        # Theo SUBMISSION_WORKFLOW.md - Section 3: Decision (Quyết Định)
+        # Status values: submitted, under_review, accepted, rejected, withdrawn
+        # Decision values: accepted, rejected, minor_revision, major_revision
+        # 
+        # Mapping decision → status:
+        # - decision = "accepted" → status = "accepted"
+        # - decision = "rejected" → status = "rejected"
+        # - decision = "minor_revision" → status = "under_review" (để tác giả sửa)
+        # - decision = "major_revision" → status = "under_review" (để tác giả sửa)
+        status_map = {
+            "accepted": "accepted",      # Decision accepted → Status accepted
+            "rejected": "rejected",      # Decision rejected → Status rejected
+            "minor_revision": "under_review",  # Revision needed → Keep under review
+            "major_revision": "under_review"   # Revision needed → Keep under review
+        }
+        new_status = status_map.get(normalized, "under_review")
+
+        # Update submission: decision và status được set riêng biệt
+        # Quan trọng: Status và Decision là 2 trường riêng biệt, không phải luôn giống nhau!
         update_data = {
-            # Keep both fields in sync for client + services
-            "status": normalized,
-            "decision": normalized,
+            "decision": normalized,       # Decision: accepted/rejected/minor_revision/major_revision
+            "status": new_status,         # Status: accepted/rejected/under_review
             "avg_score": avg_score
         }
         if decision_notes:

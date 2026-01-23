@@ -18,7 +18,7 @@ class SubmissionModel(Base):
     decision_notes = Column(String, nullable=True)
     
     # Status & Score
-    status = Column(String)  # enum: submitted, under_review, accepted, rejected, withdrawn
+    status = Column(String)  # enum: submitted, under_review, accepted, rejected, published, withdrawn
     is_withdrawn = Column(Boolean, default=False)
     avg_score = Column(NUMERIC(19, 2))
     final_score = Column(NUMERIC(19, 2))  # Thêm final_score 

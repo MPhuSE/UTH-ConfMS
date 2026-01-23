@@ -16,14 +16,24 @@ class GetSubmissionService:
         if hasattr(submission, 'files') and submission.files:
             file_url = submission.files[0].file_path
 
-        # 3. Xây dựng cấu trúc trả về khớp với Frontend yêu cầu
+        # 3. Lấy camera-ready file path nếu có
+        camera_ready_file_url = None
+        if hasattr(submission, 'camera_ready_file') and submission.camera_ready_file:
+            camera_ready_file_url = submission.camera_ready_file.file_path
+        elif hasattr(submission, 'camera_ready_submission') and submission.camera_ready_submission:
+            # Nếu có camera_ready_submission ID nhưng chưa load relationship
+            # Sử dụng file_path property từ model (ưu tiên camera-ready)
+            camera_ready_file_url = getattr(submission, 'file_path', None)
+
+        # 4. Xây dựng cấu trúc trả về khớp với Frontend yêu cầu
         return {
             "id": submission.id,
             "title": submission.title,
             "abstract": submission.abstract,
             "status": submission.status,
             "decision": submission.decision,
-            "file_path": file_url,
+            "file_path": camera_ready_file_url or file_url,  # Ưu tiên camera-ready file
+            "camera_ready_submission": submission.camera_ready_submission,  # QUAN TRỌNG: Trả về ID để frontend biết đã upload
             # Lấy thông tin Track và Conference qua mối quan hệ
             "track": {
                 "id": submission.track.id,

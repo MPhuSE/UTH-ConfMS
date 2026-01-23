@@ -38,7 +38,7 @@ class SubmissionRepositoryImpl(SubmissionRepository):
             abstract=data.get('abstract'),
             track_id=data.get('track_id'),
             conference_id=data.get('conference_id'),
-            status="Submitted"
+            status="submitted"  # Theo SUBMISSION_WORKFLOW.md: status = "submitted" khi nộp bài mới
         )
         self.db.add(new_submission)
         self.db.flush() 

@@ -11,4 +11,5 @@ class CameraReadyResponse(BaseModel):
     submission_id: int
     camera_ready_submission: Optional[int] = None
     file_url: str
+    status: Optional[str] = None  # Status sau khi upload (thường là "published")
 

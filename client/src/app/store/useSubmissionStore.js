@@ -42,12 +42,14 @@ export const useSubmissionStore = create(
           // Lấy dữ liệu mới từ Backend trả về
           const newCameraId = response.camera_ready_submission || response.id;
           const newFilePath = response.file_url || response.file_path;
+          const newStatus = response.status || "published"; // Backend trả về status = "published"
 
           set((state) => {
+            // Theo SUBMISSION_WORKFLOW.md: Sau khi upload camera-ready, status = "published"
             const updatedFields = {
               camera_ready_submission: newCameraId,
               file_path: newFilePath,
-              status: 'Camera-ready Submitted'
+              status: newStatus  // Cập nhật status = "published" từ backend
             };
 
             // Cập nhật ĐỒNG THỜI cả Object chi tiết và Danh sách mảng
@@ -102,7 +104,19 @@ export const useSubmissionStore = create(
           // Xử lý trường hợp Backend trả về mảng hoặc object đơn lẻ
           const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : res;
           
-          set({ currentSubmission: data, isLoading: false });
+          // Đảm bảo camera_ready_submission được lưu đúng (quan trọng để không mất trạng thái khi reload)
+          const numId = Number(id);
+          set((state) => ({
+            currentSubmission: data,
+            isLoading: false,
+            // Đồng bộ vào submissions list nếu có
+            submissions: state.submissions.map(s => 
+              s.id === numId ? { ...s, ...data } : s
+            ),
+            allSubmissions: state.allSubmissions.map(s => 
+              s.id === numId ? { ...s, ...data } : s
+            )
+          }));
           return data;
         } catch (error) {
           set({ isLoading: false, error: 'Không thể tải chi tiết bài báo' });

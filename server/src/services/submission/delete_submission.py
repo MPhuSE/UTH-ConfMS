@@ -31,5 +31,13 @@ class DeleteSubmissionService:
                     detail="Submission deadline has passed; deletion is not allowed"
                 )
 
+        # Theo SUBMISSION_WORKFLOW.md: Khi rút bài (withdrawn)
+        # - status = "withdrawn"
+        # - decision = null (hoặc giữ nguyên)
+        # - is_withdrawn = true
+        # - Submission bị hard delete khỏi database
+        # 
+        # Lưu ý: Vì đây là hard delete (xóa vĩnh viễn), không cần set status trước khi xóa
+        # Nếu muốn soft delete, cần update status = "withdrawn" trước khi delete
         self.repo.delete(submission_id)
         return True

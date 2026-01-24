@@ -22,6 +22,7 @@ class ReviewSubmitRequest(BaseModel):
     confidence: Optional[int] = None  # Thêm confidence (1-10)
     recommendation: Optional[str] = None  # Thêm recommendation (accept, weak_accept, borderline, weak_reject, reject)
     best_paper_recommendation: bool = False
+    score: Optional[float] = None  # Điểm số từ 0-10 (hoặc scale khác tùy conference)
     answers: Optional[List[Dict[str, Any]]] = None
 
 
@@ -41,6 +42,7 @@ class ReviewResponse(BaseModel):
     recommendation: Optional[str] = None  # Thêm recommendation
     submitted_at: Optional[datetime] = None  # Thêm submitted_at
     best_paper_recommendation: bool = False
+    score: Optional[float] = None  # Điểm số từ review
     answers: Optional[List[ReviewAnswerSchema]] = None
     
     class Config:

@@ -111,10 +111,33 @@ export default function ViewResultsPage() {
                     </span>
                   </div>
                   <h2 className="text-lg font-black text-gray-900">{sub.title}</h2>
-                  <p className="text-xs text-gray-500">
-                    {sub.conference?.name || "N/A"} • {sub.track?.name || "Track"} •{" "}
-                    {sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : "---"}
-                  </p>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <p className="text-xs text-gray-500">
+                      {sub.conference?.name || "N/A"} • {sub.track?.name || "Track"} •{" "}
+                      {sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : "---"}
+                    </p>
+                    {/* Display Scores */}
+                    {(sub.avg_score || sub.final_score) && (
+                      <div className="flex items-center gap-3 text-xs">
+                        {sub.avg_score && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500">Điểm TB:</span>
+                            <span className="font-bold text-gray-700">
+                              {parseFloat(sub.avg_score).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {sub.final_score && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500">Điểm cuối:</span>
+                            <span className="font-bold text-green-600">
+                              {parseFloat(sub.final_score).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">

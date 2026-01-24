@@ -151,7 +151,20 @@ export default function SubmissionDetailPage() {
 
   const subData = useMemo(() => {
     const fromList = submissions.find(s => s.id === Number(id));
-    return currentSubmission?.id === Number(id) ? currentSubmission : fromList;
+    const data = currentSubmission?.id === Number(id) ? currentSubmission : fromList;
+    
+    // Debug: Log scores để kiểm tra
+    if (data) {
+      console.log("[SubmissionDetailPage] subData scores:", {
+        id: data.id,
+        avg_score: data.avg_score,
+        final_score: data.final_score,
+        avg_score_type: typeof data.avg_score,
+        final_score_type: typeof data.final_score
+      });
+    }
+    
+    return data;
   }, [currentSubmission, submissions, id]);
 
   // Fetch submission khi component mount hoặc id thay đổi
@@ -325,6 +338,33 @@ export default function SubmissionDetailPage() {
               <div className="flex flex-col gap-1">
                 <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Status</span>
                 <span className="text-sm font-bold text-gray-800">{statusInfo.label}</span>
+              </div>
+              {/* Scores Display - Always show, even if no data */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Điểm Trung Bình</span>
+                <div className="flex items-center gap-2">
+                  {subData?.avg_score !== null && subData?.avg_score !== undefined ? (
+                    <>
+                      <span className="text-sm font-bold text-gray-800">{parseFloat(subData.avg_score).toFixed(2)}</span>
+                      <span className="text-[9px] text-gray-400">/ 10</span>
+                    </>
+                  ) : (
+                    <span className="text-sm font-bold text-gray-400">Chưa có</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Điểm Cuối Cùng</span>
+                <div className="flex items-center gap-2">
+                  {subData?.final_score !== null && subData?.final_score !== undefined ? (
+                    <>
+                      <span className="text-sm font-bold text-green-600">{parseFloat(subData.final_score).toFixed(2)}</span>
+                      <span className="text-[9px] text-gray-400">/ 10</span>
+                    </>
+                  ) : (
+                    <span className="text-sm font-bold text-gray-400">Chưa có</span>
+                  )}
+                </div>
               </div>
             </div>
 

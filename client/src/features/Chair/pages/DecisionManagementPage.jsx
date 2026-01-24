@@ -19,6 +19,7 @@ export default function DecisionManagementPage() {
   const [decisionModal, setDecisionModal] = useState(null);
   const [decision, setDecision] = useState("accepted");
   const [notes, setNotes] = useState("");
+  const [finalScore, setFinalScore] = useState("");
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState({});
   const [loadingReviews, setLoadingReviews] = useState(false);
@@ -208,15 +209,28 @@ export default function DecisionManagementPage() {
     if (!decisionModal) return;
 
     try {
-      await decisionService.makeDecision({
+      const payload = {
         submission_id: decisionModal.id,
         decision,
         decision_notes: notes,
-      });
+      };
+      
+      // Only include final_score if it's provided and different from avg_score
+      // or if decision is accepted/rejected (to set final score)
+      const avgScore = decisions[decisionModal.id]?.avg_score || decisionModal.avg_score;
+      if (finalScore && finalScore.trim() !== "") {
+        const parsedFinalScore = parseFloat(finalScore);
+        if (!isNaN(parsedFinalScore)) {
+          payload.final_score = parsedFinalScore;
+        }
+      }
+      
+      await decisionService.makeDecision(payload);
       toast.success("Quyết định đã được ghi nhận");
       setDecisionModal(null);
       setDecision("accepted");
       setNotes("");
+      setFinalScore("");
       loadData();
     } catch (error) {
       toast.error(error?.response?.data?.detail || "Không thể ghi nhận quyết định");
@@ -234,6 +248,11 @@ export default function DecisionManagementPage() {
     const normalizedDecision = decisionValue.toLowerCase().replace(" ", "_");
     setDecision(normalizedDecision);
     setNotes(currentDecision?.decision_notes || submission.decision_notes || "");
+    
+    // Set final_score: use existing final_score, or avg_score if available
+    const existingFinalScore = currentDecision?.final_score || submission.final_score;
+    const avgScore = currentDecision?.avg_score || submission.avg_score;
+    setFinalScore(existingFinalScore ? existingFinalScore.toString() : (avgScore ? avgScore.toString() : ""));
     
     // Load reviews for this submission
     try {
@@ -307,6 +326,31 @@ export default function DecisionManagementPage() {
         ) : (
           <span className="text-gray-400 text-sm">-</span>
         );
+      },
+    },
+    {
+      header: "Điểm cuối",
+      accessor: "final_score",
+      render: (row) => {
+        const decisionData = decisions[row.id];
+        const finalScore = decisionData?.final_score || row.final_score;
+        const avgScore = decisionData?.avg_score || row.avg_score;
+        
+        if (finalScore) {
+          const isAdjusted = avgScore && Math.abs(parseFloat(finalScore) - parseFloat(avgScore)) > 0.01;
+          return (
+            <div className="flex items-center gap-1">
+              <Star className={`w-4 h-4 ${isAdjusted ? 'text-blue-500 fill-blue-500' : 'text-green-500 fill-green-500'}`} />
+              <span className={`font-medium ${isAdjusted ? 'text-blue-600' : 'text-green-600'}`}>
+                {parseFloat(finalScore).toFixed(2)}
+              </span>
+              {isAdjusted && (
+                <span className="text-xs text-blue-500" title="Đã điều chỉnh thủ công">*</span>
+              )}
+            </div>
+          );
+        }
+        return <span className="text-gray-400 text-sm">-</span>;
       },
     },
     {
@@ -460,6 +504,7 @@ export default function DecisionManagementPage() {
           setDecisionModal(null);
           setDecision("accepted");
           setNotes("");
+          setFinalScore("");
           setReviews(prev => {
             const newReviews = { ...prev };
             delete newReviews[decisionModal?.id];
@@ -476,10 +521,33 @@ export default function DecisionManagementPage() {
               <span className="font-medium">Bài nộp:</span> {decisionModal?.title}
             </p>
             {decisionModal?.track && (
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 mb-1">
                 <span className="font-medium">Track:</span> {decisionModal.track.name}
               </p>
             )}
+            {/* Scores Display */}
+            <div className="mt-3 pt-3 border-t border-gray-200 flex gap-4">
+              <div>
+                <span className="text-xs text-gray-500">Điểm TB:</span>
+                <span className="ml-2 font-medium text-gray-900">
+                  {(() => {
+                    const avgScore = decisions[decisionModal?.id]?.avg_score || decisionModal?.avg_score;
+                    return avgScore ? parseFloat(avgScore).toFixed(2) : "-";
+                  })()}
+                </span>
+              </div>
+              {(() => {
+                const finalScore = decisions[decisionModal?.id]?.final_score || decisionModal?.final_score;
+                return finalScore ? (
+                  <div>
+                    <span className="text-xs text-gray-500">Điểm cuối:</span>
+                    <span className="ml-2 font-medium text-green-600">
+                      {parseFloat(finalScore).toFixed(2)}
+                    </span>
+                  </div>
+                ) : null;
+              })()}
+            </div>
           </div>
 
           {/* Reviews Summary */}
@@ -599,6 +667,35 @@ export default function DecisionManagementPage() {
             </div>
           </div>
 
+          {/* Final Score Input (only for accepted/rejected) */}
+          {(decision === "accepted" || decision === "rejected") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Điểm cuối cùng (tùy chọn)
+              </label>
+              <div className="space-y-2">
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="10"
+                  value={finalScore}
+                  onChange={(e) => setFinalScore(e.target.value)}
+                  placeholder="Để trống để dùng điểm TB"
+                  className="w-full"
+                />
+                <p className="text-xs text-gray-500">
+                  {(() => {
+                    const avgScore = decisions[decisionModal?.id]?.avg_score || decisionModal?.avg_score;
+                    return avgScore 
+                      ? `Điểm TB hiện tại: ${parseFloat(avgScore).toFixed(2)}. Để trống để dùng điểm này.`
+                      : "Nhập điểm cuối cùng hoặc để trống nếu chưa có.";
+                  })()}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Notes */}
           <Input
             label="Ghi chú quyết định"
@@ -617,6 +714,7 @@ export default function DecisionManagementPage() {
                 setDecisionModal(null);
                 setDecision("accepted");
                 setNotes("");
+                setFinalScore("");
                 setReviews(prev => {
                   const newReviews = { ...prev };
                   delete newReviews[decisionModal?.id];

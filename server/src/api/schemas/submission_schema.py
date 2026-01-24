@@ -43,4 +43,11 @@ class SubmissionResponseSchema(BaseModel):
     track: Optional[TrackShortSchema] = None 
     authors: List[AuthorShortSchema] = [] 
     camera_ready_submission: Optional[int] = None
-    model_config = ConfigDict(from_attributes=True)
+    created_at: Optional[str] = None
+    avg_score: Optional[float] = None
+    final_score: Optional[float] = None
+    model_config = ConfigDict(
+        from_attributes=True,
+        # Đảm bảo serialize cả None values
+        exclude_none=False
+    )

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft, Users, Download, FileText, Calendar,
-    CheckCircle, XCircle, MessageSquare, ShieldAlert, Send
+    CheckCircle, XCircle, MessageSquare, ShieldAlert, Send, Star
 } from "lucide-react";
 import api from "../../../lib/axios";
 import { toast } from "react-hot-toast";
@@ -222,6 +222,25 @@ export default function SubmissionDetailPage() {
                                     <p className="font-semibold text-gray-700">{paper.author_names?.join(", ") || "N/A"}</p>
                                 </div>
                             </div>
+                            {/* Scores Display */}
+                            {paper.avg_score && (
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center text-yellow-600"><Star size={20} className="fill-yellow-600" /></div>
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-gray-400">Điểm TB</p>
+                                        <p className="font-semibold text-gray-700">{parseFloat(paper.avg_score).toFixed(2)} / 10</p>
+                                    </div>
+                                </div>
+                            )}
+                            {paper.final_score && (
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600"><Star size={20} className="fill-green-600" /></div>
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-gray-400">Điểm Cuối</p>
+                                        <p className="font-semibold text-green-600">{parseFloat(paper.final_score).toFixed(2)} / 10</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="py-8">

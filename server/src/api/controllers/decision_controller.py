@@ -32,7 +32,9 @@ def get_decision_service(
     submission_repo=Depends(get_submission_repo),
     db=Depends(get_db)
 ):
-    return DecisionService(review_repo, submission_repo, db)
+    from services.email.email_service import EmailService
+    email_service = EmailService()
+    return DecisionService(review_repo, submission_repo, db, email_service)
 
 
 @router.post("", response_model=DecisionResponse, status_code=status.HTTP_201_CREATED)
@@ -53,7 +55,8 @@ def make_decision(
         result = service.make_decision(
             submission_id=request.submission_id,
             decision=request.decision,
-            decision_notes=request.decision_notes
+            decision_notes=request.decision_notes,
+            final_score=request.final_score
         )
         
         # Audit logging

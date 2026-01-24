@@ -35,6 +35,7 @@ class ReviewModel(Base):
     recommendation = Column(String)  # enum: accept, weak_accept, borderline, weak_reject, reject
     best_paper_recommendation = Column(Boolean, default=False)
     submitted_at = Column(DateTime, default=func.now())  # Thêm submitted_at
+    score = Column(Integer, nullable=True)  # Điểm số từ 0-10 (hoặc scale khác tùy conference)
     
 
     __table_args__ = (

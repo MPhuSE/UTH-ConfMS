@@ -6,13 +6,15 @@ class DecisionRequest(BaseModel):
     submission_id: int
     decision: str  # "Accept", "Reject", "Minor Revision", "Major Revision"
     decision_notes: Optional[str] = None
+    final_score: Optional[float] = None  # Optional: Chair can manually adjust final score
 
 
 class DecisionResponse(BaseModel):
     submission_id: int
     status: str
     decision: Optional[str] = None
-    avg_score: Optional[float]
+    avg_score: Optional[float] = None
+    final_score: Optional[float] = None
     decision_notes: Optional[str] = None
 
 
@@ -28,5 +30,6 @@ class SubmissionDecisionResponse(BaseModel):
     title: str
     status: str
     decision: Optional[str] = None
-    avg_score: Optional[float]
+    avg_score: Optional[float] = None
+    final_score: Optional[float] = None
 

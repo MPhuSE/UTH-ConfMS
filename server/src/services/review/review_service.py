@@ -3,6 +3,7 @@ from infrastructure.repositories_interfaces.review_repository import ReviewRepos
 from infrastructure.repositories_interfaces.submission_repository import SubmissionRepository
 from domain.exceptions import NotFoundError, BusinessRuleException
 from sqlalchemy.orm import Session
+from services.decision.decision_service import DecisionService
 
 
 class ReviewService:
@@ -79,6 +80,24 @@ class ReviewService:
             # Create new review
             review = self.review_repo.create_review(submission_id, reviewer_id, review_data)
         
+        # Auto-update avg_score when review is submitted/updated
+        try:
+            decision_service = DecisionService(
+                review_repo=self.review_repo,
+                submission_repo=self.submission_repo,
+                db=self.db
+            )
+            avg_score = decision_service.calculate_average_score(submission_id)
+            # Only update avg_score if we have a valid score
+            # Don't update final_score here - it's only set when Chair makes a decision
+            if avg_score is not None:
+                self.submission_repo.update(submission_id, {"avg_score": avg_score})
+        except Exception as e:
+            # Log error but don't fail the review submission
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to update avg_score for submission {submission_id}: {str(e)}")
+        
         # Get answers if they exist
         answers = []
         if hasattr(review, 'answers') and review.answers:
@@ -141,6 +160,7 @@ class ReviewService:
             "recommendation": review.recommendation,
             "submitted_at": review.submitted_at if review.submitted_at else None,
             "best_paper_recommendation": review.best_paper_recommendation,
+            "score": float(review.score) if hasattr(review, 'score') and review.score is not None else None,
             "answers": answers if answers else None
         }
     
@@ -180,6 +200,7 @@ class ReviewService:
                 "recommendation": r.recommendation,
                 "submitted_at": r.submitted_at if r.submitted_at else None,
                 "best_paper_recommendation": r.best_paper_recommendation,
+                "score": float(r.score) if hasattr(r, 'score') and r.score is not None else None,
                 "answers": answers if answers else None
             })
         

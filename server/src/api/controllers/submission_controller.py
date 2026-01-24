@@ -191,7 +191,7 @@ async def download_submission_pdf(
         print(f"Download error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error downloading file: {str(e)}")
 
-@router.get("/{submission_id}", response_model=SubmissionResponseSchema)
+@router.get("/{submission_id}", response_model=SubmissionResponseSchema, response_model_exclude_none=False)
 def get_submission(
     submission_id: int,
     req: Request,
@@ -199,7 +199,36 @@ def get_submission(
     repo=Depends(get_submission_repo)
 ):
     """Lấy chi tiết bài nộp - Yêu cầu đăng nhập."""
-    submission = GetSubmissionService(repo).execute(submission_id)
+    submission_dict = GetSubmissionService(repo).execute(submission_id)
+    
+    # Debug: Log scores để kiểm tra
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[API] GET /submissions/{submission_id} - Dict from service: avg_score={submission_dict.get('avg_score')} (type={type(submission_dict.get('avg_score'))}), final_score={submission_dict.get('final_score')} (type={type(submission_dict.get('final_score'))})")
+    logger.info(f"[API] Full submission_dict keys: {list(submission_dict.keys())}")
+    
+    # Đảm bảo scores luôn có trong dict, kể cả khi None
+    if 'avg_score' not in submission_dict:
+        submission_dict['avg_score'] = None
+    if 'final_score' not in submission_dict:
+        submission_dict['final_score'] = None
+    
+    # Convert dict to Pydantic model để đảm bảo serialization đúng
+    # Pydantic sẽ tự động validate và serialize
+    try:
+        submission = SubmissionResponseSchema(**submission_dict)
+        
+        # Debug: Log sau khi convert
+        logger.info(f"[API] After Pydantic conversion: avg_score={submission.avg_score}, final_score={submission.final_score}")
+        
+        # Debug: Convert to dict để xem serialization
+        submission_dict_after = submission.model_dump(exclude_none=False)
+        logger.info(f"[API] After model_dump: avg_score={submission_dict_after.get('avg_score')}, final_score={submission_dict_after.get('final_score')}")
+        logger.info(f"[API] Keys in model_dump: {list(submission_dict_after.keys())}")
+    except Exception as e:
+        logger.error(f"[API] Error creating Pydantic model: {e}")
+        logger.error(f"[API] submission_dict: {submission_dict}")
+        raise
 
     try:
         create_audit_log_sync(

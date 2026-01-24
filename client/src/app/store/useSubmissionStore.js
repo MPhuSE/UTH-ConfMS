@@ -104,6 +104,14 @@ export const useSubmissionStore = create(
           // Xử lý trường hợp Backend trả về mảng hoặc object đơn lẻ
           const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : res;
           
+          // Debug: Log scores để kiểm tra
+          console.log("[SubmissionStore] fetchSubmissionById - Received data:", {
+            id: data?.id,
+            avg_score: data?.avg_score,
+            final_score: data?.final_score,
+            fullData: data
+          });
+          
           // Đảm bảo camera_ready_submission được lưu đúng (quan trọng để không mất trạng thái khi reload)
           const numId = Number(id);
           set((state) => ({

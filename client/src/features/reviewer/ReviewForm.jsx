@@ -39,8 +39,8 @@ const ReviewForm = () => {
         confidence: formData.confidence || null,
         recommendation: formData.recommendation || "borderline",
         best_paper_recommendation: Boolean(formData.best_paper_recommendation),
+        score: formData.score ? parseFloat(formData.score) : null,  // Include score field
         // Only include answers if review questions exist in the system
-        // For now, score is stored in the review itself, not in answers
         // answers: [
         //   { question_id: 1, answer: String(formData.score) },
         // ],

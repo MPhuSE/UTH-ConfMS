@@ -112,6 +112,15 @@ class ReviewRepositoryImpl(ReviewRepository):
             review.recommendation = data['recommendation']
         if 'best_paper_recommendation' in data:
             review.best_paper_recommendation = data['best_paper_recommendation']
+        if 'score' in data:
+            score = data['score']
+            if score is not None:
+                try:
+                    review.score = int(float(score))  # Convert to int (0-10 scale)
+                except (ValueError, TypeError):
+                    review.score = None
+            else:
+                review.score = None
         
         # Update answers
         if 'answers' in data:

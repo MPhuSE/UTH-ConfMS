@@ -37,7 +37,7 @@ class ConferenceModel(Base):
 class TrackModel(Base):
     """Các chủ đề/track của Hội nghị."""
     __tablename__ = "tracks"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     conference_id = Column(ForeignKey("conferences.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(String)  # Thêm description

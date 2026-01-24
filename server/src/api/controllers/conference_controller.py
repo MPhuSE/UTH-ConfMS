@@ -37,6 +37,20 @@ def create_conference(
     db: Session = Depends(get_db)
 ):
     try:
+        # Log request để debug
+        print(f"[CONFERENCE DEBUG] ===== START CREATE CONFERENCE =====")
+        print(f"[CONFERENCE DEBUG] Conference name: {request.name}")
+        print(f"[CONFERENCE DEBUG] Request object type: {type(request)}")
+        print(f"[CONFERENCE DEBUG] Request has tracks attribute: {hasattr(request, 'tracks')}")
+        print(f"[CONFERENCE DEBUG] Request.tracks value: {request.tracks}")
+        print(f"[CONFERENCE DEBUG] Request.tracks is None: {request.tracks is None}")
+        print(f"[CONFERENCE DEBUG] Request.tracks type: {type(request.tracks) if request.tracks is not None else 'None'}")
+        if request.tracks is not None:
+            print(f"[CONFERENCE DEBUG] Tracks count: {len(request.tracks)}")
+            print(f"[CONFERENCE DEBUG] Tracks data: {[(t.name if hasattr(t, 'name') else str(t), t.max_reviewers if hasattr(t, 'max_reviewers') else 'N/A') for t in request.tracks]}")
+        else:
+            print(f"[CONFERENCE DEBUG] No tracks in request")
+        
         repo = ConferenceRepositoryImpl(db)
         service = CreateConferenceService(repo)
         conference = Conference(
@@ -48,19 +62,24 @@ def create_conference(
             is_open=request.is_open, blind_mode=request.blind_mode
         )
         result = service.execute(conference)
+        print(f"[CONFERENCE DEBUG] Conference created with ID: {result.id}")
         
-        # Tạo tracks nếu có trong request
+        # Tạo tracks nếu có trong request - sử dụng track_repo giống như track_controller
         created_tracks = []
         track_errors = []
         if request.tracks and len(request.tracks) > 0:
             try:
                 from infrastructure.models.conference_model import TrackModel
                 from infrastructure.repositories.track_repo_impl import TrackRepositoryImpl
+                
                 track_repo = TrackRepositoryImpl(db)
                 
-                print(f"[TRACK DEBUG] Creating {len(request.tracks)} tracks for conference {result.id}")
-                print(f"[TRACK DEBUG] Request tracks: {[{'name': t.name, 'max_reviewers': t.max_reviewers} for t in request.tracks]}")
+                print(f"[TRACK DEBUG] ===== START CREATING TRACKS =====")
+                print(f"[TRACK DEBUG] Conference ID: {result.id}")
+                print(f"[TRACK DEBUG] Number of tracks to create: {len(request.tracks)}")
+                print(f"[TRACK DEBUG] Tracks data: {[(t.name, t.max_reviewers) for t in request.tracks]}")
                 
+                # Tạo từng track sử dụng track_repo.create() (giống như track_controller)
                 for idx, track_data in enumerate(request.tracks):
                     try:
                         if not track_data.name or not track_data.name.strip():
@@ -75,9 +94,10 @@ def create_conference(
                             name=track_data.name.strip(),
                             max_reviewers=track_data.max_reviewers if track_data.max_reviewers and track_data.max_reviewers > 0 else 3
                         )
-                        # track_repo.create() already commits, so track is saved immediately
+                        
+                        # Sử dụng track_repo.create() - method này tự commit
                         created_track = track_repo.create(track)
-                        print(f"[TRACK DEBUG] Track #{idx+1} created successfully: ID={created_track.id}, Name={created_track.name}")
+                        print(f"[TRACK DEBUG] Track #{idx+1} created successfully: ID={created_track.id}, Name={created_track.name}, Conference_ID={created_track.conference_id}")
                         
                         created_tracks.append({
                             "id": created_track.id,
@@ -85,6 +105,7 @@ def create_conference(
                             "max_reviewers": created_track.max_reviewers
                         })
                         
+                        # Audit log (non-critical)
                         try:
                             create_audit_log_sync(
                                 db,
@@ -103,20 +124,29 @@ def create_conference(
                             )
                         except Exception as audit_error:
                             print(f"[TRACK DEBUG] Audit log error (non-critical): {str(audit_error)}")
+                        
                     except Exception as single_track_error:
                         print(f"[TRACK DEBUG] ERROR creating track #{idx+1}: {str(single_track_error)}")
                         import traceback
                         traceback.print_exc()
                         track_errors.append(f"Track '{track_data.name if track_data.name else f'#{idx+1}'}': {str(single_track_error)}")
-                        # Don't rollback here - track_repo.create() already committed if it succeeded
-                        # Only rollback if the track creation itself failed (which it already did)
+                        # Không rollback vì track_repo.create() đã commit riêng
                 
-                print(f"[TRACK DEBUG] Successfully created {len(created_tracks)}/{len(request.tracks)} tracks")
+                # Verify tracks were saved by querying database
+                saved_tracks = db.query(TrackModel).filter(TrackModel.conference_id == result.id).all()
+                print(f"[TRACK DEBUG] Verification: Found {len(saved_tracks)} tracks in database for conference {result.id}")
+                for saved_track in saved_tracks:
+                    print(f"[TRACK DEBUG] Verified track in DB: ID={saved_track.id}, Name={saved_track.name}")
+                
+                print(f"[TRACK DEBUG] ===== SUCCESS: Created {len(created_tracks)} tracks =====")
+                
                 if track_errors:
                     print(f"[TRACK DEBUG] Track errors: {track_errors}")
+                    
             except Exception as track_error:
                 # Log error but don't fail the conference creation
-                print(f"[TRACK DEBUG] FATAL ERROR creating tracks: {str(track_error)}")
+                print(f"[TRACK DEBUG] ===== FATAL ERROR CREATING TRACKS =====")
+                print(f"[TRACK DEBUG] Error: {str(track_error)}")
                 import traceback
                 traceback.print_exc()
                 track_errors.append(f"Lỗi hệ thống: {str(track_error)}")
@@ -142,20 +172,73 @@ def create_conference(
         except Exception:
             pass
         
+        # Final verification: Query tracks from database one more time
+        # Luôn query lại để đảm bảo tracks đã được lưu
+        from infrastructure.models.conference_model import TrackModel
+        final_tracks = db.query(TrackModel).filter(TrackModel.conference_id == result.id).all()
+        print(f"[CONFERENCE DEBUG] Final verification: {len(final_tracks)} tracks in database for conference {result.id}")
+        
+        # Update created_tracks với data thực tế từ DB (đảm bảo luôn có data chính xác)
+        if final_tracks:
+            created_tracks = [{"id": t.id, "name": t.name, "max_reviewers": t.max_reviewers} for t in final_tracks]
+            print(f"[CONFERENCE DEBUG] Updated created_tracks from DB: {created_tracks}")
+        elif request.tracks and len(request.tracks) > 0:
+            print(f"[CONFERENCE DEBUG] WARNING: Expected {len(request.tracks)} tracks but found {len(final_tracks)} in DB!")
+        
+        # Đảm bảo created_tracks luôn là list (không phải None)
+        if not isinstance(created_tracks, list):
+            created_tracks = []
+        
+        # Convert result (domain model) to dict để serialize đúng
+        data_dict = {
+            "id": result.id,
+            "name": result.name,
+            "abbreviation": result.abbreviation,
+            "description": result.description,
+            "website": result.website,
+            "location": result.location,
+            "start_date": result.start_date.isoformat() if result.start_date else None,
+            "end_date": result.end_date.isoformat() if result.end_date else None,
+            "submission_deadline": result.submission_deadline.isoformat() if result.submission_deadline else None,
+            "review_deadline": result.review_deadline.isoformat() if result.review_deadline else None,
+            "is_open": result.is_open,
+            "blind_mode": result.blind_mode
+        }
+        
         response_data = {
             "message": "Conference created successfully",
-            "data": result,
-            "tracks": created_tracks if created_tracks else None
+            "data": data_dict,
+            "tracks": created_tracks  # Luôn trả về array (có thể empty)
         }
         
         if track_errors:
             response_data["track_warnings"] = track_errors
         
+        print(f"[CONFERENCE DEBUG] ===== FINAL RESPONSE =====")
+        print(f"[CONFERENCE DEBUG] Conference ID: {result.id}")
+        print(f"[CONFERENCE DEBUG] Tracks in response: {len(created_tracks)}")
+        print(f"[CONFERENCE DEBUG] Tracks data: {created_tracks}")
+        print(f"[CONFERENCE DEBUG] Track errors: {track_errors}")
+        print(f"[CONFERENCE DEBUG] Response keys: {list(response_data.keys())}")
+        print(f"[CONFERENCE DEBUG] Response has 'tracks' key: {'tracks' in response_data}")
+        print(f"[CONFERENCE DEBUG] Response tracks value: {response_data.get('tracks')}")
+        print(f"[CONFERENCE DEBUG] Response tracks type: {type(response_data.get('tracks'))}")
+        print(f"[CONFERENCE DEBUG] =========================")
         return response_data
     except BusinessRuleException as e:
+        print(f"[CONFERENCE DEBUG] BusinessRuleException: {str(e)}")
+        # Don't rollback here - conference and tracks may have been committed
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        db.rollback()
+        print(f"[CONFERENCE DEBUG] Exception occurred: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Only rollback if conference wasn't committed yet
+        # Since conference is committed in service.execute(), tracks should be safe
+        try:
+            db.rollback()
+        except:
+            pass
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error creating: {str(e)}")
 
 @router.get("/{conference_id}", response_model=ConferenceResponse)

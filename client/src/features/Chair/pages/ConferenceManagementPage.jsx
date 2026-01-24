@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { conferenceService } from "../../../services";
+import { conferenceService, trackService } from "../../../services";
 import { toast } from "react-hot-toast";
 import Table from "../../../components/Table";
 import Button from "../../../components/Button";
@@ -57,8 +57,9 @@ export default function ConferenceManagementPage() {
     review_deadline: "",
     is_open: true,
     blind_mode: "double",
-    tracks: [], // Danh sách tracks để tạo cùng lúc
+    tracks: [], // Danh sách tracks: existing (có id) và new (không có id)
   });
+  const [deletedTracks, setDeletedTracks] = useState([]); // Track các tracks đã bị xóa
 
   useEffect(() => {
     loadConferences();
@@ -92,6 +93,7 @@ export default function ConferenceManagementPage() {
       blind_mode: "double",
       tracks: [],
     });
+    setDeletedTracks([]);
   };
 
   const addTrack = () => {
@@ -102,9 +104,17 @@ export default function ConferenceManagementPage() {
   };
 
   const removeTrack = (index) => {
+    const trackToRemove = form.tracks[index];
+    const newTracks = (form.tracks || []).filter((_, i) => i !== index);
+    
+    // Nếu track có id (existing track), thêm vào deletedTracks để xóa sau
+    if (trackToRemove && trackToRemove.id) {
+      setDeletedTracks([...deletedTracks, trackToRemove.id]);
+    }
+    
     setForm({
       ...form,
-      tracks: (form.tracks || []).filter((_, i) => i !== index),
+      tracks: newTracks,
     });
   };
 
@@ -120,8 +130,18 @@ export default function ConferenceManagementPage() {
     setForm({ ...form, tracks: newTracks });
   };
 
-  const openEdit = (conf) => {
+  const openEdit = async (conf) => {
     setEditModal(conf);
+    
+    // Load existing tracks
+    let existingTracks = [];
+    try {
+      existingTracks = await trackService.getByConference(conf.id);
+      console.log("[FRONTEND] Loaded existing tracks:", existingTracks);
+    } catch (err) {
+      console.warn("[FRONTEND] Could not load existing tracks:", err);
+    }
+    
     setForm({
       name: conf.name || "",
       abbreviation: conf.abbreviation || "",
@@ -134,8 +154,13 @@ export default function ConferenceManagementPage() {
       review_deadline: toDateInput(conf.review_deadline),
       is_open: !!conf.is_open,
       blind_mode: conf.blind_mode || "double",
-      tracks: [], // Edit modal không cho phép edit tracks, chỉ tạo mới
+      tracks: existingTracks.map(t => ({
+        id: t.id,
+        name: t.name || "",
+        max_reviewers: t.max_reviewers || 3,
+      })),
     });
+    setDeletedTracks([]);
   };
 
   const buildPayload = () => {
@@ -160,23 +185,10 @@ export default function ConferenceManagementPage() {
     if (submissionDeadline) payload.submission_deadline = submissionDeadline;
     if (reviewDeadline) payload.review_deadline = reviewDeadline;
     
-    // Add tracks if any (only for create, not for update)
-    if (!editModal && form.tracks && form.tracks.length > 0) {
-      const validTracks = form.tracks
-        .filter(t => t && t.name && t.name.trim())
-        .map(t => ({
-          name: t.name.trim(),
-          max_reviewers: parseInt(t.max_reviewers) || 3,
-        }));
-      if (validTracks.length > 0) {
-        payload.tracks = validTracks;
-        console.log("[FRONTEND] Adding tracks to payload:", validTracks);
-      } else {
-        console.warn("[FRONTEND] No valid tracks to add (all tracks have empty names)");
-      }
-    } else {
-      console.log("[FRONTEND] No tracks to add - editModal:", !!editModal, "tracks:", form.tracks);
-    }
+    // NOTE: Tracks sẽ được tạo riêng bằng API /tracks sau khi tạo conference
+    // Không thêm tracks vào payload nữa
+    console.log("[FRONTEND DEBUG] Tracks will be created separately via /tracks API");
+    console.log("[FRONTEND DEBUG] Form tracks:", form.tracks);
     
     return payload;
   };
@@ -189,27 +201,74 @@ export default function ConferenceManagementPage() {
       }
       
       // Validate tracks before creating
-      if (form.tracks && form.tracks.length > 0) {
-        const tracksWithNames = form.tracks.filter(t => t && t.name && t.name.trim());
-        if (tracksWithNames.length !== form.tracks.length) {
-          toast.error("Vui lòng điền tên cho tất cả các tracks");
-          return;
-        }
+      const tracksToCreate = form.tracks && form.tracks.length > 0 
+        ? form.tracks.filter(t => t && t.name && t.name.trim())
+        : [];
+      
+      if (form.tracks && form.tracks.length > 0 && tracksToCreate.length !== form.tracks.length) {
+        toast.error("Vui lòng điền tên cho tất cả các tracks");
+        return;
       }
       
+      // Build payload WITHOUT tracks (tạo conference trước)
       const payload = buildPayload();
-      console.log("Creating conference with payload:", JSON.stringify(payload, null, 2));
-      console.log("Form tracks:", form.tracks);
-      console.log("Payload tracks:", payload.tracks);
+      // Remove tracks from payload - sẽ tạo bằng API riêng
+      delete payload.tracks;
       
+      console.log("[FRONTEND] Creating conference (without tracks):", JSON.stringify(payload, null, 2));
+      console.log("[FRONTEND] Tracks to create separately:", tracksToCreate);
+      
+      // Step 1: Tạo conference
       const response = await conferenceService.create(payload);
-      console.log("Conference created response:", response);
+      console.log("[FRONTEND] Conference created response:", response);
       
-      if (response.track_warnings && response.track_warnings.length > 0) {
-        toast.error(`Hội nghị đã được tạo nhưng có lỗi khi tạo tracks: ${response.track_warnings.join(", ")}`);
-      } else if (response.tracks && response.tracks.length > 0) {
-        toast.success(`Tạo hội nghị thành công với ${response.tracks.length} track(s)`);
-      } else if (form.tracks && form.tracks.length > 0) {
+      // Get conference ID từ response
+      const conferenceId = response.data?.id || response.data?.id || response.id;
+      if (!conferenceId) {
+        console.error("[FRONTEND] No conference ID in response:", response);
+        toast.error("Tạo hội nghị thành công nhưng không lấy được ID. Vui lòng kiểm tra lại.");
+        setCreateModal(false);
+        resetForm();
+        loadConferences();
+        return;
+      }
+      
+      console.log("[FRONTEND] Conference ID:", conferenceId);
+      
+      // Step 2: Tạo tracks bằng API riêng
+      const createdTracks = [];
+      const trackErrors = [];
+      
+      if (tracksToCreate.length > 0) {
+        console.log(`[FRONTEND] Creating ${tracksToCreate.length} tracks via API...`);
+        
+        for (const track of tracksToCreate) {
+          try {
+            const trackPayload = {
+              conference_id: conferenceId,
+              name: track.name.trim(),
+              max_reviewers: parseInt(track.max_reviewers) || 3,
+            };
+            
+            console.log(`[FRONTEND] Creating track:`, trackPayload);
+            const trackResponse = await trackService.create(trackPayload);
+            createdTracks.push(trackResponse);
+            console.log(`[FRONTEND] ✅ Track created:`, trackResponse);
+          } catch (trackErr) {
+            console.error(`[FRONTEND] ❌ Error creating track "${track.name}":`, trackErr);
+            trackErrors.push(`Track "${track.name}": ${trackErr?.response?.data?.detail || trackErr.message}`);
+          }
+        }
+        
+        console.log(`[FRONTEND] Created ${createdTracks.length}/${tracksToCreate.length} tracks`);
+      }
+      
+      // Show success/error messages
+      if (trackErrors.length > 0) {
+        toast.error(`Hội nghị đã được tạo nhưng có lỗi khi tạo ${trackErrors.length} track(s): ${trackErrors.join(", ")}`);
+      } else if (createdTracks.length > 0) {
+        toast.success(`Tạo hội nghị thành công với ${createdTracks.length} track(s)`);
+      } else if (tracksToCreate.length > 0) {
         toast.error("Hội nghị đã được tạo nhưng không có tracks nào được tạo. Vui lòng kiểm tra lại.");
       } else {
         toast.success("Tạo hội nghị thành công");
@@ -246,8 +305,90 @@ export default function ConferenceManagementPage() {
   const handleUpdate = async () => {
     if (!editModal) return;
     try {
-      await conferenceService.update(editModal.id, buildPayload());
-      toast.success("Cập nhật hội nghị thành công");
+      // Step 1: Update conference
+      const payload = buildPayload();
+      await conferenceService.update(editModal.id, payload);
+      console.log("[FRONTEND] Conference updated successfully");
+      
+      // Step 2: Xử lý tracks
+      const existingTracks = (form.tracks || []).filter(t => t && t.id); // Tracks có id (existing)
+      const newTracks = (form.tracks || []).filter(t => t && !t.id && t.name && t.name.trim()); // Tracks mới
+      
+      const createdTracks = [];
+      const updatedTracks = [];
+      const trackErrors = [];
+      
+      // Step 2a: Xóa tracks đã bị xóa
+      if (deletedTracks.length > 0) {
+        console.log(`[FRONTEND] Deleting ${deletedTracks.length} tracks...`);
+        for (const trackId of deletedTracks) {
+          try {
+            await trackService.delete(trackId);
+            console.log(`[FRONTEND] ✅ Track deleted: ${trackId}`);
+          } catch (trackErr) {
+            console.error(`[FRONTEND] ❌ Error deleting track ${trackId}:`, trackErr);
+            trackErrors.push(`Xóa track #${trackId}: ${trackErr?.response?.data?.detail || trackErr.message}`);
+          }
+        }
+      }
+      
+      // Step 2b: Cập nhật existing tracks (nếu có thay đổi)
+      if (existingTracks.length > 0) {
+        console.log(`[FRONTEND] Updating ${existingTracks.length} existing tracks...`);
+        for (const track of existingTracks) {
+          try {
+            const trackPayload = {
+              name: track.name.trim(),
+              max_reviewers: parseInt(track.max_reviewers) || 3,
+            };
+            
+            console.log(`[FRONTEND] Updating track ${track.id}:`, trackPayload);
+            const trackResponse = await trackService.update(track.id, trackPayload);
+            updatedTracks.push(trackResponse);
+            console.log(`[FRONTEND] ✅ Track updated:`, trackResponse);
+          } catch (trackErr) {
+            console.error(`[FRONTEND] ❌ Error updating track "${track.name}":`, trackErr);
+            trackErrors.push(`Cập nhật track "${track.name}": ${trackErr?.response?.data?.detail || trackErr.message}`);
+          }
+        }
+      }
+      
+      // Step 2c: Tạo tracks mới
+      if (newTracks.length > 0) {
+        console.log(`[FRONTEND] Creating ${newTracks.length} new tracks...`);
+        for (const track of newTracks) {
+          try {
+            const trackPayload = {
+              conference_id: editModal.id,
+              name: track.name.trim(),
+              max_reviewers: parseInt(track.max_reviewers) || 3,
+            };
+            
+            console.log(`[FRONTEND] Creating track:`, trackPayload);
+            const trackResponse = await trackService.create(trackPayload);
+            createdTracks.push(trackResponse);
+            console.log(`[FRONTEND] ✅ Track created:`, trackResponse);
+          } catch (trackErr) {
+            console.error(`[FRONTEND] ❌ Error creating track "${track.name}":`, trackErr);
+            trackErrors.push(`Tạo track "${track.name}": ${trackErr?.response?.data?.detail || trackErr.message}`);
+          }
+        }
+      }
+      
+      // Show success/error messages
+      const actions = [];
+      if (deletedTracks.length > 0) actions.push(`xóa ${deletedTracks.length}`);
+      if (updatedTracks.length > 0) actions.push(`cập nhật ${updatedTracks.length}`);
+      if (createdTracks.length > 0) actions.push(`thêm ${createdTracks.length}`);
+      
+      if (trackErrors.length > 0) {
+        toast.error(`Hội nghị đã được cập nhật nhưng có lỗi: ${trackErrors.join(", ")}`);
+      } else if (actions.length > 0) {
+        toast.success(`Cập nhật hội nghị thành công (${actions.join(", ")} track(s))`);
+      } else {
+        toast.success("Cập nhật hội nghị thành công");
+      }
+      
       setEditModal(null);
       resetForm();
       loadConferences();
@@ -572,6 +713,79 @@ export default function ConferenceManagementPage() {
               </select>
             </div>
           </div>
+
+          {/* Tracks Section - Edit existing and add new tracks */}
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm font-medium text-gray-700">Quản lý Tracks/Chuyên đề</label>
+              <button
+                type="button"
+                onClick={addTrack}
+                className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                Thêm Track
+              </button>
+            </div>
+            {(!form.tracks || form.tracks.length === 0) ? (
+              <p className="text-xs text-gray-500 mb-2">
+                Chưa có tracks nào. Bạn có thể thêm tracks mới vào hội nghị này.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {(form.tracks || []).map((track, index) => {
+                  const isExisting = track && track.id;
+                  return (
+                    <div 
+                      key={isExisting ? track.id : `new-${index}`} 
+                      className={`flex gap-2 items-start p-3 rounded-lg ${
+                        isExisting ? "bg-blue-50 border border-blue-200" : "bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <div className="relative">
+                          <Input
+                            label="Tên track"
+                            value={track?.name || ""}
+                            onChange={(e) => updateTrack(index, "name", e.target.value)}
+                            placeholder="VD: Machine Learning"
+                          />
+                          {isExisting && (
+                            <span className="absolute top-0 right-0 text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded whitespace-nowrap">
+                              Có sẵn
+                            </span>
+                          )}
+                          {!isExisting && (
+                            <span className="absolute top-0 right-0 text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded whitespace-nowrap">
+                              Mới
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <Input
+                            label="Số reviewers tối đa"
+                            type="number"
+                            value={track?.max_reviewers || 3}
+                            onChange={(e) => updateTrack(index, "max_reviewers", e.target.value)}
+                            min="1"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeTrack(index)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-6 flex-shrink-0"
+                        title={isExisting ? "Xóa track (sẽ bị xóa khỏi database)" : "Xóa track"}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-3 justify-end">
             <Button variant="secondary" onClick={() => { setEditModal(null); resetForm(); }}>
               Hủy

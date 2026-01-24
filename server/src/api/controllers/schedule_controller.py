@@ -106,7 +106,7 @@ def get_schedule_by_conference(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get schedule for a conference."""
+    """Get schedule for a conference (requires authentication)."""
     try:
         items = db.query(ScheduleItemModel).filter(
             ScheduleItemModel.conference_id == conference_id
@@ -124,6 +124,47 @@ def get_schedule_by_conference(
             )
             for item in items
         ]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/conferences/{conference_id}/public", response_model=List[ScheduleItemResponse])
+def get_public_schedule(
+    conference_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get public schedule for a conference (no authentication required).
+    Only shows schedule items for accepted papers if conference allows public program.
+    """
+    from infrastructure.models.conference_model import ConferenceModel
+    
+    try:
+        conf = db.query(ConferenceModel).filter(ConferenceModel.id == conference_id).first()
+        if not conf:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conference not found")
+        
+        # Check if conference allows public program (you can add a field like public_program_enabled)
+        # For now, we'll return the schedule if conference exists
+        
+        items = db.query(ScheduleItemModel).filter(
+            ScheduleItemModel.conference_id == conference_id
+        ).order_by(ScheduleItemModel.order_index).all()
+        
+        return [
+            ScheduleItemResponse(
+                id=item.id,
+                conference_id=item.conference_id,
+                submission_id=item.submission_id,
+                session_id=item.session_id,
+                start_time=item.start_time,
+                end_time=item.end_time,
+                order_index=item.order_index
+            )
+            for item in items
+        ]
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

@@ -77,6 +77,17 @@ export const conferenceService = {
     const res = await api.get(`/conferences/${conferenceId}/cfp/public`);
     return res.data;
   },
+
+  /**
+   * Update workflow settings (rebuttal, camera-ready)
+   * @param {number} conferenceId - Conference ID
+   * @param {Object} payload - { rebuttal_open, rebuttal_deadline, camera_ready_open, camera_ready_deadline }
+   * @returns {Promise<Object>} Updated workflow settings
+   */
+  updateWorkflow: async (conferenceId, payload) => {
+    const res = await api.patch(`/conferences/${conferenceId}/workflow`, payload);
+    return res.data;
+  },
 };
 
 export default conferenceService;

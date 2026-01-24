@@ -447,7 +447,7 @@ export default function AuthorDashboard() {
                           
                           <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                             <button 
-                              onClick={() => navigate(`/dashboard/conferences/${conf.id}`)}
+                              onClick={() => navigate(`/dashboard/conference/${conf.id}`)}
                               className="text-sm text-[#2C7A7B] hover:text-[#1A365D] font-medium"
                             >
                               {language === 'VI' ? 'Chi tiết' : 'Details'}

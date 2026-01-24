@@ -102,6 +102,62 @@ def list_invitations(
     return PCInvitationListResponse(invitations=invitations, total=len(invitations))
 
 
+@router.post("/invitations/decline", status_code=status.HTTP_200_OK)
+def decline_invitation(
+    request: PCAcceptRequest,
+    req: Request,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Decline a PC invitation."""
+    invitation = db.query(PCInvitationModel).filter(PCInvitationModel.token == request.token).first()
+    if not invitation:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+
+    if invitation.status != "PENDING":
+        raise HTTPException(status_code=400, detail=f"Invitation already {invitation.status}")
+
+    if invitation.expires_at:
+        exp = invitation.expires_at
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        if _now_utc() > exp:
+            invitation.status = "EXPIRED"
+            db.commit()
+            raise HTTPException(status_code=400, detail="Invitation expired")
+
+    if current_user.email.lower() != invitation.email.lower():
+        raise HTTPException(status_code=403, detail="This invitation does not belong to your account")
+
+    invitation.status = "DECLINED"
+    db.commit()
+    db.refresh(invitation)
+
+    try:
+        create_audit_log_sync(
+            db,
+            action_type="DECLINE",
+            resource_type="PC",
+            user_id=current_user.id,
+            resource_id=invitation.id,
+            description=f"Declined PC invitation for conference {invitation.conference_id}",
+            ip_address=req.client.host if req and req.client else None,
+            user_agent=req.headers.get("user-agent") if req else None,
+            old_values={
+                "status": "PENDING",
+                "conference_id": invitation.conference_id,
+            },
+            new_values={
+                "status": "DECLINED",
+                "conference_id": invitation.conference_id,
+            },
+        )
+    except Exception:
+        pass
+
+    return {"message": "Invitation declined successfully", "status": "DECLINED"}
+
+
 @router.post("/invitations/accept", response_model=PCMemberResponse)
 def accept_invitation(
     request: PCAcceptRequest,

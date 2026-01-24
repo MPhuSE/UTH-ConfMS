@@ -5,7 +5,7 @@ import Table from "../../../components/Table";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import Modal from "../../../components/Modal";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, X, Settings } from "lucide-react";
 
 const toDateInput = (value) => {
   if (!value) return "";
@@ -38,6 +38,13 @@ export default function ConferenceManagementPage() {
   const [createModal, setCreateModal] = useState(false);
   const [editModal, setEditModal] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
+  const [workflowModal, setWorkflowModal] = useState(null);
+  const [workflowForm, setWorkflowForm] = useState({
+    camera_ready_open: false,
+    camera_ready_deadline: "",
+    rebuttal_open: false,
+    rebuttal_deadline: "",
+  });
   const [form, setForm] = useState({
     name: "",
     abbreviation: "",
@@ -50,6 +57,7 @@ export default function ConferenceManagementPage() {
     review_deadline: "",
     is_open: true,
     blind_mode: "double",
+    tracks: [], // Danh sách tracks để tạo cùng lúc
   });
 
   useEffect(() => {
@@ -82,7 +90,34 @@ export default function ConferenceManagementPage() {
       review_deadline: "",
       is_open: true,
       blind_mode: "double",
+      tracks: [],
     });
+  };
+
+  const addTrack = () => {
+    setForm({
+      ...form,
+      tracks: [...(form.tracks || []), { name: "", max_reviewers: 3 }],
+    });
+  };
+
+  const removeTrack = (index) => {
+    setForm({
+      ...form,
+      tracks: (form.tracks || []).filter((_, i) => i !== index),
+    });
+  };
+
+  const updateTrack = (index, field, value) => {
+    const currentTracks = form.tracks || [];
+    const newTracks = [...currentTracks];
+    if (field === "max_reviewers") {
+      const numValue = value === "" ? 3 : (parseInt(value) || 3);
+      newTracks[index] = { ...newTracks[index], [field]: numValue };
+    } else {
+      newTracks[index] = { ...newTracks[index], [field]: value };
+    }
+    setForm({ ...form, tracks: newTracks });
   };
 
   const openEdit = (conf) => {
@@ -99,6 +134,7 @@ export default function ConferenceManagementPage() {
       review_deadline: toDateInput(conf.review_deadline),
       is_open: !!conf.is_open,
       blind_mode: conf.blind_mode || "double",
+      tracks: [], // Edit modal không cho phép edit tracks, chỉ tạo mới
     });
   };
 
@@ -124,6 +160,24 @@ export default function ConferenceManagementPage() {
     if (submissionDeadline) payload.submission_deadline = submissionDeadline;
     if (reviewDeadline) payload.review_deadline = reviewDeadline;
     
+    // Add tracks if any (only for create, not for update)
+    if (!editModal && form.tracks && form.tracks.length > 0) {
+      const validTracks = form.tracks
+        .filter(t => t && t.name && t.name.trim())
+        .map(t => ({
+          name: t.name.trim(),
+          max_reviewers: parseInt(t.max_reviewers) || 3,
+        }));
+      if (validTracks.length > 0) {
+        payload.tracks = validTracks;
+        console.log("[FRONTEND] Adding tracks to payload:", validTracks);
+      } else {
+        console.warn("[FRONTEND] No valid tracks to add (all tracks have empty names)");
+      }
+    } else {
+      console.log("[FRONTEND] No tracks to add - editModal:", !!editModal, "tracks:", form.tracks);
+    }
+    
     return payload;
   };
 
@@ -134,11 +188,33 @@ export default function ConferenceManagementPage() {
         return;
       }
       
-      const payload = buildPayload();
-      console.log("Creating conference with payload:", payload);
+      // Validate tracks before creating
+      if (form.tracks && form.tracks.length > 0) {
+        const tracksWithNames = form.tracks.filter(t => t && t.name && t.name.trim());
+        if (tracksWithNames.length !== form.tracks.length) {
+          toast.error("Vui lòng điền tên cho tất cả các tracks");
+          return;
+        }
+      }
       
-      await conferenceService.create(payload);
-      toast.success("Tạo hội nghị thành công");
+      const payload = buildPayload();
+      console.log("Creating conference with payload:", JSON.stringify(payload, null, 2));
+      console.log("Form tracks:", form.tracks);
+      console.log("Payload tracks:", payload.tracks);
+      
+      const response = await conferenceService.create(payload);
+      console.log("Conference created response:", response);
+      
+      if (response.track_warnings && response.track_warnings.length > 0) {
+        toast.error(`Hội nghị đã được tạo nhưng có lỗi khi tạo tracks: ${response.track_warnings.join(", ")}`);
+      } else if (response.tracks && response.tracks.length > 0) {
+        toast.success(`Tạo hội nghị thành công với ${response.tracks.length} track(s)`);
+      } else if (form.tracks && form.tracks.length > 0) {
+        toast.error("Hội nghị đã được tạo nhưng không có tracks nào được tạo. Vui lòng kiểm tra lại.");
+      } else {
+        toast.success("Tạo hội nghị thành công");
+      }
+      
       setCreateModal(false);
       resetForm();
       loadConferences();
@@ -196,6 +272,48 @@ export default function ConferenceManagementPage() {
     }
   };
 
+  const openWorkflowModal = async (conf) => {
+    try {
+      // Load current workflow settings
+      const fullConf = await conferenceService.getById(conf.id);
+      setWorkflowModal(conf);
+      setWorkflowForm({
+        camera_ready_open: fullConf.camera_ready_open || false,
+        camera_ready_deadline: toDateInput(fullConf.camera_ready_deadline),
+        rebuttal_open: fullConf.rebuttal_open || false,
+        rebuttal_deadline: toDateInput(fullConf.rebuttal_deadline),
+      });
+    } catch (err) {
+      toast.error("Không thể tải thông tin workflow");
+      console.error(err);
+    }
+  };
+
+  const handleUpdateWorkflow = async () => {
+    if (!workflowModal) return;
+    try {
+      const payload = {
+        camera_ready_open: workflowForm.camera_ready_open,
+        rebuttal_open: workflowForm.rebuttal_open,
+      };
+      
+      const cameraReadyDeadline = fromDateInput(workflowForm.camera_ready_deadline);
+      const rebuttalDeadline = fromDateInput(workflowForm.rebuttal_deadline);
+      
+      if (cameraReadyDeadline) payload.camera_ready_deadline = cameraReadyDeadline;
+      if (rebuttalDeadline) payload.rebuttal_deadline = rebuttalDeadline;
+      
+      await conferenceService.updateWorkflow(workflowModal.id, payload);
+      toast.success("Cập nhật workflow thành công");
+      setWorkflowModal(null);
+      loadConferences();
+    } catch (err) {
+      const message = err?.response?.data?.detail || "Không thể cập nhật workflow";
+      toast.error(message);
+      console.error(err);
+    }
+  };
+
   const columns = useMemo(
     () => [
       { header: "ID", accessor: "id" },
@@ -216,6 +334,15 @@ export default function ConferenceManagementPage() {
         ),
       },
       {
+        header: "Camera-Ready",
+        accessor: "camera_ready",
+        render: (row) => (
+          <span className={`px-2 py-0.5 rounded text-xs ${row.camera_ready_open ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-600"}`}>
+            {row.camera_ready_open ? "Mở" : "Đóng"}
+          </span>
+        ),
+      },
+      {
         header: "Thao tác",
         accessor: "actions",
         render: (row) => (
@@ -223,12 +350,21 @@ export default function ConferenceManagementPage() {
             <button
               onClick={() => openEdit(row)}
               className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Chỉnh sửa"
             >
               <Edit className="w-4 h-4" />
             </button>
             <button
+              onClick={() => openWorkflowModal(row)}
+              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+              title="Quản lý Workflow"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => setDeleteModal(row)}
               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Xóa"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -312,6 +448,63 @@ export default function ConferenceManagementPage() {
               </select>
             </div>
           </div>
+
+          {/* Tracks Section - Only show in Create Modal */}
+          {!editModal && (
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-medium text-gray-700">Tracks/Chuyên đề (Tùy chọn)</label>
+                <button
+                  type="button"
+                  onClick={addTrack}
+                  className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  Thêm Track
+                </button>
+              </div>
+              {(!form.tracks || form.tracks.length === 0) ? (
+                <p className="text-xs text-gray-500 mb-2">
+                  Bạn có thể tạo tracks sau khi tạo hội nghị, hoặc thêm ngay bây giờ.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {(form.tracks || []).map((track, index) => (
+                    <div key={index} className="flex gap-2 items-start p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <div>
+                          <Input
+                            label="Tên track"
+                            value={track?.name || ""}
+                            onChange={(e) => updateTrack(index, "name", e.target.value)}
+                            placeholder="VD: Machine Learning"
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            label="Số reviewers tối đa"
+                            type="number"
+                            value={track?.max_reviewers || 3}
+                            onChange={(e) => updateTrack(index, "max_reviewers", e.target.value)}
+                            min="1"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeTrack(index)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-6 flex-shrink-0"
+                        title="Xóa track"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3 justify-end">
             <Button variant="secondary" onClick={() => { setCreateModal(false); resetForm(); }}>
               Hủy
@@ -405,6 +598,67 @@ export default function ConferenceManagementPage() {
             <Button variant="danger" onClick={handleDelete}>
               Xóa
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Workflow Settings Modal */}
+      <Modal
+        isOpen={!!workflowModal}
+        onClose={() => setWorkflowModal(null)}
+        title={`Quản lý Workflow - ${workflowModal?.name || ""}`}
+        size="lg"
+      >
+        <div className="space-y-6">
+          {/* Camera-Ready Section */}
+          <div className="border-b pb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Camera-Ready</h3>
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={workflowForm.camera_ready_open}
+                  onChange={(e) => setWorkflowForm({ ...workflowForm, camera_ready_open: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <span className="font-medium">Mở Camera-Ready</span>
+              </label>
+              <Input
+                label="Hạn chót Camera-Ready"
+                type="date"
+                value={workflowForm.camera_ready_deadline}
+                onChange={(e) => setWorkflowForm({ ...workflowForm, camera_ready_deadline: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {/* Rebuttal Section */}
+          <div className="border-b pb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Rebuttal</h3>
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={workflowForm.rebuttal_open}
+                  onChange={(e) => setWorkflowForm({ ...workflowForm, rebuttal_open: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <span className="font-medium">Mở Rebuttal</span>
+              </label>
+              <Input
+                label="Hạn chót Rebuttal"
+                type="date"
+                value={workflowForm.rebuttal_deadline}
+                onChange={(e) => setWorkflowForm({ ...workflowForm, rebuttal_deadline: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4">
+            <Button variant="secondary" onClick={() => setWorkflowModal(null)}>
+              Hủy
+            </Button>
+            <Button onClick={handleUpdateWorkflow}>Lưu</Button>
           </div>
         </div>
       </Modal>

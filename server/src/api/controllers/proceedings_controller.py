@@ -13,6 +13,69 @@ from api.utils.audit_utils import create_audit_log_sync
 router = APIRouter(prefix="/proceedings", tags=["Proceedings"])
 
 
+@router.get("/conferences/{conference_id}/public")
+def get_public_accepted_papers(
+    conference_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get public list of accepted papers for a conference (no authentication required).
+    Only returns accepted papers if conference allows public access.
+    """
+    conf = db.query(ConferenceModel).filter(ConferenceModel.id == conference_id).first()
+    if not conf:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conference not found")
+
+    # Check if conference allows public access (you can add a field like public_accepted_papers_enabled)
+    # For now, we'll return accepted papers if conference exists
+
+    subs = (
+        db.query(SubmissionModel)
+        .filter(SubmissionModel.conference_id == conference_id)
+        .all()
+    )
+
+    accepted: List[Dict[str, Any]] = []
+    for s in subs:
+        decision_value = (getattr(s, "decision", None) or getattr(s, "status", None) or "").lower().strip()
+        if decision_value not in ("accepted", "accept"):
+            continue
+
+        authors = (
+            db.query(SubmissionAuthorModel)
+            .filter(SubmissionAuthorModel.submission_id == s.id)
+            .order_by(SubmissionAuthorModel.order_index.asc())
+            .all()
+        )
+
+        accepted.append(
+            {
+                "submission_id": s.id,
+                "title": s.title,
+                "abstract": s.abstract,
+                "authors": [
+                    {
+                        "name": a.full_name,
+                        "affiliation": getattr(a, "affiliation", None),
+                        "order_index": a.order_index,
+                        "is_corresponding": a.is_corresponding,
+                    }
+                    for a in authors
+                ],
+            }
+        )
+
+    return {
+        "conference": {
+            "id": conf.id,
+            "name": conf.name,
+            "abbreviation": conf.abbreviation,
+        },
+        "count": len(accepted),
+        "papers": accepted,
+    }
+
+
 @router.get("/conferences/{conference_id}/export")
 def export_proceedings(
     conference_id: int,

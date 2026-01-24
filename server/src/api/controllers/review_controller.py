@@ -209,6 +209,52 @@ def auto_assign_reviewers(
     return {"created": created, "skipped": skipped, "assignments": details}
 
 
+@router.post("/assignments/{submission_id}/decline", status_code=status.HTTP_200_OK)
+def decline_assignment(
+    submission_id: int,
+    req: Request,
+    current_user=Depends(require_reviewer),
+    service=Depends(get_assignment_service)
+):
+    """Decline an assignment - reviewer can decline their own assignments."""
+    try:
+        # Check if reviewer is assigned to this submission
+        assignments = service.get_assignments_by_reviewer(current_user.id)
+        assignment = next((a for a in assignments if a.get("submission_id") == submission_id), None)
+        
+        if not assignment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Assignment not found or you are not assigned to this submission"
+            )
+        
+        # Unassign the reviewer (decline)
+        service.unassign_reviewer(submission_id, current_user.id)
+        
+        try:
+            create_audit_log_sync(
+                service.db,
+                action_type="DECLINE",
+                resource_type="REVIEW",
+                user_id=current_user.id,
+                resource_id=submission_id,
+                description=f"Reviewer {current_user.id} declined assignment for submission {submission_id}",
+                ip_address=req.client.host if req and req.client else None,
+                user_agent=req.headers.get("user-agent") if req else None,
+                metadata={"reviewer_id": current_user.id, "action": "decline_assignment"},
+            )
+        except Exception:
+            pass
+        
+        return {"message": "Assignment declined successfully", "submission_id": submission_id}
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 @router.delete("/assignments/{submission_id}/{reviewer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def unassign_reviewer(
     submission_id: int,

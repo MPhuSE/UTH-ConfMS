@@ -21,6 +21,7 @@ import SubmissionDetailPage from "../../features/author/pages/SubmissionDetailPa
 import PaperSubmissionPage from "../../features/author/pages/PaperSubmissionPage";
 import CameraReadyUploadPage from "../../features/author/pages/CameraReadyUploadPage";
 import ViewResultsPage from "../../features/author/pages/ViewResultsPage";
+import ConferenceDetailPage from "../../features/author/pages/ConferenceDetailPage";
 import AuthorProfile from "../../features/auth/pages/AuthorProfile";
 import AuditLogs from "../../features/dashboard/pages/AuditLogs";
 import AuthorDashboard from "../../features/dashboard/AuthorDashboard";
@@ -88,6 +89,7 @@ export default function AppRouter() {
                     
                     {/* Author Routes */}
                     <Route path="overview" element={<AuthorDashboard />} />
+                    <Route path="conference/:conferenceId" element={<ConferenceDetailPage />} />
                     <Route path="my-submissions" element={<MySubmissionsPage />} />
                     <Route path="submission" element={<PaperSubmissionPage />} />
                     <Route path="submission/edit/:paperId" element={<EditSubmissionPage />} />

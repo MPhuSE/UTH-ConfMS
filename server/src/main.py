@@ -36,7 +36,30 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-app = FastAPI(title="UTH-ConfMS API")
+app = FastAPI(
+    title="UTH-ConfMS API",
+    description="""
+    UTH Scientific Conference Paper Management System API
+    
+    A comprehensive system for managing scientific conferences including:
+    - Call for Papers (CFP) management
+    - Paper submission and review
+    - Program Committee (PC) management
+    - Decision making and notifications
+    - Camera-ready collection
+    - Proceedings export
+    
+    **Roles:**
+    - Admin: Full system administration
+    - Chair: Conference management
+    - Reviewer: Paper review
+    - Author: Paper submission
+    """,
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
+)
 
 
 

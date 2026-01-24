@@ -49,6 +49,78 @@ def create_conference(
         )
         result = service.execute(conference)
         
+        # Tạo tracks nếu có trong request
+        created_tracks = []
+        track_errors = []
+        if request.tracks and len(request.tracks) > 0:
+            try:
+                from infrastructure.models.conference_model import TrackModel
+                from infrastructure.repositories.track_repo_impl import TrackRepositoryImpl
+                track_repo = TrackRepositoryImpl(db)
+                
+                print(f"[TRACK DEBUG] Creating {len(request.tracks)} tracks for conference {result.id}")
+                print(f"[TRACK DEBUG] Request tracks: {[{'name': t.name, 'max_reviewers': t.max_reviewers} for t in request.tracks]}")
+                
+                for idx, track_data in enumerate(request.tracks):
+                    try:
+                        if not track_data.name or not track_data.name.strip():
+                            print(f"[TRACK DEBUG] Skipping track #{idx+1}: empty name")
+                            track_errors.append(f"Track #{idx+1}: Tên không được để trống")
+                            continue
+                        
+                        print(f"[TRACK DEBUG] Creating track #{idx+1}: name='{track_data.name}', max_reviewers={track_data.max_reviewers}")
+                        
+                        track = TrackModel(
+                            conference_id=result.id,
+                            name=track_data.name.strip(),
+                            max_reviewers=track_data.max_reviewers if track_data.max_reviewers and track_data.max_reviewers > 0 else 3
+                        )
+                        # track_repo.create() already commits, so track is saved immediately
+                        created_track = track_repo.create(track)
+                        print(f"[TRACK DEBUG] Track #{idx+1} created successfully: ID={created_track.id}, Name={created_track.name}")
+                        
+                        created_tracks.append({
+                            "id": created_track.id,
+                            "name": created_track.name,
+                            "max_reviewers": created_track.max_reviewers
+                        })
+                        
+                        try:
+                            create_audit_log_sync(
+                                db,
+                                action_type="CREATE",
+                                resource_type="TRACK",
+                                user_id=current_user.id,
+                                resource_id=created_track.id,
+                                description=f"Created track: {track_data.name} for conference {result.id}",
+                                ip_address=req.client.host if req and req.client else None,
+                                user_agent=req.headers.get("user-agent") if req else None,
+                                new_values={
+                                    "name": track_data.name,
+                                    "conference_id": result.id,
+                                    "max_reviewers": track_data.max_reviewers,
+                                },
+                            )
+                        except Exception as audit_error:
+                            print(f"[TRACK DEBUG] Audit log error (non-critical): {str(audit_error)}")
+                    except Exception as single_track_error:
+                        print(f"[TRACK DEBUG] ERROR creating track #{idx+1}: {str(single_track_error)}")
+                        import traceback
+                        traceback.print_exc()
+                        track_errors.append(f"Track '{track_data.name if track_data.name else f'#{idx+1}'}': {str(single_track_error)}")
+                        # Don't rollback here - track_repo.create() already committed if it succeeded
+                        # Only rollback if the track creation itself failed (which it already did)
+                
+                print(f"[TRACK DEBUG] Successfully created {len(created_tracks)}/{len(request.tracks)} tracks")
+                if track_errors:
+                    print(f"[TRACK DEBUG] Track errors: {track_errors}")
+            except Exception as track_error:
+                # Log error but don't fail the conference creation
+                print(f"[TRACK DEBUG] FATAL ERROR creating tracks: {str(track_error)}")
+                import traceback
+                traceback.print_exc()
+                track_errors.append(f"Lỗi hệ thống: {str(track_error)}")
+        
         try:
             create_audit_log_sync(
                 db,
@@ -64,12 +136,22 @@ def create_conference(
                     "abbreviation": request.abbreviation,
                     "is_open": request.is_open,
                     "blind_mode": request.blind_mode,
+                    "tracks_count": len(created_tracks),
                 },
             )
         except Exception:
             pass
         
-        return {"message": "Conference created successfully", "data": result}
+        response_data = {
+            "message": "Conference created successfully",
+            "data": result,
+            "tracks": created_tracks if created_tracks else None
+        }
+        
+        if track_errors:
+            response_data["track_warnings"] = track_errors
+        
+        return response_data
     except BusinessRuleException as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
@@ -82,13 +164,22 @@ def get_conference_by_id(conference_id: int, db: Session = Depends(get_db)):
         repo = ConferenceRepositoryImpl(db)
         service = GetConferenceService(repo)
         conf = service.get_by_id(conference_id)
+        # Get full model to access workflow fields
+        conf_model = db.query(ConferenceModel).filter(ConferenceModel.id == conference_id).first()
+        if not conf_model:
+            raise NotFoundError(f"Conference with id {conference_id} not found")
+        
         return ConferenceResponse(
             id=conf.id, name=conf.name, abbreviation=conf.abbreviation,
             description=conf.description, website=conf.website,
             location=conf.location, start_date=conf.start_date, end_date=conf.end_date,
             submission_deadline=conf.submission_deadline,
             review_deadline=conf.review_deadline,
-            is_open=conf.is_open, blind_mode=conf.blind_mode
+            is_open=conf.is_open, blind_mode=conf.blind_mode,
+            rebuttal_open=conf_model.rebuttal_open,
+            rebuttal_deadline=conf_model.rebuttal_deadline,
+            camera_ready_open=conf_model.camera_ready_open,
+            camera_ready_deadline=conf_model.camera_ready_deadline
         )
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -99,12 +190,23 @@ def get_all_conferences(skip: int = Query(0), limit: int = Query(100), db: Sessi
     service = GetConferenceService(repo)
     conferences = service.get_all(skip=skip, limit=limit)
     total = service.count_all()
+    
+    # Get full models to access workflow fields
+    conf_ids = [c.id for c in conferences] if conferences else []
+    conf_models = {}
+    if conf_ids:
+        conf_models = {cm.id: cm for cm in db.query(ConferenceModel).filter(ConferenceModel.id.in_(conf_ids)).all()}
+    
     return ConferenceListResponse(
         conferences=[ConferenceResponse(
             id=c.id, name=c.name, abbreviation=c.abbreviation, description=c.description,
             website=c.website, location=c.location, start_date=c.start_date, end_date=c.end_date,
             submission_deadline=c.submission_deadline, review_deadline=c.review_deadline,
-            is_open=c.is_open, blind_mode=c.blind_mode
+            is_open=c.is_open, blind_mode=c.blind_mode,
+            rebuttal_open=conf_models[c.id].rebuttal_open if c.id in conf_models else False,
+            rebuttal_deadline=conf_models[c.id].rebuttal_deadline if c.id in conf_models else None,
+            camera_ready_open=conf_models[c.id].camera_ready_open if c.id in conf_models else False,
+            camera_ready_deadline=conf_models[c.id].camera_ready_deadline if c.id in conf_models else None
         ) for c in conferences],
         total=total
     )

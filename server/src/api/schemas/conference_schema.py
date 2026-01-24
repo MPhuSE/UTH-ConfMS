@@ -4,6 +4,12 @@ from typing import Optional, List
 
 # --- CÁC SCHEMA CŨ CỦA BẠN (GIỮ NGUYÊN) ---
 
+class TrackCreateInConference(BaseModel):
+    """Track to create when creating conference"""
+    name: str
+    max_reviewers: int = 3
+
+
 class ConferenceCreateRequest(BaseModel):
     name: str
     abbreviation: Optional[str] = None
@@ -18,6 +24,7 @@ class ConferenceCreateRequest(BaseModel):
 
     is_open: bool = True
     blind_mode: str = "double"  # Đổi từ double_blind: enum single, double, open
+    tracks: Optional[List[TrackCreateInConference]] = None  # Optional: tạo tracks cùng lúc
 
 class ConferenceResponse(BaseModel):
     id: int
@@ -34,6 +41,12 @@ class ConferenceResponse(BaseModel):
 
     is_open: bool
     blind_mode: str  # Đổi từ double_blind: enum single, double, open
+    
+    # Workflow settings
+    rebuttal_open: Optional[bool] = False
+    rebuttal_deadline: Optional[datetime] = None
+    camera_ready_open: Optional[bool] = False
+    camera_ready_deadline: Optional[datetime] = None
 
     class Config:
         from_attributes = True

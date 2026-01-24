@@ -229,3 +229,179 @@ def get_system_health(
         "status": "operational" if db_status == "healthy" else "degraded"
     }
 
+
+@router.post("/backup")
+def create_backup(
+    current_user=Depends(require_admin),
+    db: Session = Depends(get_db),
+    req: Request = None
+):
+    """
+    Create a database backup.
+    Returns backup file path or backup data.
+    Note: This is a basic implementation. For production, use proper backup tools like pg_dump.
+    """
+    import os
+    from datetime import datetime
+    from config import settings
+    
+    try:
+        # Get database connection string
+        db_url = settings.DATABASE_URL
+        
+        # Generate backup filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_filename = f"uth_confms_backup_{timestamp}.sql"
+        backup_path = os.path.join("backups", backup_filename)
+        
+        # Create backups directory if it doesn't exist
+        os.makedirs("backups", exist_ok=True)
+        
+        # For PostgreSQL, use pg_dump (requires pg_dump to be installed)
+        import subprocess
+        try:
+            subprocess.run(
+                ["pg_dump", db_url, "-f", backup_path],
+                check=True,
+                capture_output=True
+            )
+            
+            try:
+                create_audit_log_sync(
+                    db,
+                    action_type="BACKUP",
+                    resource_type="SYSTEM",
+                    user_id=current_user.id,
+                    description=f"Created database backup: {backup_filename}",
+                    ip_address=req.client.host if req and req.client else None,
+                    user_agent=req.headers.get("user-agent") if req else None,
+                    metadata={"backup_file": backup_filename, "backup_path": backup_path},
+                )
+            except Exception:
+                pass
+            
+            return {
+                "status": "success",
+                "message": "Backup created successfully",
+                "backup_file": backup_filename,
+                "backup_path": backup_path,
+                "timestamp": timestamp
+            }
+        except subprocess.CalledProcessError as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Backup failed: {e.stderr.decode() if e.stderr else str(e)}"
+            )
+        except FileNotFoundError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="pg_dump not found. Please install PostgreSQL client tools."
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating backup: {str(e)}"
+        )
+
+
+@router.post("/restore")
+def restore_backup(
+    backup_file: str,
+    current_user=Depends(require_admin),
+    db: Session = Depends(get_db),
+    req: Request = None
+):
+    """
+    Restore database from backup.
+    WARNING: This will overwrite current database. Use with extreme caution.
+    """
+    import os
+    from config import settings
+    
+    backup_path = os.path.join("backups", backup_file)
+    
+    if not os.path.exists(backup_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Backup file not found: {backup_file}"
+        )
+    
+    try:
+        db_url = settings.DATABASE_URL
+        import subprocess
+        
+        try:
+            # For PostgreSQL, use psql to restore
+            with open(backup_path, 'r') as f:
+                result = subprocess.run(
+                    ["psql", db_url],
+                    input=f.read(),
+                    text=True,
+                    capture_output=True,
+                    check=True
+                )
+            
+            try:
+                create_audit_log_sync(
+                    db,
+                    action_type="RESTORE",
+                    resource_type="SYSTEM",
+                    user_id=current_user.id,
+                    description=f"Restored database from backup: {backup_file}",
+                    ip_address=req.client.host if req and req.client else None,
+                    user_agent=req.headers.get("user-agent") if req else None,
+                    metadata={"backup_file": backup_file},
+                )
+            except Exception:
+                pass
+            
+            return {
+                "status": "success",
+                "message": "Database restored successfully",
+                "backup_file": backup_file
+            }
+        except subprocess.CalledProcessError as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Restore failed: {e.stderr.decode() if e.stderr else str(e)}"
+            )
+        except FileNotFoundError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="psql not found. Please install PostgreSQL client tools."
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error restoring backup: {str(e)}"
+        )
+
+
+@router.get("/backups")
+def list_backups(
+    current_user=Depends(require_admin)
+):
+    """List all available backup files."""
+    import os
+    from datetime import datetime
+    
+    backups_dir = "backups"
+    if not os.path.exists(backups_dir):
+        return {"backups": [], "total": 0}
+    
+    backups = []
+    for filename in os.listdir(backups_dir):
+        if filename.endswith(".sql"):
+            filepath = os.path.join(backups_dir, filename)
+            stat = os.stat(filepath)
+            backups.append({
+                "filename": filename,
+                "size": stat.st_size,
+                "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            })
+    
+    backups.sort(key=lambda x: x["created_at"], reverse=True)
+    return {"backups": backups, "total": len(backups)}
+

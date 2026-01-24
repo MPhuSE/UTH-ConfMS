@@ -1,7 +1,4 @@
-"""
-Script để fix status của các submission đã có camera_ready_submission nhưng status vẫn là "accepted"
-Chạy script này để cập nhật status = "published" cho các submission đã upload camera-ready
-"""
+
 import sys
 import os
 

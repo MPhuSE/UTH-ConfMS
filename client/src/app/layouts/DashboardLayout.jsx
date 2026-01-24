@@ -18,7 +18,8 @@ import {
   Bell,
   UserCog,
   ClipboardList,
-  CheckCircle
+  CheckCircle,
+  Gavel
 } from "lucide-react";
 
 export default function DashboardLayout() {
@@ -180,6 +181,13 @@ export default function DashboardLayout() {
               >
                 <Award className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
                 <span>Quản lý hội nghị</span>
+              </Link>
+              <Link
+                to="/dashboard/chair/dashboard"
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+              >
+                <Gavel className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <span>Quản lý quyết định</span>
               </Link>
               <Link
                 to="/dashboard/chair/coi"

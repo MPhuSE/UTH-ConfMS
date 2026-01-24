@@ -40,7 +40,6 @@ class CreateInitialChairService:
             full_name=full_name,
             email=email,
             hashed_password=hashed_password,
-            password_hash=hashed_password,
             affiliation="Conference Chair",
             is_verified=True,
             is_active=True,

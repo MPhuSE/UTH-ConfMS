@@ -1,6 +1,7 @@
 import datetime
 import json
-from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile, Query
+from starlette.requests import Request
 from typing import List
 from dependency_container import get_submission_repo, get_conference_repo
 from api.schemas.submission_schema import (
@@ -47,7 +48,6 @@ async def submit_paper(
                 detail="The submission deadline for this conference has passed."
             )
 
-<<<<<<< HEAD
         # 3. Kiểm tra định dạng file - CHỈ CHẤP NHẬN PDF
         if not file.content_type or file.content_type != "application/pdf":
             raise HTTPException(status_code=400, detail="Chỉ chấp nhận file PDF (.pdf). File hiện tại không phải PDF.")
@@ -55,10 +55,6 @@ async def submit_paper(
         # Kiểm tra đuôi file phải là .pdf
         if file.filename and not file.filename.lower().endswith(".pdf"):
             raise HTTPException(status_code=400, detail="Chỉ chấp nhận file có đuôi .pdf")
-=======
-        if file.content_type != "application/pdf":
-            raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
->>>>>>> 3002fe292252f272890eab96cf4472a7b97d0c49
 
         file_url = await CloudinaryService.upload_pdf(file)
         

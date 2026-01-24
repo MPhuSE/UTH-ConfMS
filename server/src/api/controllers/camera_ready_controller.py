@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from starlette.requests import Request
 from sqlalchemy.orm import Session
 
 from api.schemas.camera_ready_schema import CameraReadyUploadRequest, CameraReadyResponse

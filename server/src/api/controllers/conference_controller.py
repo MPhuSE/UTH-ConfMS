@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from starlette.requests import Request
 from sqlalchemy.orm import Session
 
 from api.schemas.conference_schema import (

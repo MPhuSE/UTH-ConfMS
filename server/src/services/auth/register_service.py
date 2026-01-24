@@ -45,9 +45,7 @@ class RegisterService:
         new_user = UserModel(
             full_name=full_name,
             email=email,
-            # store into both fields for smooth migration
             hashed_password=hashed_password,
-            password_hash=hashed_password,
             is_verified=False,
             is_active=True,
             created_at=datetime.utcnow(),

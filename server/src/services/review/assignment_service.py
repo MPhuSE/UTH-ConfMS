@@ -75,6 +75,11 @@ class AssignmentService:
             auto_assigned=auto_assigned
         )
         
+        # Update submission status to "under_review" if this is the first assignment
+        # and submission is still in "submitted" status
+        if not existing_assignments and submission.status in (None, "submitted"):
+            self.submission_repo.update(submission_id, {"status": "under_review"})
+        
         return {
             "submission_id": assignment.submission_id,
             "reviewer_id": assignment.reviewer_id,

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status ,BackgroundTasks, Request
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from starlette.requests import Request
 
 from api.schemas.auth_schema import (
     RegisterRequest,

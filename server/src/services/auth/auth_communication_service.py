@@ -49,7 +49,6 @@ class AuthCommunicationService:
         user = await self.user_repo.get_by_id(payload["user_id"])
         new_hashed = pwd_context.hash(new_password)
         user.hashed_password = new_hashed
-        user.password_hash = new_hashed
         await self.db.commit()
 
     async def send_user_document(

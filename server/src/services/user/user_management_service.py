@@ -52,9 +52,7 @@ class UserManagementService:
         # Tạo user model
         new_user = UserModel(
             email=email,
-            # populate both fields so old code and new fields are consistent
             hashed_password=hashed_password,
-            password_hash=hashed_password,
             full_name=full_name,
             affiliation=affiliation,
             phone_number=phone_number,
@@ -149,7 +147,6 @@ class UserManagementService:
 
         hashed_password = Hasher.hash_password(new_password)
         user.hashed_password = hashed_password
-        user.password_hash = hashed_password
         await self.user_repo.update(user)
         await self.db_session.commit()
 

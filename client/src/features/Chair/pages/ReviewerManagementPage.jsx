@@ -43,9 +43,13 @@ export default function ReviewerManagementPage() {
       setConference(confData);
 
       // Load all users with reviewer role
-      const usersData = await userService.getAll();
+      const usersResponse = await userService.getAll();
+      // Handle both array response and object response with 'users' property
+      const usersData = Array.isArray(usersResponse) ? usersResponse : (usersResponse.users || []);
       const reviewerUsers = usersData.filter((u) => 
-        u.roles?.some((r) => r.name === "reviewer") || u.role === "reviewer"
+        u.roles?.some((r) => r.name === "reviewer" || r === "reviewer") || 
+        u.role === "reviewer" ||
+        (Array.isArray(u.role_names) && u.role_names.includes("reviewer"))
       );
       setAllUsers(reviewerUsers);
 

@@ -2,7 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSubmissionStore } from "../../../app/store/useSubmissionStore";
 import { userService } from "../../../services/userService";
+import { conferenceService } from "../../../services/conferenceService";
 import { Save, Trash2, FileUp, ArrowLeft, Loader2, CheckCircle, UserPlus, Plus } from "lucide-react";
+import StatusAlert from "../../../components/StatusAlert";
+import { canEditSubmission, getSubmissionBlockReason } from "../../../utils/validationUtils";
 
 export default function EditSubmissionPage() {
   const { paperId } = useParams(); 
@@ -26,6 +29,7 @@ export default function EditSubmissionPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [conference, setConference] = useState(null);
 
   // 1. Tải dữ liệu khi mount
   useEffect(() => {
@@ -53,12 +57,26 @@ export default function EditSubmissionPage() {
         file: null,
         authors: mappedAuthors
       });
+
+      // Load conference data for validation
+      if (currentSubmission.conference_id) {
+        conferenceService.getById(currentSubmission.conference_id)
+          .then(setConference)
+          .catch(err => console.error("Load conference error:", err));
+      }
     }
   }, [currentSubmission]);
 
   // 3. Xử lý Cập nhật
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check validation
+    if (!canEditSubmission(currentSubmission, conference)) {
+      const reason = getSubmissionBlockReason(conference);
+      alert(reason || "Không thể chỉnh sửa bài nộp này");
+      return;
+    }
     
     // Tạo FormData chuẩn để gửi lên Backend
     const data = new FormData();
@@ -80,6 +98,10 @@ export default function EditSubmissionPage() {
       }, 500);
     }
   };
+
+  // Check if can edit
+  const canEdit = canEditSubmission(currentSubmission, conference);
+  const blockReason = getSubmissionBlockReason(conference);
 
   const addAuthor = () => {
     setFormData({
@@ -177,6 +199,14 @@ export default function EditSubmissionPage() {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-[32px] shadow-2xl shadow-blue-100/50 border border-gray-100 overflow-hidden">
         <div className="p-8 md:p-12 space-y-8">
+          {/* Status Alert */}
+          {!canEdit && blockReason && (
+            <StatusAlert
+              type="error"
+              title="Không thể chỉnh sửa bài nộp"
+              message={blockReason}
+            />
+          )}
           {/* Title */}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Paper Title</label>
@@ -317,11 +347,15 @@ export default function EditSubmissionPage() {
         <div className="p-8 bg-gray-50 border-t border-gray-100 flex gap-4">
           <button 
             type="submit" 
-            disabled={isLoading}
-            className="flex-2 bg-blue-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50"
+            disabled={isLoading || !canEdit}
+            className={`flex-2 py-5 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-xl ${
+              !canEdit 
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none" 
+                : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 disabled:opacity-50"
+            }`}
           >
             {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-            {isLoading ? "UPDATING..." : "SAVE CHANGES"}
+            {isLoading ? "UPDATING..." : !canEdit ? "KHÔNG THỂ CHỈNH SỬA" : "SAVE CHANGES"}
           </button>
           <button 
             type="button"

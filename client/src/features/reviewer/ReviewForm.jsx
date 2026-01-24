@@ -31,20 +31,22 @@ const ReviewForm = () => {
     }
     
     setLoading(true);
+    // Define payload outside try block để có thể log trong catch
+    const payload = {
+      summary: formData.summary || null,
+      strengths: formData.strengths || null,
+      weaknesses: formData.weaknesses || null,
+      confidence: formData.confidence || null,
+      recommendation: formData.recommendation || "borderline",
+      best_paper_recommendation: Boolean(formData.best_paper_recommendation),
+      score: formData.score ? parseFloat(formData.score) : null,  // Include score field
+      // Only include answers if review questions exist in the system
+      // answers: [
+      //   { question_id: 1, answer: String(formData.score) },
+      // ],
+    };
+    
     try {
-      const payload = {
-        summary: formData.summary || null,
-        strengths: formData.strengths || null,
-        weaknesses: formData.weaknesses || null,
-        confidence: formData.confidence || null,
-        recommendation: formData.recommendation || "borderline",
-        best_paper_recommendation: Boolean(formData.best_paper_recommendation),
-        score: formData.score ? parseFloat(formData.score) : null,  // Include score field
-        // Only include answers if review questions exist in the system
-        // answers: [
-        //   { question_id: 1, answer: String(formData.score) },
-        // ],
-      };
       await reviewService.submitReview(Number(submissionId), payload);
       toast.success("Gửi bài đánh giá thành công!");
       navigate("/dashboard/reviewer/dashboard");

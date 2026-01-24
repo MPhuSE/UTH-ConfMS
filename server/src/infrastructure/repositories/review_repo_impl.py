@@ -46,6 +46,15 @@ class ReviewRepositoryImpl(ReviewRepository):
             self.db.commit()
     
     def create_review(self, submission_id: int, reviewer_id: int, data: Dict[str, Any]) -> ReviewModel:
+        # Handle score field
+        score = data.get('score')
+        score_value = None
+        if score is not None:
+            try:
+                score_value = int(float(score))  # Convert to int (0-10 scale)
+            except (ValueError, TypeError):
+                score_value = None
+        
         review = ReviewModel(
             submission_id=submission_id,
             reviewer_id=reviewer_id,
@@ -54,7 +63,8 @@ class ReviewRepositoryImpl(ReviewRepository):
             weaknesses=data.get('weaknesses'),  # Đổi từ weakness thành weaknesses
             confidence=data.get('confidence'),
             recommendation=data.get('recommendation'),
-            best_paper_recommendation=data.get('best_paper_recommendation', False)
+            best_paper_recommendation=data.get('best_paper_recommendation', False),
+            score=score_value  # Add score field
         )
         self.db.add(review)
         self.db.flush()

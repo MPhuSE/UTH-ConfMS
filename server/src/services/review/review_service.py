@@ -120,6 +120,7 @@ class ReviewService:
             "recommendation": review.recommendation,
             "submitted_at": review.submitted_at if review.submitted_at else None,
             "best_paper_recommendation": review.best_paper_recommendation,
+            "score": float(review.score) if hasattr(review, 'score') and review.score is not None else None,
             "answers": answers if answers else None
         }
     

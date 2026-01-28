@@ -19,11 +19,21 @@ import {
   UserCog,
   ClipboardList,
   CheckCircle,
-  Gavel
+  Gavel,
+  Sparkles
 } from "lucide-react";
 
 export default function DashboardLayout() {
   const { role, user } = useAuthStore();
+
+  // Color scheme - CFP Green Theme
+  const colors = {
+    primary: "#008689",       // Main teal/green color
+    primaryLight: "#E6F4F5",  // Light background
+    primaryDark: "#006A6D",   // Darker teal
+    secondary: "#2D3748",     // Text dark
+    accent: "#008689",        // Using primary as accent for consistency
+  };
 
   const roleNames = Array.isArray(user?.role_names) && user.role_names.length
     ? user.role_names.map((r) => String(r || "").toLowerCase())
@@ -46,80 +56,301 @@ export default function DashboardLayout() {
   const displayName = user?.full_name || user?.name || user?.email || "Người dùng";
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div style={{ display: "flex", minHeight: "100vh", background: "#F8FAFC" }}>
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+      <aside
+        style={{
+          width: "280px",
+          background: "white",
+          borderRight: "1px solid #E2E8F0",
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "2px 0 8px rgba(0,0,0,0.04)",
+        }}
+      >
         {/* Sidebar Header */}
-        <div className="p-6 border-b border-gray-200">
-          <Link to="/dashboard/overview" className="inline-flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 bg-linear-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">UT</span>
+        <div
+          style={{
+            padding: "24px",
+            background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+            borderBottom: "1px solid rgba(255,255,255,0.1)",
+          }}
+        >
+          <Link
+            to="/dashboard/overview"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              textDecoration: "none",
+              transition: "opacity 0.3s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+          >
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                background: "rgba(255,255,255,0.2)",
+                backdropFilter: "blur(10px)",
+                borderRadius: "12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "2px solid rgba(255,255,255,0.3)",
+              }}
+            >
+              <span style={{ color: "white", fontWeight: "800", fontSize: "20px" }}>
+                UT
+              </span>
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">
-                UTH-Conf<span className="text-blue-600">MS</span>
+              <h2 style={{ fontSize: "20px", fontWeight: "800", color: "white", marginBottom: "2px" }}>
+                UTH-Conf<span style={{ color: colors.primaryLight }}>MS</span>
               </h2>
-              <p className="text-xs text-gray-500">Hệ thống hội nghị</p>
+              <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.8)", fontWeight: "500" }}>
+                Hệ thống hội nghị
+              </p>
             </div>
           </Link>
         </div>
 
         {/* User Info */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
+        <div
+          style={{
+            padding: "20px 24px",
+            background: colors.primaryLight,
+            borderBottom: "1px solid #E2E8F0",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+                fontWeight: "700",
+                fontSize: "18px",
+                boxShadow: "0 4px 12px rgba(0,134,137,0.25)",
+              }}
+            >
               {displayName?.[0]?.toUpperCase() || "U"}
             </div>
-            <div>
-              <p className="font-medium text-gray-900">{displayName}</p>
-              <p className="text-sm text-gray-500">{getRoleName()}</p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p
+                style={{
+                  fontWeight: "600",
+                  color: colors.secondary,
+                  fontSize: "15px",
+                  marginBottom: "2px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {displayName}
+              </p>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  background: "white",
+                  padding: "3px 10px",
+                  borderRadius: "12px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: colors.primary,
+                  border: `1px solid ${colors.primary}30`,
+                }}
+              >
+                <Sparkles size={12} />
+                {getRoleName()}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav
+          style={{
+            flex: 1,
+            padding: "16px",
+            overflowY: "auto",
+          }}
+        >
           {/* Common Links */}
-          <Link 
-            to="/dashboard" 
-            className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+          <Link
+            to="/dashboard"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "12px 16px",
+              color: "#64748B",
+              textDecoration: "none",
+              borderRadius: "12px",
+              transition: "all 0.3s ease",
+              fontSize: "14px",
+              fontWeight: "500",
+              marginBottom: "4px",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = colors.primaryLight;
+              e.currentTarget.style.color = colors.primary;
+              e.currentTarget.querySelector("svg").style.color = colors.primary;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#64748B";
+              e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+            }}
           >
-            <Home className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+            <Home size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
             <span>Tổng quan</span>
           </Link>
 
           {/* Author Links */}
           {isAuthor && (
             <>
-              <Link 
-                to="/dashboard/my-submissions" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+              <div style={{ marginTop: "24px", marginBottom: "12px" }}>
+                <p
+                  style={{
+                    padding: "0 16px",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    color: "#94A3B8",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Tác giả
+                </p>
+              </div>
+
+              <Link
+                to="/dashboard/my-submissions"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <FileText size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Bài nộp của tôi</span>
               </Link>
-              
-              <Link 
-                to="/dashboard/submission" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+
+              <Link
+                to="/dashboard/submission"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Upload className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Upload size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Nộp bài mới</span>
               </Link>
-              
-              <Link 
-                to="/dashboard/results" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+
+              <Link
+                to="/dashboard/results"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Award className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Award size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Kết quả & Reviews</span>
               </Link>
-              
-              <Link 
-                to="/dashboard/profile" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+
+              <Link
+                to="/dashboard/profile"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <User className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <User size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Hồ sơ</span>
               </Link>
             </>
@@ -128,35 +359,138 @@ export default function DashboardLayout() {
           {/* Reviewer Links */}
           {isReviewer && (
             <>
-              <div className="pt-4 pb-2">
-                <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reviewer</p>
+              <div style={{ marginTop: "24px", marginBottom: "12px" }}>
+                <p
+                  style={{
+                    padding: "0 16px",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    color: "#94A3B8",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Phản biện
+                </p>
               </div>
+
               <Link
                 to="/dashboard/reviewer/dashboard"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <ClipboardList className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <ClipboardList size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Dashboard</span>
               </Link>
+
               <Link
                 to="/dashboard/reviewer/assignments"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <FileText size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>My Assignments</span>
               </Link>
+
               <Link
                 to="/dashboard/reviewer/reviews"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Award className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Award size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>My Reviews</span>
               </Link>
+
               <Link
                 to="/dashboard/reviewer/check-coi"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Shield className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Shield size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Check COI</span>
               </Link>
             </>
@@ -165,42 +499,168 @@ export default function DashboardLayout() {
           {/* Chair Links */}
           {isChair && (
             <>
-              <div className="pt-4 pb-2">
-                <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Chair</p>
+              <div style={{ marginTop: "24px", marginBottom: "12px" }}>
+                <p
+                  style={{
+                    padding: "0 16px",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    color: "#94A3B8",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Chủ tịch
+                </p>
               </div>
+
               <Link
                 to="/dashboard/chair/dashboard"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <UserCog className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <UserCog size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Chair Dashboard</span>
               </Link>
+
               <Link
                 to="/dashboard/chair/conferences"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Award className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Award size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Quản lý hội nghị</span>
               </Link>
+
               <Link
                 to="/dashboard/chair/dashboard"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Gavel className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Gavel size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Quản lý quyết định</span>
               </Link>
+
               <Link
                 to="/dashboard/chair/coi"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Shield className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Shield size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Quản lý COI</span>
               </Link>
+
               <Link
                 to="/dashboard/audit-logs"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <FileText size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Audit Logs</span>
               </Link>
             </>
@@ -209,63 +669,228 @@ export default function DashboardLayout() {
           {/* Admin Links */}
           {isAdmin && (
             <>
-              <div className="pt-4 pb-2">
-                <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Quản trị</p>
+              <div style={{ marginTop: "24px", marginBottom: "12px" }}>
+                <p
+                  style={{
+                    padding: "0 16px",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    color: "#94A3B8",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Quản trị
+                </p>
               </div>
-              
-              <Link 
-                to="/dashboard/admin" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+
+              <Link
+                to="/dashboard/admin"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Settings className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Settings size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Admin Dashboard</span>
               </Link>
-              
-              <Link 
-                to="/dashboard/admin/users" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+
+              <Link
+                to="/dashboard/admin/users"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Users className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Users size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Quản lý người dùng</span>
               </Link>
-              
-              <Link 
-                to="/dashboard/admin/tenants" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+
+              <Link
+                to="/dashboard/admin/tenants"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Building className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Building size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Tenancy</span>
               </Link>
-              
-              <Link 
-                to="/dashboard/admin/smtp-config" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+
+              <Link
+                to="/dashboard/admin/smtp-config"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Mail className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Mail size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>SMTP</span>
               </Link>
-              
-              <Link 
-                to="/dashboard/admin/quota-config" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+
+              <Link
+                to="/dashboard/admin/quota-config"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <BarChart className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <BarChart size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Quota</span>
               </Link>
-              
-              <Link 
-                to="/dashboard/admin/system-health" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+
+              <Link
+                to="/dashboard/admin/system-health"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <Shield className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <Shield size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>System Health</span>
               </Link>
-              
-              <Link 
-                to="/dashboard/audit-logs" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors group"
+
+              <Link
+                to="/dashboard/audit-logs"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  color: "#64748B",
+                  textDecoration: "none",
+                  borderRadius: "12px",
+                  transition: "all 0.3s ease",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  marginBottom: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = colors.primaryLight;
+                  e.currentTarget.style.color = colors.primary;
+                  e.currentTarget.querySelector("svg").style.color = colors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#64748B";
+                  e.currentTarget.querySelector("svg").style.color = "#94A3B8";
+                }}
               >
-                <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                <FileText size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
                 <span>Audit Logs</span>
               </Link>
             </>
@@ -273,48 +898,147 @@ export default function DashboardLayout() {
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-gray-200">
-          <Link 
-            to="/login" 
-            className="flex items-center justify-between px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors group"
+        <div
+          style={{
+            padding: "16px",
+            borderTop: "1px solid #E2E8F0",
+            background: "#FAFAFA",
+          }}
+        >
+          <Link
+            to="/login"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 16px",
+              color: "#EF4444",
+              textDecoration: "none",
+              borderRadius: "12px",
+              transition: "all 0.3s ease",
+              fontSize: "14px",
+              fontWeight: "600",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#FEE2E2";
+              e.currentTarget.querySelector(".chevron").style.opacity = "1";
+              e.currentTarget.querySelector(".chevron").style.transform = "translateX(4px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.querySelector(".chevron").style.opacity = "0";
+              e.currentTarget.querySelector(".chevron").style.transform = "translateX(0)";
+            }}
           >
-            <div className="flex items-center gap-3">
-              <LogOut className="w-5 h-5" />
-              <span className="font-medium">Đăng xuất</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <LogOut size={20} />
+              <span>Đăng xuất</span>
             </div>
-            <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <ChevronRight
+              className="chevron"
+              size={16}
+              style={{ opacity: 0, transition: "all 0.3s ease" }}
+            />
           </Link>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col">
+      <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {/* Top Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
+        <header
+          style={{
+            background: "white",
+            borderBottom: "1px solid #E2E8F0",
+            padding: "20px 32px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">
-                Xin chào, <span className="text-blue-600">{getRoleName()}</span>
+              <h1
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "700",
+                  color: colors.secondary,
+                  marginBottom: "4px",
+                }}
+              >
+                Xin chào, <span style={{ color: colors.primary }}>{getRoleName()}</span>
               </h1>
-              <p className="text-sm text-gray-600">
+              <p style={{ fontSize: "14px", color: "#64748B" }}>
                 Chào mừng đến với hệ thống quản lý hội nghị
               </p>
             </div>
-            
-            <div className="flex items-center gap-4">
+
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
               {/* Notifications */}
-              <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              <button
+                style={{
+                  position: "relative",
+                  padding: "10px",
+                  background: "transparent",
+                  border: "none",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  transition: "background 0.3s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = colors.primaryLight)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <Bell size={20} style={{ color: "#64748B" }} />
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "8px",
+                    right: "8px",
+                    width: "8px",
+                    height: "8px",
+                    background: "#EF4444",
+                    borderRadius: "50%",
+                    border: "2px solid white",
+                  }}
+                />
               </button>
-              
+
               {/* User Menu */}
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{displayName}</p>
-                  <p className="text-xs text-gray-500">{user?.email || "example@uth.edu.vn"}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ textAlign: "right" }}>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: "600",
+                      color: colors.secondary,
+                      marginBottom: "2px",
+                    }}
+                  >
+                    {displayName}
+                  </p>
+                  <p style={{ fontSize: "12px", color: "#64748B" }}>
+                    {user?.email || "example@uth.edu.vn"}
+                  </p>
                 </div>
-                <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
+                <div
+                  style={{
+                    width: "44px",
+                    height: "44px",
+                    background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "white",
+                    fontWeight: "700",
+                    fontSize: "16px",
+                    boxShadow: "0 4px 12px rgba(0,134,137,0.25)",
+                  }}
+                >
                   {displayName?.[0]?.toUpperCase() || "U"}
                 </div>
               </div>
@@ -323,8 +1047,8 @@ export default function DashboardLayout() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 p-6">
-          <div className="max-w-7xl mx-auto">
+        <div style={{ flex: 1, padding: "32px", background: "#F8FAFC" }}>
+          <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
             <Outlet />
           </div>
         </div>

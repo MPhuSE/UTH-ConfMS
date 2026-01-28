@@ -52,15 +52,15 @@ export default function AuthorDashboard() {
     fetchDashboardData('author');
   }, []);
 
-  // Sử dụng palette màu giống Login page
+  // Updated color palette - Teal/Cyan theme
   const conferenceStats = [
     { 
       label: language === 'VI' ? 'Tổng bài nộp' : 'Total Submissions', 
       value: counts.total || 0, 
       icon: FileText, 
-      color: 'from-[#1A365D] to-[#2C7A7B]',
-      bgColor: 'bg-gradient-to-br from-[#1A365D]/10 to-[#2C7A7B]/10',
-      iconColor: 'text-[#1A365D]',
+      color: 'from-[#0d9488] to-[#14b8a6]',
+      bgColor: 'bg-gradient-to-br from-[#0d9488]/10 to-[#14b8a6]/10',
+      iconColor: 'text-[#0d9488]',
       trend: '+12%',
       detail: language === 'VI' ? 'tăng so với tháng trước' : 'up from last month'
     },
@@ -68,9 +68,9 @@ export default function AuthorDashboard() {
       label: language === 'VI' ? 'Đang phản biện' : 'Under Review', 
       value: counts.underReview || 0, 
       icon: Clock, 
-      color: 'from-amber-500 to-amber-600',
-      bgColor: 'bg-gradient-to-br from-amber-100 to-amber-50',
-      iconColor: 'text-amber-600',
+      color: 'from-[#0d9488] to-[#14b8a6]',
+      bgColor: 'bg-gradient-to-br from-[#0d9488]/10 to-[#14b8a6]/10',
+      iconColor: 'text-[#14b8a6]',
       trend: '+2',
       detail: language === 'VI' ? 'bài đang xử lý' : 'in process'
     },
@@ -102,18 +102,18 @@ export default function AuthorDashboard() {
       action: language === 'VI' ? 'Gửi bài đến hội nghị CS2024' : 'Submitted to CS2024', 
       time: '2 giờ trước', 
       type: 'submit',
-      color: 'bg-gradient-to-r from-[#1A365D]/10 to-[#2C7A7B]/10',
+      color: 'bg-gradient-to-r from-[#0d9488]/10 to-[#14b8a6]/10',
       icon: FileEdit,
-      iconColor: 'text-[#2C7A7B]'
+      iconColor: 'text-[#14b8a6]'
     },
     { 
       id: 2, 
       action: language === 'VI' ? 'Nhận phản hồi phản biện' : 'Received review feedback', 
       time: '1 ngày trước', 
       type: 'review',
-      color: 'bg-gradient-to-r from-amber-100 to-amber-50',
+      color: 'bg-gradient-to-r from-[#0d9488]/10 to-[#14b8a6]/10',
       icon: Star,
-      iconColor: 'text-amber-600'
+      iconColor: 'text-[#14b8a6]'
     },
     { 
       id: 3, 
@@ -129,54 +129,30 @@ export default function AuthorDashboard() {
       action: language === 'VI' ? 'Cập nhật thông tin hồ sơ' : 'Profile updated', 
       time: '1 tuần trước', 
       type: 'update',
-      color: 'bg-gradient-to-r from-purple-100 to-purple-50',
+      color: 'bg-gradient-to-r from-[#0d9488]/10 to-[#14b8a6]/10',
       icon: UserIcon,
-      iconColor: 'text-purple-600'
+      iconColor: 'text-[#14b8a6]'
     },
-  ];
-
-  const quickActions = [
-    {
-      label: language === 'VI' ? 'Hồ sơ cá nhân' : 'Personal Profile',
-      description: language === 'VI' ? 'Cập nhật thông tin cá nhân' : 'Update personal information',
-      icon: UserIcon,
-      color: 'from-[#1A365D] to-[#2C7A7B]',
-      onClick: () => navigate('/dashboard/profile')
-    },
-    {
-      label: language === 'VI' ? 'Thống kê chi tiết' : 'Detailed Statistics',
-      description: language === 'VI' ? 'Xem báo cáo hiệu suất' : 'View performance reports',
-      icon: BarChart3,
-      color: 'from-emerald-500 to-emerald-600',
-      onClick: () => navigate('/dashboard/my-submissions')
-    },
-    {
-      label: language === 'VI' ? 'Mẫu tài liệu' : 'Document Templates',
-      description: language === 'VI' ? 'Tải mẫu bài báo' : 'Download paper templates',
-      icon: Download,
-      color: 'from-purple-500 to-purple-600',
-      onClick: () => navigate('/dashboard/downloads')
-    }
   ];
 
   const filterOptions = [
     { 
       id: 'all', 
       label: language === 'VI' ? 'Tất cả' : 'All', 
-      active: 'bg-gradient-to-r from-[#1A365D] to-[#2C7A7B] text-white',
+      active: 'bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white',
       inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
     },
     { 
       id: 'open', 
       label: language === 'VI' ? 'Đang mở' : 'Open', 
-      active: 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white',
-      inactive: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
+      active: 'bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white',
+      inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
     },
     { 
       id: 'upcoming', 
       label: language === 'VI' ? 'Sắp tới' : 'Upcoming', 
-      active: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white',
-      inactive: 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+      active: 'bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white',
+      inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
     },
     { 
       id: 'past', 
@@ -232,12 +208,12 @@ export default function AuthorDashboard() {
   const displayConferences = showAllConferences ? filteredConferences : filteredConferences?.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1A365D]/5 via-white to-[#2C7A7B]/5">
+    <div className="min-h-screen bg-gradient-to-br from-[#0d9488]/5 via-white to-[#14b8a6]/5">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1A365D] to-[#2C7A7B] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0d9488] to-[#14b8a6] flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -256,7 +232,7 @@ export default function AuthorDashboard() {
             
             <button
               onClick={() => setLanguage(lang => lang === 'VI' ? 'EN' : 'VI')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 hover:border-[#2C7A7B] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 hover:border-[#14b8a6] transition-colors"
             >
               <Globe className="w-4 h-4 text-gray-600" />
               <span className="font-medium text-gray-700">{language}</span>
@@ -270,8 +246,8 @@ export default function AuthorDashboard() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Welcome Header với cùng gradient như Login */}
-        <div className="mb-8 bg-gradient-to-r from-[#1A365D] to-[#2C7A7B] rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
+        {/* Welcome Header */}
+        <div className="mb-8 bg-gradient-to-r from-[#0d9488] to-[#14b8a6] rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -translate-x-24 translate-y-24" />
           
@@ -319,7 +295,7 @@ export default function AuthorDashboard() {
             <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-0">
               <button 
                 onClick={() => navigate('/dashboard/submission')}
-                className="flex items-center justify-center gap-2 px-5 py-3 bg-white text-[#2C7A7B] rounded-lg font-semibold hover:bg-gray-50 shadow-md transition-colors"
+                className="flex items-center justify-center gap-2 px-5 py-3 bg-white text-[#14b8a6] rounded-lg font-semibold hover:bg-gray-50 shadow-md transition-colors"
               >
                 <Plus className="w-5 h-5" />
                 {language === 'VI' ? 'Nộp bài mới' : 'Submit Paper'}
@@ -366,7 +342,7 @@ export default function AuthorDashboard() {
               <div className="p-6 border-b border-gray-100">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
                   <div className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-[#2C7A7B]" />
+                    <Trophy className="w-5 h-5 text-[#14b8a6]" />
                     <h3 className="text-lg font-bold text-gray-900">
                       {language === 'VI' ? 'Hội nghị đang mở' : 'Open Conferences'}
                     </h3>
@@ -378,7 +354,7 @@ export default function AuthorDashboard() {
                       <input
                         type="text"
                         placeholder={language === 'VI' ? 'Tìm hội nghị...' : 'Search...'}
-                        className="pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#2C7A7B] focus:border-[#2C7A7B] w-40"
+                        className="pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#14b8a6] focus:border-[#14b8a6] w-40"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -413,7 +389,7 @@ export default function AuthorDashboard() {
                       const status = isUpcoming ? 'open' : 'past';
                       
                       return (
-                        <div key={conf.id} className="border border-gray-200 rounded-lg p-4 hover:border-[#2C7A7B] hover:shadow-sm transition-all">
+                        <div key={conf.id} className="border border-gray-200 rounded-lg p-4 hover:border-[#14b8a6] hover:shadow-sm transition-all">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
@@ -448,13 +424,13 @@ export default function AuthorDashboard() {
                           <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                             <button 
                               onClick={() => navigate(`/dashboard/conference/${conf.id}`)}
-                              className="text-sm text-[#2C7A7B] hover:text-[#1A365D] font-medium"
+                              className="text-sm text-[#14b8a6] hover:text-[#0d9488] font-medium"
                             >
                               {language === 'VI' ? 'Chi tiết' : 'Details'}
                             </button>
                             <button 
                               onClick={() => navigate(`/dashboard/submission?confId=${conf.id}`)}
-                              className="px-3 py-1.5 bg-gradient-to-r from-[#1A365D] to-[#2C7A7B] text-white text-sm font-medium rounded hover:shadow-md transition-colors"
+                              className="px-3 py-1.5 bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white text-sm font-medium rounded hover:shadow-md transition-colors"
                             >
                               {language === 'VI' ? 'Nộp bài' : 'Submit'}
                             </button>
@@ -466,7 +442,7 @@ export default function AuthorDashboard() {
                     {filteredConferences.length > 3 && (
                       <button 
                         onClick={() => setShowAllConferences(!showAllConferences)}
-                        className="w-full py-2 text-center text-[#2C7A7B] hover:text-[#1A365D] font-medium"
+                        className="w-full py-2 text-center text-[#14b8a6] hover:text-[#0d9488] font-medium"
                       >
                         {showAllConferences ? (
                           <>
@@ -503,7 +479,7 @@ export default function AuthorDashboard() {
             </div>
           </div>
 
-          {/* Right Column */}
+          {/* Right Column - Recent Activity Only */}
           <div className="space-y-4">
             {/* Recent Activity */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -531,44 +507,10 @@ export default function AuthorDashboard() {
                 
                 <button 
                   onClick={() => navigate('/dashboard/activity')}
-                  className="w-full mt-4 pt-3 text-center text-[#2C7A7B] hover:text-[#1A365D] font-medium border-t border-gray-100"
+                  className="w-full mt-4 pt-3 text-center text-[#14b8a6] hover:text-[#0d9488] font-medium border-t border-gray-100"
                 >
                   {language === 'VI' ? 'Xem tất cả' : 'View all'} →
                 </button>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-gradient-to-r from-[#1A365D] to-[#2C7A7B] rounded-xl p-6 text-white shadow-lg">
-              <h3 className="font-bold mb-4">
-                {language === 'VI' ? 'Thao tác nhanh' : 'Quick Actions'}
-              </h3>
-              
-              <div className="space-y-2">
-                {quickActions.map((action, index) => (
-                  <button
-                    key={index}
-                    onClick={action.onClick}
-                    className="flex items-center justify-between w-full p-3 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center`}>
-                        <action.icon className="w-4 h-4" />
-                      </div>
-                      <span className="font-medium">{action.label}</span>
-                    </div>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                ))}
-              </div>
-              
-              <div className="mt-4 pt-4 border-t border-white/20">
-                <p className="text-sm text-center text-white/90">
-                  {language === 'VI' 
-                    ? 'Cần hỗ trợ? Liên hệ qua email hỗ trợ'
-                    : 'Need help? Contact via support email'
-                  }
-                </p>
               </div>
             </div>
           </div>
@@ -592,23 +534,3 @@ export default function AuthorDashboard() {
     </div>
   );
 }
-
-// Icon Globe để đồng bộ với Login page
-const GlobeIcon = (props) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="2" y1="12" x2="22" y2="12" />
-    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-  </svg>
-);

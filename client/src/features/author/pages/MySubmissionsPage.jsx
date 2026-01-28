@@ -5,7 +5,8 @@ import { submissionService } from '../../../services/submissionService';
 import { 
   Eye, Edit, Trash2, Loader2, Plus, Filter, Search, Calendar, 
   FileText, CheckCircle, Clock, XCircle, AlertCircle, Download, 
-  MessageSquare, BarChart3, ChevronRight, Globe, Users, Award 
+  MessageSquare, BarChart3, ChevronRight, Globe, Users, Award,
+  Shield
 } from 'lucide-react';
 import { useAuthStore } from '../../../app/store/useAuthStore';
 
@@ -18,82 +19,6 @@ export default function MySubmissionsPage() {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [stats, setStats] = useState({ total: 0, underReview: 0, accepted: 0, rejected: 0 });
-
-  // Helper: Biến URL PDF thành ảnh Thumbnail
-  const getThumbnailUrl = (url) => {
-    if (!url) return null;
-    if (url.includes('.pdf')) {
-      return url.replace('.pdf', '.jpg').replace('/upload/', '/upload/w_200,h_280,c_fill,pg_1/');
-    }
-    return url;
-  };
-
-  // Helper: Biến URL thành link ép tải về (Attachment)
-  const getDownloadUrl = (url) => {
-    if (!url) return "#";
-    try {
-      const parsed = new URL(url);
-      
-      // Extract filename from URL path
-      let filename = decodeURIComponent(parsed.pathname.split("/").pop() || "paper.pdf");
-      
-      // Fix: Nếu filename là "stream" hoặc không hợp lệ, dùng tên mặc định
-      const invalidNames = ["stream", "blob", "file", "upload"];
-      if (invalidNames.includes(filename.toLowerCase()) || !filename.toLowerCase().endsWith(".pdf")) {
-        // Lấy tên từ public_id trong URL hoặc dùng tên mặc định
-        const pathParts = parsed.pathname.split("/");
-        const folderIndex = pathParts.findIndex(p => p === "uth_conf_papers" || p.includes("papers"));
-        if (folderIndex !== -1 && folderIndex < pathParts.length - 1) {
-          filename = pathParts[folderIndex + 1] || "paper.pdf";
-        } else {
-          filename = "paper.pdf";
-        }
-      }
-      
-      // Đảm bảo có đuôi .pdf
-      if (!filename.toLowerCase().endsWith(".pdf")) {
-        filename = `${filename}.pdf`;
-      }
-      
-      // Check if it's a Cloudinary URL
-      if (parsed.hostname.includes("cloudinary.com") || parsed.hostname.includes("res.cloudinary.com")) {
-        // If already has fl_attachment, return as is
-        if (parsed.pathname.includes("fl_attachment") || parsed.searchParams.has("fl_attachment")) {
-          return url;
-        }
-        
-        // Fix: Convert /image/upload/ to /raw/upload/ for PDF files
-        if (parsed.pathname.includes("/image/upload/")) {
-          parsed.pathname = parsed.pathname.replace("/image/upload/", "/raw/upload/");
-        }
-        
-        // For raw files, Cloudinary uses /raw/upload/ path
-        if (parsed.pathname.includes("/raw/upload/")) {
-          // Extract the path parts
-          const parts = parsed.pathname.split("/raw/upload/");
-          if (parts.length === 2) {
-            // Split suffix to get version and file path
-            const suffixParts = parts[1].split("/");
-            // Reconstruct with fl_attachment as transformation
-            parsed.pathname = `${parts[0]}/raw/upload/fl_attachment:${filename}/${suffixParts.join("/")}`;
-            return parsed.toString();
-          }
-        }
-        // For regular image uploads (legacy support - but shouldn't be used for PDFs)
-        if (parsed.pathname.includes("/upload/") && !parsed.pathname.includes("/raw/") && !parsed.pathname.includes("/image/")) {
-          const [prefix, suffix] = parsed.pathname.split("/upload/");
-          parsed.pathname = `${prefix}/upload/fl_attachment:${filename}/${suffix}`;
-          return parsed.toString();
-        }
-      }
-      
-      // If not Cloudinary URL, return as is
-      return url;
-    } catch (err) {
-      console.error("Error processing download URL:", err);
-      return url;
-    }
-  };
 
   const getFileUrl = (submission) => submission?.file_url || submission?.file_path || "";
 
@@ -140,28 +65,95 @@ export default function MySubmissionsPage() {
   const getStatusInfo = (submission) => {
     const decision = submission?.decision?.toLowerCase();
     if (decision === 'accepted') {
-      return { text: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', bg: 'bg-green-100', textCol: 'text-green-700', icon: CheckCircle };
+      return { 
+        text: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', 
+        bg: 'bg-gradient-to-r from-emerald-100 to-emerald-50', 
+        textCol: 'text-emerald-700', 
+        border: 'border-emerald-200',
+        icon: CheckCircle 
+      };
     }
     if (decision === 'rejected') {
-      return { text: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', bg: 'bg-red-100', textCol: 'text-red-700', icon: XCircle };
+      return { 
+        text: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', 
+        bg: 'bg-gradient-to-r from-rose-100 to-rose-50', 
+        textCol: 'text-rose-700', 
+        border: 'border-rose-200',
+        icon: XCircle 
+      };
     }
 
     const s = submission?.status?.toLowerCase() || '';
     const config = {
-      'submitted': { label: language === 'VI' ? 'ĐÃ NỘP' : 'SUBMITTED', color: 'blue', icon: Clock },
-      'under review': { label: language === 'VI' ? 'ĐANG PHẢN BIỆN' : 'UNDER REVIEW', color: 'yellow', icon: Clock },
-      'accept': { label: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', color: 'green', icon: CheckCircle },
-      'accepted': { label: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', color: 'green', icon: CheckCircle },
-      'reject': { label: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', color: 'red', icon: XCircle },
-      'rejected': { label: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', color: 'red', icon: XCircle },
-      'camera ready': { label: language === 'VI' ? 'BẢN CUỐI' : 'CAMERA READY', color: 'purple', icon: CheckCircle },
-      'camera-ready submitted': { label: language === 'VI' ? 'ĐÃ NỘP BẢN CUỐI' : 'CAMERA READY', color: 'purple', icon: CheckCircle }
+      'submitted': { 
+        label: language === 'VI' ? 'ĐÃ NỘP' : 'SUBMITTED', 
+        bg: 'bg-gradient-to-r from-blue-100 to-blue-50',
+        textCol: 'text-blue-700',
+        border: 'border-blue-200',
+        icon: Clock 
+      },
+      'under review': { 
+        label: language === 'VI' ? 'ĐANG PHẢN BIỆN' : 'UNDER REVIEW', 
+        bg: 'bg-gradient-to-r from-amber-100 to-amber-50',
+        textCol: 'text-amber-700',
+        border: 'border-amber-200',
+        icon: Clock 
+      },
+      'accept': { 
+        label: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', 
+        bg: 'bg-gradient-to-r from-emerald-100 to-emerald-50',
+        textCol: 'text-emerald-700',
+        border: 'border-emerald-200',
+        icon: CheckCircle 
+      },
+      'accepted': { 
+        label: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', 
+        bg: 'bg-gradient-to-r from-emerald-100 to-emerald-50',
+        textCol: 'text-emerald-700',
+        border: 'border-emerald-200',
+        icon: CheckCircle 
+      },
+      'reject': { 
+        label: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', 
+        bg: 'bg-gradient-to-r from-rose-100 to-rose-50',
+        textCol: 'text-rose-700',
+        border: 'border-rose-200',
+        icon: XCircle 
+      },
+      'rejected': { 
+        label: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', 
+        bg: 'bg-gradient-to-r from-rose-100 to-rose-50',
+        textCol: 'text-rose-700',
+        border: 'border-rose-200',
+        icon: XCircle 
+      },
+      'camera ready': { 
+        label: language === 'VI' ? 'BẢN CUỐI' : 'CAMERA READY', 
+        bg: 'bg-gradient-to-r from-purple-100 to-purple-50',
+        textCol: 'text-purple-700',
+        border: 'border-purple-200',
+        icon: CheckCircle 
+      },
+      'camera-ready submitted': { 
+        label: language === 'VI' ? 'ĐÃ NỘP BẢN CUỐI' : 'CAMERA READY', 
+        bg: 'bg-gradient-to-r from-purple-100 to-purple-50',
+        textCol: 'text-purple-700',
+        border: 'border-purple-200',
+        icon: CheckCircle 
+      }
     };
-    const res = config[s] || { label: s.toUpperCase() || '---', color: 'gray', icon: AlertCircle };
+    const res = config[s] || { 
+      label: s.toUpperCase() || '---', 
+      bg: 'bg-gradient-to-r from-gray-100 to-gray-50',
+      textCol: 'text-gray-700',
+      border: 'border-gray-200',
+      icon: AlertCircle 
+    };
     return {
       text: res.label,
-      bg: `bg-${res.color}-100`,
-      textCol: `text-${res.color}-700`,
+      bg: res.bg,
+      textCol: res.textCol,
+      border: res.border,
       icon: res.icon
     };
   };
@@ -175,108 +167,250 @@ export default function MySubmissionsPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-4">
+    <div className="min-h-screen bg-linear-to-br from-[#0d9488]/5 via-white to-[#14b8a6]/5">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
-            <FileText className="text-[#2C7A7B]" /> {language === 'VI' ? 'Bài báo của tôi' : 'My Submissions'}
-          </h1>
-          <p className="text-gray-500">{language === 'VI' ? 'Quản lý bài nộp' : 'Manage your papers'}</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={() => setLanguage(l => l === 'VI' ? 'EN' : 'VI')} className="p-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2">
-            <Globe size={18} /> {language}
-          </button>
-          <button onClick={() => navigate('/dashboard/results')} className="bg-white border px-5 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition-all flex items-center gap-2">
-            <MessageSquare size={20} /> {language === 'VI' ? 'Kết quả & Reviews' : 'Results & Reviews'}
-          </button>
-          <button onClick={() => navigate('/dashboard/submission')} className="bg-[#2C7A7B] text-white px-5 py-2.5 rounded-lg font-bold hover:bg-[#1A365D] transition-all flex items-center gap-2">
-            <Plus size={20} /> {language === 'VI' ? 'Nộp bài mới' : 'New Submission'}
-          </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total', val: stats.total, icon: FileText, color: 'blue' },
-          { label: 'Reviewing', val: stats.underReview, icon: Clock, color: 'yellow' },
-          { label: 'Accepted', val: stats.accepted, icon: CheckCircle, color: 'green' },
-          { label: 'Rejected', val: stats.rejected, icon: XCircle, color: 'red' }
-        ].map((item, i) => (
-          <div key={i} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 font-bold uppercase">{item.label}</p>
-              <p className="text-2xl font-black">{item.val}</p>
+      <div className="bg-white border-b border-gray-200 px-6 py-4 mb-6">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-[#0d9488] to-[#14b8a6] flex items-center justify-center">
+              <Shield className="w-5 h-5 text-white" />
             </div>
-            <item.icon className={`w-8 h-8 text-${item.color}-500 opacity-30`} />
+            <h1 className="font-bold text-gray-900">UTH-ConfMS</h1>
           </div>
-        ))}
+          
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setLanguage(lang => lang === 'VI' ? 'EN' : 'VI')}
+              className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:border-[#14b8a6] transition-colors"
+            >
+              <span className="font-medium text-gray-700">{language}</span>
+            </button>
+            
+            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
+              <Users className="w-4 h-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">{user?.full_name}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* List */}
-      <div className="space-y-4">
-        {filteredSubmissions.map((sub) => {
-          const sInfo = getStatusInfo(sub);
-          const StatusIcon = sInfo.icon;
-          return (
-            <div key={sub.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden">
-              <div className="flex flex-col md:flex-row">
-                {/* PDF Thumbnail */}
-                <div className="w-full md:w-32 bg-gray-50 flex items-center justify-center border-r border-gray-50">
-                  {getFileUrl(sub) ? (
-                    <img src={getThumbnailUrl(getFileUrl(sub))} alt="PDF" className="w-full h-full object-cover" />
-                  ) : (
-                    <FileText size={40} className="text-gray-200" />
-                  )}
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <FileText className="text-[#14b8a6]" size={32} /> 
+              {language === 'VI' ? 'Bài báo của tôi' : 'My Submissions'}
+            </h1>
+            <p className="text-gray-500 mt-1">
+              {language === 'VI' ? 'Quản lý và theo dõi bài nộp của bạn' : 'Manage and track your submissions'}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => navigate('/dashboard/results')} 
+              className="bg-white border border-gray-200 px-5 py-2.5 rounded-lg font-semibold hover:border-[#14b8a6] hover:bg-gray-50 transition-all flex items-center gap-2"
+            >
+              <MessageSquare size={20} /> 
+              {language === 'VI' ? 'Kết quả' : 'Results'}
+            </button>
+            <button 
+              onClick={() => navigate('/dashboard/submission')} 
+              className="bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white px-5 py-2.5 rounded-lg font-semibold hover:shadow-md transition-all flex items-center gap-2"
+            >
+              <Plus size={20} /> 
+              {language === 'VI' ? 'Nộp bài mới' : 'New Submission'}
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { 
+              label: language === 'VI' ? 'Tổng số' : 'Total', 
+              val: stats.total, 
+              icon: FileText, 
+              color: 'from-[#0d9488] to-[#14b8a6]',
+              bg: 'from-[#0d9488]/10 to-[#14b8a6]/10',
+              iconColor: 'text-[#14b8a6]'
+            },
+            { 
+              label: language === 'VI' ? 'Đang phản biện' : 'Reviewing', 
+              val: stats.underReview, 
+              icon: Clock, 
+              color: 'from-amber-500 to-amber-600',
+              bg: 'from-amber-100 to-amber-50',
+              iconColor: 'text-amber-600'
+            },
+            { 
+              label: language === 'VI' ? 'Đã chấp nhận' : 'Accepted', 
+              val: stats.accepted, 
+              icon: CheckCircle, 
+              color: 'from-emerald-500 to-emerald-600',
+              bg: 'from-emerald-100 to-emerald-50',
+              iconColor: 'text-emerald-600'
+            },
+            { 
+              label: language === 'VI' ? 'Bị từ chối' : 'Rejected', 
+              val: stats.rejected, 
+              icon: XCircle, 
+              color: 'from-rose-500 to-rose-600',
+              bg: 'from-rose-100 to-rose-50',
+              iconColor: 'text-rose-600'
+            }
+          ].map((item, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`p-2.5 rounded-lg bg-linear-to-br ${item.bg}`}>
+                  <item.icon className={`w-5 h-5 ${item.iconColor}`} />
                 </div>
-
-                {/* Content */}
-                <div className="flex-1 p-5">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded ${sInfo.bg} ${sInfo.textCol}`}>
-                      {sInfo.text}
-                    </span>
-                    <h3 className="text-lg font-bold text-gray-900">{sub.title}</h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm text-gray-500 mb-4">
-                    <div className="flex items-center gap-2"><Award size={14} /> {sub.conference?.name || 'N/A'}</div>
-                    <div className="flex items-center gap-2"><Calendar size={14} /> {new Date(sub.submitted_at).toLocaleDateString()}</div>
-                    <div className="flex items-center gap-2"><Users size={14} /> {sub.authors?.length} {language === 'VI' ? 'tác giả' : 'authors'}</div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button onClick={() => navigate(`/dashboard/submission/${sub.id}`)} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md text-xs font-bold hover:bg-gray-200">
-                      <Eye size={14} /> {language === 'VI' ? 'Chi tiết' : 'Details'}
-                    </button>
-                    {sub.status?.toLowerCase() === 'submitted' && (
-                      <button onClick={() => navigate(`/dashboard/submission/edit/${sub.id}`)} className="flex items-center gap-2 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-md text-xs font-bold hover:bg-amber-200">
-                        <Edit size={14} /> {language === 'VI' ? 'Sửa' : 'Edit'}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => submissionService.downloadPdf(sub.id)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-xs font-bold hover:bg-blue-200"
-                    >
-                      <Download size={14} /> {language === 'VI' ? 'Tải PDF' : 'Download'}
-                    </button>
-                    {(sub.status?.toLowerCase() === 'submitted' || sub.status?.toLowerCase() === 'under review') && (
-                      <button 
-                        onClick={() => handleWithdraw(sub.id)} 
-                        disabled={loadingId === sub.id}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-md text-xs font-bold hover:bg-red-100"
-                      >
-                        {loadingId === sub.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} {language === 'VI' ? 'Rút bài' : 'Withdraw'}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <p className="text-3xl font-bold text-gray-900">{item.val}</p>
               </div>
+              <p className="text-sm text-gray-600 font-medium">{item.label}</p>
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Search and Filter */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder={language === 'VI' ? 'Tìm kiếm theo tiêu đề, hội nghị...' : 'Search by title, conference...'}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#14b8a6] focus:border-transparent"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <select 
+              value={filter} 
+              onChange={(e) => setFilter(e.target.value)}
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#14b8a6] focus:border-transparent"
+            >
+              <option value="all">{language === 'VI' ? 'Tất cả' : 'All'}</option>
+              <option value="submitted">{language === 'VI' ? 'Đã nộp' : 'Submitted'}</option>
+              <option value="under review">{language === 'VI' ? 'Đang phản biện' : 'Under Review'}</option>
+              <option value="accepted">{language === 'VI' ? 'Đã chấp nhận' : 'Accepted'}</option>
+              <option value="rejected">{language === 'VI' ? 'Bị từ chối' : 'Rejected'}</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Submissions List */}
+        <div className="space-y-4">
+          {filteredSubmissions.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                {language === 'VI' ? 'Chưa có bài nộp nào' : 'No submissions yet'}
+              </h3>
+              <p className="text-gray-500 mb-4">
+                {language === 'VI' ? 'Bắt đầu nộp bài báo đầu tiên của bạn' : 'Start by submitting your first paper'}
+              </p>
+              <button 
+                onClick={() => navigate('/dashboard/submission')}
+                className="bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white px-6 py-3 rounded-lg font-semibold hover:shadow-md transition-all"
+              >
+                {language === 'VI' ? 'Nộp bài mới' : 'New Submission'}
+              </button>
+            </div>
+          ) : (
+            filteredSubmissions.map((sub) => {
+              const sInfo = getStatusInfo(sub);
+              const StatusIcon = sInfo.icon;
+              return (
+                <div key={sub.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                  <div className="p-6">
+                    {/* Title and Status */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className={`text-xs font-bold px-3 py-1 rounded-full border ${sInfo.bg} ${sInfo.textCol} ${sInfo.border}`}>
+                            {sInfo.text}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{sub.title}</h3>
+                      </div>
+                      <StatusIcon className={`w-6 h-6 ${sInfo.textCol} ml-4`} />
+                    </div>
+
+                    {/* Info Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="p-1.5 bg-gray-100 rounded">
+                          <Award size={16} className="text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">{language === 'VI' ? 'Hội nghị' : 'Conference'}</p>
+                          <p className="font-medium">{sub.conference?.name || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="p-1.5 bg-gray-100 rounded">
+                          <Calendar size={16} className="text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">{language === 'VI' ? 'Ngày nộp' : 'Submitted'}</p>
+                          <p className="font-medium">{new Date(sub.submitted_at).toLocaleDateString('vi-VN')}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="p-1.5 bg-gray-100 rounded">
+                          <Users size={16} className="text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">{language === 'VI' ? 'Tác giả' : 'Authors'}</p>
+                          <p className="font-medium">{sub.authors?.length || 0} {language === 'VI' ? 'người' : 'authors'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100">
+                      <button 
+                        onClick={() => navigate(`/dashboard/submission/${sub.id}`)} 
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#0d9488]/10 to-[#14b8a6]/10 text-[#14b8a6] rounded-lg text-sm font-semibold hover:from-[#0d9488]/20 hover:to-[#14b8a6]/20 transition-colors"
+                      >
+                        <Eye size={16} /> {language === 'VI' ? 'Chi tiết' : 'Details'}
+                      </button>
+                      {sub.status?.toLowerCase() === 'submitted' && (
+                        <button 
+                          onClick={() => navigate(`/dashboard/submission/edit/${sub.id}`)} 
+                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 text-amber-700 rounded-lg text-sm font-semibold hover:from-amber-200 hover:to-amber-100 transition-colors"
+                        >
+                          <Edit size={16} /> {language === 'VI' ? 'Chỉnh sửa' : 'Edit'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => submissionService.downloadPdf(sub.id)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 rounded-lg text-sm font-semibold hover:from-blue-200 hover:to-blue-100 transition-colors"
+                      >
+                        <Download size={16} /> {language === 'VI' ? 'Tải PDF' : 'Download'}
+                      </button>
+                      {(sub.status?.toLowerCase() === 'submitted' || sub.status?.toLowerCase() === 'under review') && (
+                        <button 
+                          onClick={() => handleWithdraw(sub.id)} 
+                          disabled={loadingId === sub.id}
+                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-100 to-rose-50 text-rose-700 rounded-lg text-sm font-semibold hover:from-rose-200 hover:to-rose-100 transition-colors disabled:opacity-50"
+                        >
+                          {loadingId === sub.id ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={16} />
+                          )}
+                          {language === 'VI' ? 'Rút bài' : 'Withdraw'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

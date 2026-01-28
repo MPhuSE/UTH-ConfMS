@@ -71,7 +71,7 @@ export default function AuthorDashboard() {
       color: 'from-[#0d9488] to-[#14b8a6]',
       bgColor: 'bg-gradient-to-br from-[#0d9488]/10 to-[#14b8a6]/10',
       iconColor: 'text-[#14b8a6]',
-      trend: '+2',
+
       detail: language === 'VI' ? 'bài đang xử lý' : 'in process'
     },
     { 
@@ -209,41 +209,7 @@ export default function AuthorDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0d9488]/5 via-white to-[#14b8a6]/5">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0d9488] to-[#14b8a6] flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-gray-900">UTH-ConfMS</h1>
-              <p className="text-xs text-gray-600">
-                {language === 'VI' ? 'Hệ thống quản lý hội nghị' : 'Conference Management System'}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-              <UserIcon className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">{user?.full_name}</span>
-            </div>
-            
-            <button
-              onClick={() => setLanguage(lang => lang === 'VI' ? 'EN' : 'VI')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 hover:border-[#14b8a6] transition-colors"
-            >
-              <Globe className="w-4 h-4 text-gray-600" />
-              <span className="font-medium text-gray-700">{language}</span>
-            </button>
-            
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <Bell className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
-        </div>
-      </div>
+      
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Welcome Header */}
@@ -255,6 +221,12 @@ export default function AuthorDashboard() {
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative">
+                  <button
+              onClick={() => setLanguage(lang => lang === 'VI' ? 'EN' : 'VI')}
+              className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:border-[#14b8a6] transition-colors mb-2"
+            >
+              <span className="font-medium text-gray-700">{language}</span>
+            </button>
                   <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
                     <Award className="w-7 h-7" />
                   </div>

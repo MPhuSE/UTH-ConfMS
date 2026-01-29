@@ -67,7 +67,7 @@ export default function MySubmissionsPage() {
     if (decision === 'accepted') {
       return { 
         text: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', 
-        bg: 'bg-gradient-to-r from-emerald-100 to-emerald-50', 
+        bg: 'bg-linear-to-br from-emerald-100 to-emerald-50', 
         textCol: 'text-emerald-700', 
         border: 'border-emerald-200',
         icon: CheckCircle 
@@ -76,7 +76,7 @@ export default function MySubmissionsPage() {
     if (decision === 'rejected') {
       return { 
         text: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', 
-        bg: 'bg-gradient-to-r from-rose-100 to-rose-50', 
+        bg: 'bg-linear-to-br from-rose-100 to-rose-50', 
         textCol: 'text-rose-700', 
         border: 'border-rose-200',
         icon: XCircle 
@@ -87,56 +87,56 @@ export default function MySubmissionsPage() {
     const config = {
       'submitted': { 
         label: language === 'VI' ? 'ĐÃ NỘP' : 'SUBMITTED', 
-        bg: 'bg-gradient-to-r from-blue-100 to-blue-50',
+        bg: 'bg-linear-to-br from-blue-100 to-blue-50',
         textCol: 'text-blue-700',
         border: 'border-blue-200',
         icon: Clock 
       },
       'under review': { 
         label: language === 'VI' ? 'ĐANG PHẢN BIỆN' : 'UNDER REVIEW', 
-        bg: 'bg-gradient-to-r from-amber-100 to-amber-50',
+        bg: 'bg-linear-to-br from-amber-100 to-amber-50',
         textCol: 'text-amber-700',
         border: 'border-amber-200',
         icon: Clock 
       },
       'accept': { 
         label: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', 
-        bg: 'bg-gradient-to-r from-emerald-100 to-emerald-50',
+        bg: 'bg-linear-to-br from-emerald-100 to-emerald-50',
         textCol: 'text-emerald-700',
         border: 'border-emerald-200',
         icon: CheckCircle 
       },
       'accepted': { 
         label: language === 'VI' ? 'ĐÃ CHẤP NHẬN' : 'ACCEPTED', 
-        bg: 'bg-gradient-to-r from-emerald-100 to-emerald-50',
+        bg: 'bg-linear-to-br from-emerald-100 to-emerald-50',
         textCol: 'text-emerald-700',
         border: 'border-emerald-200',
         icon: CheckCircle 
       },
       'reject': { 
         label: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', 
-        bg: 'bg-gradient-to-r from-rose-100 to-rose-50',
+        bg: 'bg-linear-to-br from-rose-100 to-rose-50',
         textCol: 'text-rose-700',
         border: 'border-rose-200',
         icon: XCircle 
       },
       'rejected': { 
         label: language === 'VI' ? 'BỊ TỪ CHỐI' : 'REJECTED', 
-        bg: 'bg-gradient-to-r from-rose-100 to-rose-50',
+        bg: 'bg-linear-to-br from-rose-100 to-rose-50',
         textCol: 'text-rose-700',
         border: 'border-rose-200',
         icon: XCircle 
       },
       'camera ready': { 
         label: language === 'VI' ? 'BẢN CUỐI' : 'CAMERA READY', 
-        bg: 'bg-gradient-to-r from-purple-100 to-purple-50',
+        bg: 'bg-linear-to-br from-purple-100 to-purple-50',
         textCol: 'text-purple-700',
         border: 'border-purple-200',
         icon: CheckCircle 
       },
       'camera-ready submitted': { 
         label: language === 'VI' ? 'ĐÃ NỘP BẢN CUỐI' : 'CAMERA READY', 
-        bg: 'bg-gradient-to-r from-purple-100 to-purple-50',
+        bg: 'bg-linear-to-br from-purple-100 to-purple-50',
         textCol: 'text-purple-700',
         border: 'border-purple-200',
         icon: CheckCircle 
@@ -144,7 +144,7 @@ export default function MySubmissionsPage() {
     };
     const res = config[s] || { 
       label: s.toUpperCase() || '---', 
-      bg: 'bg-gradient-to-r from-gray-100 to-gray-50',
+      bg: 'bg-linear-to-br from-gray-100 to-gray-50',
       textCol: 'text-gray-700',
       border: 'border-gray-200',
       icon: AlertCircle 
@@ -168,31 +168,7 @@ export default function MySubmissionsPage() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-[#0d9488]/5 via-white to-[#14b8a6]/5">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 mb-6">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-[#0d9488] to-[#14b8a6] flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="font-bold text-gray-900">UTH-ConfMS</h1>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setLanguage(lang => lang === 'VI' ? 'EN' : 'VI')}
-              className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:border-[#14b8a6] transition-colors"
-            >
-              <span className="font-medium text-gray-700">{language}</span>
-            </button>
-            
-            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-              <Users className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">{user?.full_name}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Page Header */}
@@ -207,6 +183,12 @@ export default function MySubmissionsPage() {
             </p>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={() => setLanguage(lang => lang === 'VI' ? 'EN' : 'VI')}
+              className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:border-[#14b8a6] transition-colors"
+            >
+              <span className="font-medium text-gray-700">{language}</span>
+            </button>
             <button 
               onClick={() => navigate('/dashboard/results')} 
               className="bg-white border border-gray-200 px-5 py-2.5 rounded-lg font-semibold hover:border-[#14b8a6] hover:bg-gray-50 transition-all flex items-center gap-2"
@@ -216,7 +198,7 @@ export default function MySubmissionsPage() {
             </button>
             <button 
               onClick={() => navigate('/dashboard/submission')} 
-              className="bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white px-5 py-2.5 rounded-lg font-semibold hover:shadow-md transition-all flex items-center gap-2"
+              className="bg-linear-to-br from-[#0d9488] to-[#14b8a6] text-white px-5 py-2.5 rounded-lg font-semibold hover:shadow-md transition-all flex items-center gap-2"
             >
               <Plus size={20} /> 
               {language === 'VI' ? 'Nộp bài mới' : 'New Submission'}
@@ -312,7 +294,7 @@ export default function MySubmissionsPage() {
               </p>
               <button 
                 onClick={() => navigate('/dashboard/submission')}
-                className="bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white px-6 py-3 rounded-lg font-semibold hover:shadow-md transition-all"
+                className="bg-linear-to-br from-[#0d9488] to-[#14b8a6] text-white px-6 py-3 rounded-lg font-semibold hover:shadow-md transition-all"
               >
                 {language === 'VI' ? 'Nộp bài mới' : 'New Submission'}
               </button>
@@ -372,21 +354,21 @@ export default function MySubmissionsPage() {
                     <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100">
                       <button 
                         onClick={() => navigate(`/dashboard/submission/${sub.id}`)} 
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#0d9488]/10 to-[#14b8a6]/10 text-[#14b8a6] rounded-lg text-sm font-semibold hover:from-[#0d9488]/20 hover:to-[#14b8a6]/20 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-linear-to-br from-[#0d9488]/10 to-[#14b8a6]/10 text-[#14b8a6] rounded-lg text-sm font-semibold hover:from-[#0d9488]/20 hover:to-[#14b8a6]/20 transition-colors"
                       >
                         <Eye size={16} /> {language === 'VI' ? 'Chi tiết' : 'Details'}
                       </button>
                       {sub.status?.toLowerCase() === 'submitted' && (
                         <button 
                           onClick={() => navigate(`/dashboard/submission/edit/${sub.id}`)} 
-                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 text-amber-700 rounded-lg text-sm font-semibold hover:from-amber-200 hover:to-amber-100 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 bg-linear-to-br from-amber-100 to-amber-50 text-amber-700 rounded-lg text-sm font-semibold hover:from-amber-200 hover:to-amber-100 transition-colors"
                         >
                           <Edit size={16} /> {language === 'VI' ? 'Chỉnh sửa' : 'Edit'}
                         </button>
                       )}
                       <button
                         onClick={() => submissionService.downloadPdf(sub.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 rounded-lg text-sm font-semibold hover:from-blue-200 hover:to-blue-100 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-linear-to-br from-blue-100 to-blue-50 text-blue-700 rounded-lg text-sm font-semibold hover:from-blue-200 hover:to-blue-100 transition-colors"
                       >
                         <Download size={16} /> {language === 'VI' ? 'Tải PDF' : 'Download'}
                       </button>
@@ -394,7 +376,7 @@ export default function MySubmissionsPage() {
                         <button 
                           onClick={() => handleWithdraw(sub.id)} 
                           disabled={loadingId === sub.id}
-                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-100 to-rose-50 text-rose-700 rounded-lg text-sm font-semibold hover:from-rose-200 hover:to-rose-100 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-2 px-4 py-2 bg-linear-to-br from-rose-100 to-rose-50 text-rose-700 rounded-lg text-sm font-semibold hover:from-rose-200 hover:to-rose-100 transition-colors disabled:opacity-50"
                         >
                           {loadingId === sub.id ? (
                             <Loader2 size={16} className="animate-spin" />

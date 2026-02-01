@@ -34,4 +34,4 @@ uvicorn==0.38.0
 watchfiles==1.1.1
 websockets==15.0.1
 sqlmodel==0.0.14
-google-genai
+google-genai==1.49.0

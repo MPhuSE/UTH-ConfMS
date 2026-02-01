@@ -106,7 +106,7 @@ def generate_summary(
     summary = ai_service.generate_summary(request.text, request.max_words)
     if summary is None:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Summary generation is disabled")
-    return SummaryResponse(summary=summary)
+    return SummaryResponse(**summary)
 
 
 @router.post("/similarity", response_model=SimilarityResponse)

@@ -88,20 +88,15 @@ class GeminiAIService(AIService):
 
     def check_spell_grammar(self, text: str) -> Dict[str, Any]:
         prompt = f"""
-        Analyze the following text for spelling and grammar errors. 
-        Provide suggestions for improvement. 
+        Analyze the following text for spelling and grammar errors.
+        1. Identify any errors (spelling, grammar, punctuation).
+        2. Create a fully corrected version of the text.
+        
         Return the result in JSON format:
         {{
             "has_errors": boolean,
-            "suggestions": [
-                {{
-                    "original": "string",
-                    "replacement": "string",
-                    "reason": "string",
-                    "start_index": integer,
-                    "end_index": integer
-                }}
-            ],
+            "corrected_text": "string (the full text with all corrections applied)",
+            "errors_found": ["string (description of error 1)", "string (description of error 2)"],
             "confidence": float
         }}
         Text: {text}
@@ -111,8 +106,20 @@ class GeminiAIService(AIService):
             # Find JSON block
             start = res_text.find('{')
             end = res_text.rfind('}') + 1
-            return json.loads(res_text[start:end])
-        except:
+            data = json.loads(res_text[start:end])
+            
+            # Adapt to frontend expectations: 'suggestions' should be a list of valid replacement texts
+            suggestions = []
+            if data.get("has_errors") and data.get("corrected_text"):
+                suggestions.append(data["corrected_text"])
+            
+            return {
+                "has_errors": data.get("has_errors", False),
+                "suggestions": suggestions,
+                "confidence": data.get("confidence", 1.0)
+            }
+        except Exception as e:
+            print(f"Spell Check Error: {str(e)}")
             return {"has_errors": False, "suggestions": [], "confidence": 0.0}
 
     def generate_summary(self, text: str, max_words: int = 200) -> Dict[str, Any]:

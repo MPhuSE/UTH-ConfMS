@@ -66,13 +66,53 @@ class EmailTemplates:
         return ""
 
     @staticmethod
+    def _format_reviews_section(reviews: Optional[list]) -> str:
+        """Helper method to format reviews section in email."""
+        if not reviews:
+            return ""
+
+        review_items = []
+        for i, review in enumerate(reviews, 1):
+            comment = review.get('comment', '').strip()
+            strengths = review.get('strengths', '').strip()
+            weaknesses = review.get('weaknesses', '').strip()
+
+            if not any([comment, strengths, weaknesses]):
+                continue
+
+            review_content = f'<div style="background: white; border: 1px solid #e5e7eb; padding: 15px; margin-bottom: 10px; border-radius: 4px;">'
+            review_content += f'<h4 style="margin: 0 0 10px 0; color: #4b5563;">Reviewer #{i}</h4>'
+            
+            if comment:
+                review_content += f'<p style="margin: 5px 0;"><strong>Nhận xét chung:</strong><br>{comment}</p>'
+            if strengths:
+                review_content += f'<p style="margin: 5px 0;"><strong>Điểm mạnh:</strong><br>{strengths}</p>'
+            if weaknesses:
+                review_content += f'<p style="margin: 5px 0;"><strong>Điểm yếu:</strong><br>{weaknesses}</p>'
+            
+            review_content += '</div>'
+            review_items.append(review_content)
+        
+        if review_items:
+            return f'''
+            <div style="margin-top: 20px;">
+                <h3 style="color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px;">Chi tiết đánh giá (Anonymous Reviews)</h3>
+                <div style="background: #f9fafb; padding: 10px; border-radius: 4px;">
+                    {''.join(review_items)}
+                </div>
+            </div>
+            '''
+        return ""
+
+    @staticmethod
     def decision_notification(
         submission_title: str,
         decision: str,
         decision_notes: Optional[str] = None,
         conference_name: Optional[str] = None,
         avg_score: Optional[float] = None,
-        final_score: Optional[float] = None
+        final_score: Optional[float] = None,
+        reviews: Optional[list] = None
     ) -> str:
         """Template email thông báo quyết định cho tác giả."""
         decision_labels = {
@@ -93,7 +133,7 @@ class EmailTemplates:
             <head>
                 <style>
                     body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .container {{ max-width: 800px; margin: 0 auto; padding: 20px; }}
                     .header {{ background: linear-gradient(135deg, #2C7A7B 0%, #1A365D 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
                     .content {{ background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }}
                     .decision-box {{ background: white; border-left: 4px solid #{color}; padding: 20px; margin: 20px 0; border-radius: 4px; }}
@@ -122,6 +162,8 @@ class EmailTemplates:
                         
                         {f'<div style="background: #f3f4f6; padding: 15px; border-radius: 4px; margin: 20px 0;"><p style="margin: 0;"><strong>Ghi chú từ Ban tổ chức:</strong></p><p style="margin: 10px 0 0 0;">{decision_notes}</p></div>' if decision_notes else ''}
                         
+                        {EmailTemplates._format_reviews_section(reviews)}
+
                         <p>Bạn có thể xem chi tiết quyết định và reviews tại:</p>
                         <a href="{view_results_url}" class="button">Xem kết quả & Reviews</a>
                         

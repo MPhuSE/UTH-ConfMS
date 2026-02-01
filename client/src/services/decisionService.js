@@ -34,6 +34,26 @@ export const decisionService = {
     const res = await api.get(`/decisions/conferences/${conferenceId}/statistics`);
     return res.data;
   },
+
+  /**
+   * Make decisions for multiple submissions
+   * @param {Object} payload - { submission_ids, decision, decision_notes, final_score }
+   * @returns {Promise<Array>} List of results
+   */
+  makeDecisionsBulk: async (payload) => {
+    const res = await api.post("/decisions/bulk", payload);
+    return res.data;
+  },
+
+  /**
+   * Preview decision email
+   * @param {Object} payload - { submission_id, decision, decision_notes }
+   * @returns {Promise<Object>} { subject, html_content }
+   */
+  previewDecisionEmail: async (payload) => {
+    const res = await api.post("/decisions/email-preview", payload);
+    return res.data;
+  },
 };
 
 export default decisionService;

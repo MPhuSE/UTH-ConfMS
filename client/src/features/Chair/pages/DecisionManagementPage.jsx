@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { decisionService, reviewService, submissionService, conferenceService } from "../../../services";
-import { CheckCircle, XCircle, FileText, AlertCircle, Edit, Star, Users } from "lucide-react";
+import { CheckCircle, XCircle, FileText, AlertCircle, Edit, Star, Users, Loader2, ExternalLink } from "lucide-react";
 import Modal from "../../../components/Modal";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
@@ -28,6 +28,13 @@ export default function DecisionManagementPage() {
   const [selectedConferenceId, setSelectedConferenceId] = useState(
     conferenceId ? parseInt(conferenceId, 10) : null
   );
+
+  // Bulk actions state
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDecisionModal, setBulkDecisionModal] = useState(false);
+  const [emailPreview, setEmailPreview] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
   const isMountedRef = useRef(true);
 
   // Update selectedConferenceId when conferenceId from URL changes
@@ -105,16 +112,14 @@ export default function DecisionManagementPage() {
       // Backend now returns only conference submissions, but we keep the status filter
       const conferenceSubmissions = submissionsData;
 
-      console.log("[DecisionManagement] Submissions for conference:", conferenceSubmissions.length);
       if (conferenceSubmissions.length > 0) {
-        console.log("[DecisionManagement] Submission statuses:", conferenceSubmissions.map(s => ({
-          id: s.id,
-          status: s.status,
-          title: s.title?.substring(0, 50)
-        })));
+        // console.log("[DecisionManagement] Submission statuses:", conferenceSubmissions.map(s => ({
+        //   id: s.id,
+        //   status: s.status,
+        //   title: s.title?.substring(0, 50)
+        // })));
       } else {
         console.warn("[DecisionManagement] No submissions found for conference", confId);
-        console.log("[DecisionManagement] Sample submission structure:", submissionsData[0]);
       }
 
       // Show submissions that are submitted, under_review, accepted, or rejected (can make/update decisions)
@@ -126,8 +131,6 @@ export default function DecisionManagementPage() {
           return allowedStatuses.includes(status);
         }
       );
-
-      console.log("[DecisionManagement] Filtered submissions (after status filter):", filtered.length);
 
       if (isMountedRef.current) {
         setSubmissions(filtered);
@@ -247,6 +250,66 @@ export default function DecisionManagementPage() {
     }
   };
 
+  // --- Bulk Decision Logic ---
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(submissions.map((s) => s.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectRow = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkSubmit = async () => {
+    if (!selectedIds.length) return;
+    try {
+      if (typeof decisionService.makeDecisionsBulk !== 'function') {
+        toast.error("Tính năng duyệt hàng loạt chưa được cập nhật trên trình duyệt. Vui lòng tải lại trang.");
+        return;
+      }
+
+      await decisionService.makeDecisionsBulk({
+        submission_ids: selectedIds,
+        decision: decision, // reusing the 'decision' state
+        decision_notes: notes, // reusing the 'notes' state
+      });
+      toast.success(`Đã cập nhật quyết định cho ${selectedIds.length} bài nộp`);
+      setBulkDecisionModal(false);
+      setSelectedIds([]);
+      setDecision("accepted");
+      setNotes("");
+      loadData();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Lỗi khi duyệt hàng loạt"));
+      console.error(error);
+    }
+  };
+
+  const handlePreviewEmail = async () => {
+    if (!decisionModal) return;
+    try {
+      const res = await decisionService.previewDecisionEmail({
+        submission_id: decisionModal.id,
+        decision,
+        decision_notes: notes,
+      });
+      setEmailPreview(res);
+      setShowPreviewModal(true);
+    } catch (error) {
+      // Ignore abort errors
+      if (error.code === 'ECONNABORTED' || error.name === 'AbortError' || error.message === 'Request aborted') {
+        return;
+      }
+      toast.error("Không thể tạo xem trước email");
+    }
+  };
+  // -------------------------
+
   const getDecisionBadge = (submissionId) => {
     const decisionData = decisions[submissionId];
     if (!decisionData || !decisionData.decision) return null;
@@ -274,12 +337,31 @@ export default function DecisionManagementPage() {
 
   const columns = [
     {
+      header: (
+        <input
+          type="checkbox"
+          onChange={handleSelectAll}
+          checked={submissions.length > 0 && selectedIds.length === submissions.length}
+          className="rounded border-gray-300 text-teal-600 focus:ring-teal-500 w-4 h-4 cursor-pointer"
+        />
+      ),
+      accessor: "id",
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.includes(row.id)}
+          onChange={() => handleSelectRow(row.id)}
+          className="rounded border-gray-300 text-teal-600 focus:ring-teal-500 w-4 h-4 cursor-pointer"
+        />
+      ),
+    },
+    {
       header: "Tiêu đề",
       accessor: "title",
       render: (row) => (
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-gray-400" />
-          <span className="font-medium">{row.title}</span>
+          <span className="font-medium" title={row.title}>{row.title.length > 40 ? row.title.substring(0, 40) + "..." : row.title}</span>
         </div>
       ),
     },
@@ -343,9 +425,9 @@ export default function DecisionManagementPage() {
         <Button
           variant="secondary"
           onClick={() => openDecisionModal(row)}
-          className="!w-auto"
+          className="!w-auto text-xs px-2 py-1"
         >
-          {decisions[row.id] ? "Sửa quyết định" : "Quyết định"}
+          {decisions[row.id] ? "Sửa" : "Quyết định"}
         </Button>
       ),
     },
@@ -354,7 +436,7 @@ export default function DecisionManagementPage() {
   // Calculate statistics
   const totalSubmissions = submissions.length;
   const decidedCount = Object.keys(decisions).length;
-  const pendingCount = Math.max(0, totalSubmissions - decidedCount); // Prevent negative values
+  const pendingCount = Math.max(0, totalSubmissions - decidedCount);
 
   const stats = {
     total: totalSubmissions,
@@ -410,6 +492,17 @@ export default function DecisionManagementPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý quyết định</h1>
           <p className="mt-1 text-sm text-gray-500">Đưa ra quyết định cho các bài nộp</p>
+          {currentConferenceId && (
+            <a
+              href={`/conferences/${currentConferenceId}/accepted-papers`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-teal-600 hover:text-teal-800 text-sm flex items-center gap-1 mt-2 inline-flex"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Xem danh sách bài được chấp nhận (Public)
+            </a>
+          )}
         </div>
         {conferences.length > 1 && (
           <div className="w-64">
@@ -451,6 +544,46 @@ export default function DecisionManagementPage() {
         </div>
       </div>
 
+      {/* Bulk Actions Toolbar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-teal-50 border border-teal-200 p-4 rounded-lg flex items-center justify-between animate-fadeIn transition-all duration-300">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-teal-800">Đã chọn {selectedIds.length} bài nộp</span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                setDecision("accepted");
+                setNotes("");
+                setBulkDecisionModal(true);
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <CheckCircle className="w-4 h-4 mr-1" /> Chấp nhận tất cả
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setDecision("rejected");
+                setNotes("");
+                setBulkDecisionModal(true);
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <XCircle className="w-4 h-4 mr-1" /> Từ chối tất cả
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setSelectedIds([])}
+            >
+              Hủy chọn
+            </Button>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
           <div className="text-gray-500">Đang tải dữ liệu...</div>
@@ -464,9 +597,6 @@ export default function DecisionManagementPage() {
               ? "Chưa có bài nộp nào với status 'submitted', 'under_review', 'accepted', hoặc 'rejected' cho hội nghị này."
               : "Vui lòng chọn hội nghị để xem bài nộp."
             }
-          </p>
-          <p className="text-xs text-gray-400 mt-2">
-            Mở Console (F12) để xem chi tiết debug.
           </p>
         </div>
       ) : (
@@ -678,28 +808,94 @@ export default function DecisionManagementPage() {
           />
 
           {/* Actions */}
-          <div className="flex gap-3 justify-end pt-4 border-t">
+          <div className="flex gap-3 justify-between pt-4 border-t">
             <Button
               variant="secondary"
-              onClick={() => {
-                setDecisionModal(null);
-                setDecision("accepted");
-                setNotes("");
-                setFinalScore("");
-                setReviews(prev => {
-                  const newReviews = { ...prev };
-                  delete newReviews[decisionModal?.id];
-                  return newReviews;
-                });
-              }}
+              onClick={handlePreviewEmail}
+              className="text-gray-700"
             >
-              Hủy
+              Xem trước Email
             </Button>
-            <Button onClick={handleMakeDecision}>
-              {decisions[decisionModal?.id] ? "Cập nhật quyết định" : "Xác nhận quyết định"}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setDecisionModal(null);
+                  setDecision("accepted");
+                  setNotes("");
+                  setFinalScore("");
+                  setReviews(prev => {
+                    const newReviews = { ...prev };
+                    delete newReviews[decisionModal?.id];
+                    return newReviews;
+                  });
+                }}
+              >
+                Hủy
+              </Button>
+              <Button onClick={handleMakeDecision}>
+                {decisions[decisionModal?.id] ? "Cập nhật quyết định" : "Xác nhận quyết định"}
+              </Button>
+            </div>
+
           </div>
         </div>
+      </Modal>
+
+      {/* Bulk Decision Modal */}
+      <Modal
+        isOpen={bulkDecisionModal}
+        onClose={() => setBulkDecisionModal(false)}
+        title={`Xác nhận quyết định hàng loạt (${selectedIds.length} bài)`}
+      >
+        <div className="space-y-4">
+          <p>
+            Bạn đang thực hiện quyết định <strong>{decision === 'accepted' ? 'Chấp nhận' : (decision === 'rejected' ? 'Từ chối' : decision)}</strong> cho <strong>{selectedIds.length}</strong> bài nộp đã chọn.
+          </p>
+          <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200 text-sm text-yellow-800">
+            <p>Email thông báo sẽ được gửi tự động đến tất cả tác giả (và đồng tác giả).</p>
+          </div>
+          <Input
+            label="Ghi chú chung (tùy chọn)"
+            type="textarea"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Ghi chú này sẽ được gửi kèm trong email..."
+            className="min-h-[100px]"
+          />
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="secondary" onClick={() => setBulkDecisionModal(false)}>Hủy</Button>
+            <Button onClick={handleBulkSubmit}>Xác nhận & Gửi</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Email Preview Modal */}
+      <Modal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        title="Xem trước Email thông báo"
+        size="lg"
+      >
+        {emailPreview ? (
+          <div className="space-y-4">
+            <div className="border-b pb-2">
+              <p className="text-sm text-gray-500">Tiêu đề:</p>
+              <p className="font-medium text-gray-900">{emailPreview.subject}</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 max-h-[60vh] overflow-y-auto">
+              <div dangerouslySetInnerHTML={{ __html: emailPreview.html_content }} />
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button onClick={() => setShowPreviewModal(false)}>Đóng</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin text-teal-600 mx-auto" />
+            <p className="mt-2 text-gray-500">Đang tạo bản xem trước...</p>
+          </div>
+        )}
       </Modal>
     </div>
   );

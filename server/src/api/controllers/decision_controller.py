@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.requests import Request
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict, Any
 
 from api.schemas.decision_schema import (
     DecisionRequest, DecisionResponse,
-    DecisionStatisticsResponse, SubmissionDecisionResponse
+    DecisionStatisticsResponse, SubmissionDecisionResponse,
+    BulkDecisionRequest, EmailPreviewRequest, EmailPreviewResponse
 )
 from infrastructure.databases.postgres import get_db
 from infrastructure.repositories.review_repo_impl import ReviewRepositoryImpl
@@ -110,6 +111,45 @@ def get_decision_statistics(
     try:
         stats = service.get_decision_statistics(conference_id)
         return DecisionStatisticsResponse(**stats)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/bulk", response_model=List[Dict[str, Any]], status_code=status.HTTP_200_OK)
+def make_decisions_bulk(
+    request: BulkDecisionRequest,
+    current_user=Depends(require_admin_or_chair),
+    service=Depends(get_decision_service)
+):
+    """Make decisions for multiple submissions - only admin or chair."""
+    try:
+        results = service.make_decisions_bulk(
+            submission_ids=request.submission_ids,
+            decision=request.decision,
+            decision_notes=request.decision_notes,
+            final_score=request.final_score
+        )
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/email-preview", response_model=EmailPreviewResponse)
+def preview_decision_email(
+    request: EmailPreviewRequest,
+    current_user=Depends(require_admin_or_chair),
+    service=Depends(get_decision_service)
+):
+    """Preview decision email content."""
+    try:
+        result = service.preview_decision_email(
+            submission_id=request.submission_id,
+            decision=request.decision,
+            decision_notes=request.decision_notes
+        )
+        return EmailPreviewResponse(**result)
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

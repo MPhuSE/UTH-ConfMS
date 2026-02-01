@@ -33,3 +33,19 @@ class SubmissionDecisionResponse(BaseModel):
     avg_score: Optional[float] = None
     final_score: Optional[float] = None
 
+class BulkDecisionRequest(BaseModel):
+    submission_ids: List[int]
+    decision: str
+    decision_notes: Optional[str] = None
+    final_score: Optional[float] = None
+
+
+class EmailPreviewRequest(BaseModel):
+    submission_id: int
+    decision: str
+    decision_notes: Optional[str] = None
+
+
+class EmailPreviewResponse(BaseModel):
+    subject: str
+    html_content: str

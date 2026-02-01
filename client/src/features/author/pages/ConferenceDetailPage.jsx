@@ -68,7 +68,7 @@ export default function ConferenceDetailPage() {
       const data = await conferenceService.getById(conferenceId);
       console.log("Conference data loaded:", data);
       setConference(data);
-      
+
       // Load tracks
       await loadTracks(conferenceId);
     } catch (err) {
@@ -144,11 +144,10 @@ export default function ConferenceDetailPage() {
               )}
               <div className="flex items-center gap-4 flex-wrap">
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    isCFPOpen
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${isCFPOpen
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                    }`}
                 >
                   {isCFPOpen ? "Đang mở CFP" : "CFP đã đóng"}
                 </span>
@@ -157,8 +156,8 @@ export default function ConferenceDetailPage() {
                     {conference.blind_mode === "double"
                       ? "Double Blind"
                       : conference.blind_mode === "single"
-                      ? "Single Blind"
-                      : "Open Review"}
+                        ? "Single Blind"
+                        : "Open Review"}
                   </span>
                 )}
               </div>
@@ -183,9 +182,12 @@ export default function ConferenceDetailPage() {
                   <BookOpen className="w-5 h-5 text-teal-600" />
                   Mô tả
                 </h2>
-                <p className="text-gray-700 whitespace-pre-wrap">
-                  {conference.description}
-                </p>
+                <div
+                  className="text-gray-800 text-justify w-full leading-relaxed space-y-4 [&>ul]:list-disc [&>ul]:ml-6 [&>ol]:list-decimal [&>ol]:ml-6 [&>p]:mb-4"
+                  dangerouslySetInnerHTML={{
+                    __html: conference.description?.replace(/&nbsp;/g, ' ')
+                  }}
+                />
               </div>
             )}
 

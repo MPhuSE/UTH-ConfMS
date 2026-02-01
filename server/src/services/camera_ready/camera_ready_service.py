@@ -49,17 +49,24 @@ class CameraReadyService:
             print(f"[CameraReady] Validation failed: {error_msg}")
             raise BusinessRuleException(error_msg)
         
-        # Kiểm tra camera-ready deadline nếu có cấu hình (không bắt buộc camera_ready_open flag)
+        # Kiểm tra camera_ready_open
+        # FIX: Phải kiểm tra cờ này để đảm bảo Chair đã mở cổng
         conf = self.db.query(ConferenceModel).filter(ConferenceModel.id == submission.conference_id).first()
-        if conf is not None:
-            deadline = getattr(conf, "camera_ready_deadline", None)
-            if deadline is not None:
-                now = datetime.now(timezone.utc)
-                # Đảm bảo deadline có timezone
-                if deadline.tzinfo is None:
-                    deadline = deadline.replace(tzinfo=timezone.utc)
-                if now > deadline:
-                    raise BusinessRuleException("Camera-ready deadline has passed")
+        if conf is None:
+             raise BusinessRuleException("Conference not found")
+
+        if not getattr(conf, "camera_ready_open", False):
+             raise BusinessRuleException("Camera-ready submission is currently closed for this conference (Cổng nộp bản cuối đang đóng)")
+        
+        # Kiểm tra camera-ready deadline nếu có cấu hình
+        deadline = getattr(conf, "camera_ready_deadline", None)
+        if deadline is not None:
+            now = datetime.now(timezone.utc)
+            # Đảm bảo deadline có timezone
+            if deadline.tzinfo is None:
+                deadline = deadline.replace(tzinfo=timezone.utc)
+            if now > deadline:
+                raise BusinessRuleException("Camera-ready deadline has passed")
         
         # Create camera-ready file
         try:

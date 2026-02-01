@@ -20,6 +20,7 @@ import scheduleService from "./scheduleService";
 import notificationService from "./notificationService";
 import tenantService from "./tenantService";
 import reviewQuestionService from "./reviewQuestionService";
+import { proceedingsService } from "./proceedingsService";
 
 // Named exports
 export {
@@ -40,6 +41,7 @@ export {
   notificationService,
   tenantService,
   reviewQuestionService,
+  proceedingsService,
 };
 
 // Default export with all services

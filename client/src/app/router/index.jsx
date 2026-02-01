@@ -14,6 +14,7 @@ import Register from "../../features/auth/pages/Register";
 import ForgotPassword from "../../features/auth/pages/ForgotPassword";
 import ResetPasswordConfirm from "../../features/auth/pages/ResetPasswordConfirm"
 import GoogleCallback from "../../features/auth/pages/GoogleCallback";
+import AcceptedPapersPage from "../../features/auth/pages/AcceptedPapersPage";
 
 // Dashboard Components
 import DashboardSelector from "../../features/dashboard/pages/DashboardSelector";
@@ -85,6 +86,7 @@ export default function AppRouter() {
                     <Route path="/verify-email" element={<VerifyEmail />} />
                     <Route path="/reset-password" element={<ResetPasswordConfirm />} />
                     <Route path="/auth/google/callback" element={<GoogleCallback />} />
+                    <Route path="/conferences/:conferenceId/accepted-papers" element={<AcceptedPapersPage />} />
                 </Route>
 
                 {/* 2. Dashboard Protected Routes */}

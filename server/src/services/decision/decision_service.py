@@ -147,6 +147,18 @@ class DecisionService:
             "decision_notes": getattr(updated, 'decision_notes', None)
         }
     
+    def _get_anonymous_reviews(self, submission_id: int) -> List[Dict[str, str]]:
+        """Get anonymous reviews for a submission."""
+        reviews = self.review_repo.get_reviews_by_submission(submission_id)
+        results = []
+        for r in reviews:
+            results.append({
+                "comment": getattr(r, "summary", ""),
+                "strengths": getattr(r, "strengths", ""),
+                "weaknesses": getattr(r, "weaknesses", "")
+            })
+        return results
+
     def _send_decision_notification_async(
         self,
         submission: SubmissionModel,
@@ -197,13 +209,17 @@ class DecisionService:
             avg_score = getattr(submission, 'avg_score', None)
             final_score = getattr(submission, 'final_score', None)
             
+            # Get reviews
+            reviews = self._get_anonymous_reviews(submission.id)
+
             html_content = EmailTemplates.decision_notification(
                 submission_title=submission.title,
                 decision=decision,
                 decision_notes=decision_notes,
                 conference_name=conference_name,
                 avg_score=float(avg_score) if avg_score else None,
-                final_score=float(final_score) if final_score else None
+                final_score=float(final_score) if final_score else None,
+                reviews=reviews
             )
             
             # Send email to all authors (async, fire-and-forget)
@@ -273,5 +289,59 @@ class DecisionService:
             "accepted": accepted,
             "rejected": rejected,
             "acceptance_rate": round(acceptance_rate, 2)
+        }
+
+    def make_decisions_bulk(
+        self,
+        submission_ids: List[int],
+        decision: str,
+        decision_notes: Optional[str] = None,
+        final_score: Optional[float] = None
+    ) -> List[Dict[str, Any]]:
+        """Make decisions for multiple submissions."""
+        results = []
+        for sid in submission_ids:
+            try:
+                res = self.make_decision(sid, decision, decision_notes, final_score)
+                results.append({"submission_id": sid, "status": "success", "data": res})
+            except Exception as e:
+                results.append({"submission_id": sid, "status": "error", "error": str(e)})
+        return results
+
+    def preview_decision_email(
+        self,
+        submission_id: int,
+        decision: str,
+        decision_notes: Optional[str] = None
+    ) -> Dict[str, str]:
+        """Preview decision email content."""
+        submission = self.submission_repo.get_by_id(submission_id)
+        if not submission:
+            raise NotFoundError(f"Submission {submission_id} not found")
+
+        conference_name = None
+        if hasattr(submission, 'track') and submission.track:
+            if hasattr(submission.track, 'conference') and submission.track.conference:
+                conference_name = getattr(submission.track.conference, 'name', None)
+
+        avg_score = self.calculate_average_score(submission_id)
+        # Final score might not be set yet if decision hasn't been made, use avg_score for preview if accept/reject
+        final_score = avg_score if (decision or "").lower() in ("accepted", "rejected", "accept", "reject") else None
+
+        reviews = self._get_anonymous_reviews(submission_id)
+
+        html_content = EmailTemplates.decision_notification(
+            submission_title=submission.title,
+            decision=decision,
+            decision_notes=decision_notes,
+            conference_name=conference_name,
+            avg_score=float(avg_score) if avg_score else None,
+            final_score=float(final_score) if final_score else None,
+            reviews=reviews
+        )
+        
+        return {
+            "subject": f"Quyết định bài nộp: {submission.title[:50]}...",
+            "html_content": html_content
         }
 

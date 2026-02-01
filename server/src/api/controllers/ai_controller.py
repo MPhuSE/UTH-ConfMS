@@ -3,19 +3,26 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 
 from infrastructure.security.auth_dependencies import get_current_user
-from services.ai.ai_service import AIServiceManager, MockAIService
+from services.ai.ai_service import AIServiceManager, MockAIService, GeminiAIService
+import os
 
 router = APIRouter(prefix="/ai", tags=["AI Services"])
 
 
 def get_ai_service() -> AIServiceManager:
     """Get AI service manager."""
-    mock_service = MockAIService()
-    return AIServiceManager(mock_service, enabled_features={
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        service = GeminiAIService(api_key=api_key)
+    else:
+        service = MockAIService()
+        
+    return AIServiceManager(service, enabled_features={
         "spell_check": True,
         "summary": True,
         "similarity": True,
-        "keywords": True
+        "keywords": True,
+        "author_support": True
     })
 
 
@@ -36,6 +43,7 @@ class SummaryRequest(BaseModel):
 
 class SummaryResponse(BaseModel):
     summary: str
+    key_points: Optional[List[str]] = []
 
 
 class SimilarityRequest(BaseModel):
@@ -64,6 +72,15 @@ class EmailTemplateRequest(BaseModel):
 class EmailTemplateResponse(BaseModel):
     subject: str
     body: str
+
+
+class AuthorSupportRequest(BaseModel):
+    text: str
+
+
+class ReviewSupportRequest(BaseModel):
+    text: str
+    max_words: Optional[int] = 300
 
 
 @router.post("/spell-check", response_model=SpellCheckResponse)
@@ -118,6 +135,36 @@ def extract_keywords(
     return KeywordsResponse(keywords=keywords)
 
 
+@router.post("/author/support")
+def get_author_support(
+    request: AuthorSupportRequest,
+    current_user=Depends(get_current_user),
+    ai_service: AIServiceManager = Depends(get_ai_service)
+):
+    """
+    Tích hợp AI kiểm tra chính tả, gợi ý từ khóa, so sánh Side-by-side diff.
+    """
+    result = ai_service.get_author_support(request.text)
+    if not result:
+        raise HTTPException(status_code=503, detail="AI Support is currently unavailable")
+    return result
+
+
+@router.post("/review/support")
+def get_review_support(
+    request: ReviewSupportRequest,
+    current_user=Depends(get_current_user),
+    ai_service: AIServiceManager = Depends(get_ai_service)
+):
+    """
+    AI tóm tắt bài báo (Neutral synopsis), trích xuất ý chính.
+    """
+    result = ai_service.generate_summary(request.text, request.max_words)
+    if not result:
+        raise HTTPException(status_code=503, detail="AI Summary is currently unavailable")
+    return result
+
+
 @router.post("/email-template", response_model=EmailTemplateResponse)
 def generate_email_template(
     request: EmailTemplateRequest,
@@ -125,6 +172,7 @@ def generate_email_template(
     ai_service: AIServiceManager = Depends(get_ai_service)
 ):
     """Generate email template draft using AI."""
+    # ... existing implementation (simplified for brevity or could use Gemini too)
     template_types = {
         "notification": {
             "subject": f"Notification: {request.context[:50]}",

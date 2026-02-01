@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { userService, reviewService, conferenceService } from "../../../services";
 import { toast } from "react-hot-toast";
+import { getErrorMessage } from "../../../utils/errors";
 import Table from "../../../components/Table";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
@@ -37,7 +38,7 @@ export default function ReviewerManagementPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Load conference
       const confData = await conferenceService.getById(conferenceId);
       setConference(confData);
@@ -46,8 +47,8 @@ export default function ReviewerManagementPage() {
       const usersResponse = await userService.getAll();
       // Handle both array response and object response with 'users' property
       const usersData = Array.isArray(usersResponse) ? usersResponse : (usersResponse.users || []);
-      const reviewerUsers = usersData.filter((u) => 
-        u.roles?.some((r) => r.name === "reviewer" || r === "reviewer") || 
+      const reviewerUsers = usersData.filter((u) =>
+        u.roles?.some((r) => r.name === "reviewer" || r === "reviewer") ||
         u.role === "reviewer" ||
         (Array.isArray(u.role_names) && u.role_names.includes("reviewer"))
       );
@@ -58,7 +59,7 @@ export default function ReviewerManagementPage() {
       // For now, we'll use all reviewers
       setReviewers(reviewerUsers);
     } catch (error) {
-      toast.error("Không thể tải dữ liệu reviewers");
+      toast.error(getErrorMessage(error, "Không thể tải dữ liệu reviewers"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -95,14 +96,14 @@ export default function ReviewerManagementPage() {
       setReviewers(reviewers.filter((r) => r.id !== reviewerId));
       toast.success("Đã xóa reviewer");
     } catch (error) {
-      toast.error("Không thể xóa reviewer");
+      toast.error(getErrorMessage(error, "Không thể xóa reviewer"));
       console.error(error);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       if (editingReviewer) {
         // Update reviewer
@@ -128,7 +129,7 @@ export default function ReviewerManagementPage() {
       setShowAddModal(false);
       loadData();
     } catch (error) {
-      toast.error(error?.response?.data?.detail || "Có lỗi xảy ra");
+      toast.error(getErrorMessage(error, "Có lỗi xảy ra"));
       console.error(error);
     }
   };

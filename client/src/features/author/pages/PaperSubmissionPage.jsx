@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Clock
 } from "lucide-react";
+import AuthorAISupport from "../../../components/AI/AuthorAISupport";
 
 export default function PaperSubmissionPage() {
   const { paperId } = useParams();
@@ -26,7 +27,7 @@ export default function PaperSubmissionPage() {
   const fileInputRef = useRef(null);
   const isEditMode = Boolean(paperId);
 
-  
+
   const confIdFromUrl = searchParams.get("confId");
 
   const { conferences, fetchConferences, loading } = useConferenceStore();
@@ -162,26 +163,26 @@ export default function PaperSubmissionPage() {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.name.toLowerCase().endsWith(".pdf")) {
       alert("Chỉ chấp nhận file PDF (.pdf)");
       e.target.value = "";
       return;
     }
-    
+
     if (file.type && file.type !== "application/pdf") {
       alert("Chỉ chấp nhận file PDF. File hiện tại không phải PDF.");
       e.target.value = "";
       return;
     }
-    
+
     const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       alert(`File quá lớn. Kích thước tối đa: 10MB. File hiện tại: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
       e.target.value = "";
       return;
     }
-    
+
     setFormData({ ...formData, file });
     const url = URL.createObjectURL(file);
     setPdfPreviewUrl(url);
@@ -254,13 +255,13 @@ export default function PaperSubmissionPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold mb-1 uppercase" style={{ color: 'rgb(0,134,137)' }}>Hội nghị *</label>
-                <select 
-                  required 
-                  value={formData.conference_id} 
-                  onChange={(e) => setFormData({...formData, conference_id: Number(e.target.value), track_id: ""})} 
+                <select
+                  required
+                  value={formData.conference_id}
+                  onChange={(e) => setFormData({ ...formData, conference_id: Number(e.target.value), track_id: "" })}
                   className="w-full p-2.5 border rounded-lg outline-none transition-all focus:bg-white"
-                  style={{ 
-                    borderColor: 'rgba(0,134,137,0.3)', 
+                  style={{
+                    borderColor: 'rgba(0,134,137,0.3)',
                     backgroundColor: 'rgba(0,134,137,0.05)'
                   }}
                   onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(0,134,137,0.2)'}
@@ -280,13 +281,13 @@ export default function PaperSubmissionPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold mb-1 uppercase" style={{ color: 'rgb(0,134,137)' }}>Track *</label>
-                <select 
-                  required 
-                  value={formData.track_id} 
-                  onChange={(e) => setFormData({...formData, track_id: Number(e.target.value)})} 
+                <select
+                  required
+                  value={formData.track_id}
+                  onChange={(e) => setFormData({ ...formData, track_id: Number(e.target.value) })}
                   className="w-full p-2.5 border rounded-lg outline-none transition-all focus:bg-white"
-                  style={{ 
-                    borderColor: 'rgba(0,134,137,0.3)', 
+                  style={{
+                    borderColor: 'rgba(0,134,137,0.3)',
                     backgroundColor: 'rgba(0,134,137,0.05)'
                   }}
                   onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(0,134,137,0.2)'}
@@ -307,14 +308,14 @@ export default function PaperSubmissionPage() {
 
             <div>
               <label className="block text-xs font-bold mb-1 uppercase" style={{ color: 'rgb(0,134,137)' }}>Tiêu đề bài báo *</label>
-              <input 
-                required 
-                value={formData.title} 
-                onChange={(e) => setFormData({...formData, title: e.target.value})} 
-                className="w-full p-2.5 border rounded-lg outline-none transition-all focus:bg-white" 
+              <input
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full p-2.5 border rounded-lg outline-none transition-all focus:bg-white"
                 placeholder="Nhập tiêu đề bài báo..."
-                style={{ 
-                  borderColor: 'rgba(0,134,137,0.3)', 
+                style={{
+                  borderColor: 'rgba(0,134,137,0.3)',
                   backgroundColor: 'rgba(0,134,137,0.05)'
                 }}
                 onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(0,134,137,0.2)'}
@@ -324,19 +325,23 @@ export default function PaperSubmissionPage() {
 
             <div>
               <label className="block text-xs font-bold mb-1 uppercase" style={{ color: 'rgb(0,134,137)' }}>Tóm tắt *</label>
-              <textarea 
-                required 
-                rows={4} 
-                value={formData.abstract} 
-                onChange={(e) => setFormData({...formData, abstract: e.target.value})} 
-                className="w-full p-2.5 border rounded-lg outline-none transition-all focus:bg-white" 
+              <textarea
+                required
+                rows={4}
+                value={formData.abstract}
+                onChange={(e) => setFormData({ ...formData, abstract: e.target.value })}
+                className="w-full p-2.5 border rounded-lg outline-none transition-all focus:bg-white"
                 placeholder="Nhập tóm tắt (Abstract)..."
-                style={{ 
-                  borderColor: 'rgba(0,134,137,0.3)', 
+                style={{
+                  borderColor: 'rgba(0,134,137,0.3)',
                   backgroundColor: 'rgba(0,134,137,0.05)'
                 }}
                 onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(0,134,137,0.2)'}
                 onBlur={(e) => e.target.style.boxShadow = 'none'}
+              />
+              <AuthorAISupport
+                text={formData.abstract}
+                onApplyRevision={(revised) => setFormData({ ...formData, abstract: revised })}
               />
             </div>
 
@@ -344,12 +349,12 @@ export default function PaperSubmissionPage() {
             <div className="space-y-4 pt-4 border-t" style={{ borderColor: 'rgba(0,134,137,0.15)' }}>
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: 'rgb(0,100,103)' }}><UserPlus className="w-4 h-4" /> Danh sách tác giả</h3>
-                <button 
-                  type="button" 
-                  onClick={addAuthor} 
+                <button
+                  type="button"
+                  onClick={addAuthor}
                   className="text-xs px-3 py-1.5 rounded-lg font-bold border flex items-center gap-1 transition-colors hover:opacity-80"
-                  style={{ 
-                    backgroundColor: 'rgba(0,134,137,0.05)', 
+                  style={{
+                    backgroundColor: 'rgba(0,134,137,0.05)',
                     color: 'rgb(0,134,137)',
                     borderColor: 'rgba(0,134,137,0.3)'
                   }}
@@ -373,8 +378,8 @@ export default function PaperSubmissionPage() {
                   onClick={handleSearchUsers}
                   disabled={searching}
                   className="px-4 py-2.5 rounded-lg text-xs font-bold border disabled:opacity-50"
-                  style={{ 
-                    backgroundColor: 'rgba(0,134,137,0.1)', 
+                  style={{
+                    backgroundColor: 'rgba(0,134,137,0.1)',
                     color: 'rgb(0,134,137)',
                     borderColor: 'rgba(0,134,137,0.3)'
                   }}
@@ -400,14 +405,14 @@ export default function PaperSubmissionPage() {
                   ))}
                 </div>
               )}
-              
+
               <div className="grid grid-cols-1 gap-3">
                 {formData.authors.map((author, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="p-4 rounded-xl border relative group transition-all hover:shadow-md"
-                    style={{ 
-                      backgroundColor: 'rgba(0,134,137,0.04)', 
+                    style={{
+                      backgroundColor: 'rgba(0,134,137,0.04)',
                       borderColor: 'rgba(0,134,137,0.3)'
                     }}
                     onMouseEnter={(e) => {
@@ -420,32 +425,32 @@ export default function PaperSubmissionPage() {
                     }}
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input 
-                        required 
-                        placeholder="Họ tên" 
-                        value={author.name} 
-                        onChange={(e) => updateAuthor(index, 'name', e.target.value)} 
-                        className="p-2 border rounded-lg text-sm outline-none bg-white" 
+                      <input
+                        required
+                        placeholder="Họ tên"
+                        value={author.name}
+                        onChange={(e) => updateAuthor(index, 'name', e.target.value)}
+                        className="p-2 border rounded-lg text-sm outline-none bg-white"
                         style={{ borderColor: 'rgba(0,134,137,0.3)' }}
                         onFocus={(e) => e.target.style.boxShadow = '0 0 0 1px rgba(0,134,137,0.3)'}
                         onBlur={(e) => e.target.style.boxShadow = 'none'}
                       />
-                      <input 
-                        required 
-                        type="email" 
-                        placeholder="Email" 
-                        value={author.email} 
-                        onChange={(e) => updateAuthor(index, 'email', e.target.value)} 
-                        className="p-2 border rounded-lg text-sm outline-none bg-white" 
+                      <input
+                        required
+                        type="email"
+                        placeholder="Email"
+                        value={author.email}
+                        onChange={(e) => updateAuthor(index, 'email', e.target.value)}
+                        className="p-2 border rounded-lg text-sm outline-none bg-white"
                         style={{ borderColor: 'rgba(0,134,137,0.3)' }}
                         onFocus={(e) => e.target.style.boxShadow = '0 0 0 1px rgba(0,134,137,0.3)'}
                         onBlur={(e) => e.target.style.boxShadow = 'none'}
                       />
                     </div>
                     {index > 0 && (
-                      <button 
-                        type="button" 
-                        onClick={() => removeAuthor(index)} 
+                      <button
+                        type="button"
+                        onClick={() => removeAuthor(index)}
                         className="absolute -top-2 -right-2 bg-white text-red-500 p-1.5 rounded-full shadow-md border border-red-100 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -463,18 +468,18 @@ export default function PaperSubmissionPage() {
             </div>
 
             <div className="pt-4">
-              <input 
-                ref={fileInputRef} 
-                type="file" 
-                hidden 
-                accept=".pdf,application/pdf" 
-                onChange={handleFileChange} 
+              <input
+                ref={fileInputRef}
+                type="file"
+                hidden
+                accept=".pdf,application/pdf"
+                onChange={handleFileChange}
               />
-              <div 
-                onClick={() => fileInputRef.current.click()} 
+              <div
+                onClick={() => fileInputRef.current.click()}
                 className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all group"
-                style={{ 
-                  borderColor: 'rgba(0,134,137,0.4)', 
+                style={{
+                  borderColor: 'rgba(0,134,137,0.4)',
                   backgroundColor: 'rgba(0,134,137,0.03)'
                 }}
                 onMouseEnter={(e) => {
@@ -501,17 +506,16 @@ export default function PaperSubmissionPage() {
               </div>
             </div>
 
-            <button 
-              disabled={submitLoading || isExpired || isClosed} 
-              className={`w-full py-4 rounded-xl font-black text-sm tracking-widest flex justify-center gap-2 transition-all shadow-lg text-white ${
-                (isExpired || isClosed) 
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" 
+            <button
+              disabled={submitLoading || isExpired || isClosed}
+              className={`w-full py-4 rounded-xl font-black text-sm tracking-widest flex justify-center gap-2 transition-all shadow-lg text-white ${(isExpired || isClosed)
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
                 : "active:scale-[0.98]"
-              }`}
+                }`}
               style={
-                (isExpired || isClosed) 
-                ? {} 
-                : { 
+                (isExpired || isClosed)
+                  ? {}
+                  : {
                     background: 'linear-gradient(to right, rgb(0,134,137), rgb(0,154,157))',
                     boxShadow: '0 4px 14px 0 rgba(0,134,137,0.25)'
                   }
@@ -538,26 +542,26 @@ export default function PaperSubmissionPage() {
 
       {/* CỘT PHẢI: PREVIEW */}
       <div className="xl:col-span-2">
-        <div 
+        <div
           className="rounded-2xl h-[calc(100vh-120px)] sticky top-6 flex flex-col shadow-2xl overflow-hidden"
-          style={{ 
+          style={{
             background: 'linear-gradient(135deg, rgb(0,134,137), rgb(0,114,117))',
             border: '1px solid rgba(0,134,137,0.3)'
           }}
         >
           <div className="p-4 border-b flex items-center justify-between" style={{ backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)' }}>
             <span className="flex items-center gap-2 font-bold text-white text-xs">
-              <Eye className="w-4 h-4" /> 
+              <Eye className="w-4 h-4" />
               BẢN XEM TRƯỚC NỘI DUNG PDF
             </span>
           </div>
-          
+
           <div className="flex-1 flex items-center justify-center relative" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
             {pdfPreviewUrl ? (
-              <iframe 
-                src={`${pdfPreviewUrl}#toolbar=0`} 
-                className="w-full h-full bg-white" 
-                title="PDF Preview" 
+              <iframe
+                src={`${pdfPreviewUrl}#toolbar=0`}
+                className="w-full h-full bg-white"
+                title="PDF Preview"
               />
             ) : (
               <div className="text-center p-10 space-y-4">

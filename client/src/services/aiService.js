@@ -56,6 +56,22 @@ export const aiService = {
     const res = await api.post("/ai/email-template", payload);
     return res.data;
   },
+
+  /**
+   * Get comprehensive author support (spell check, keywords, diff)
+   */
+  getAuthorSupport: async (text) => {
+    const res = await api.post("/ai/author/support", { text });
+    return res.data;
+  },
+
+  /**
+   * Get review support (summary, key points)
+   */
+  getReviewSupport: async (text, maxWords = 300) => {
+    const res = await api.post("/ai/review/support", { text, max_words: maxWords });
+    return res.data;
+  },
 };
 
 export default aiService;

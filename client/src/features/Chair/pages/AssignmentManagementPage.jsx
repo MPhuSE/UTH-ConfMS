@@ -7,6 +7,7 @@ import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import Table from "../../../components/Table";
 import { toast } from "react-hot-toast";
+import { getErrorMessage } from "../../../utils/errors";
 
 /**
  * Trang quản lý phân công reviewer cho Chair
@@ -72,8 +73,7 @@ export default function AssignmentManagementPage() {
       }
       setAssignments(assignmentsData);
     } catch (error) {
-      const message = error?.response?.data?.detail || "Không thể tải dữ liệu";
-      toast.error(message);
+      toast.error(getErrorMessage(error, "Không thể tải dữ liệu"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -97,8 +97,7 @@ export default function AssignmentManagementPage() {
       setReviewerId("");
       loadData();
     } catch (error) {
-      const message = error?.response?.data?.detail || "Không thể phân công reviewer";
-      toast.error(message);
+      toast.error(getErrorMessage(error, "Không thể phân công reviewer"));
       console.error(error);
     }
   };
@@ -109,7 +108,7 @@ export default function AssignmentManagementPage() {
       toast.success("Hủy phân công thành công");
       loadData();
     } catch (error) {
-      toast.error("Không thể hủy phân công");
+      toast.error(getErrorMessage(error, "Không thể hủy phân công"));
       console.error(error);
     }
   };

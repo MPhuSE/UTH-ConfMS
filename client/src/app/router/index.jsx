@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
 // Layouts
 import PublicLayout from "../layouts/PublicLayout";
@@ -73,6 +74,7 @@ export default function AppRouter() {
 
     return (
         <BrowserRouter>
+            <Toaster position="top-right" reverseOrder={false} />
             <Routes>
                 {/* 1. Public Routes */}
                 <Route element={<PublicLayout />}>
@@ -101,7 +103,7 @@ export default function AppRouter() {
                     <Route
                         path="overview"
                         element={
-                            <ProtectedRoute allowRoles={["author"]}>
+                            <ProtectedRoute allowRoles={["author", "authors"]}>
                                 <AuthorDashboard />
                             </ProtectedRoute>
                         }
@@ -109,7 +111,7 @@ export default function AppRouter() {
                     <Route
                         path="my-submissions"
                         element={
-                            <ProtectedRoute allowRoles={["author"]}>
+                            <ProtectedRoute allowRoles={["author", "authors"]}>
                                 <MySubmissionsPage />
                             </ProtectedRoute>
                         }
@@ -117,7 +119,7 @@ export default function AppRouter() {
                     <Route
                         path="submission"
                         element={
-                            <ProtectedRoute allowRoles={["author"]}>
+                            <ProtectedRoute allowRoles={["author", "authors"]}>
                                 <PaperSubmissionPage />
                             </ProtectedRoute>
                         }
@@ -125,7 +127,7 @@ export default function AppRouter() {
                     <Route
                         path="submission/edit/:paperId"
                         element={
-                            <ProtectedRoute allowRoles={["author"]}>
+                            <ProtectedRoute allowRoles={["author", "authors"]}>
                                 <EditSubmissionPage />
                             </ProtectedRoute>
                         }
@@ -133,7 +135,7 @@ export default function AppRouter() {
                     <Route
                         path="submission/:id/camera-ready"
                         element={
-                            <ProtectedRoute allowRoles={["author"]}>
+                            <ProtectedRoute allowRoles={["author", "authors"]}>
                                 <CameraReadyUploadPage />
                             </ProtectedRoute>
                         }
@@ -141,7 +143,7 @@ export default function AppRouter() {
                     <Route
                         path="results"
                         element={
-                            <ProtectedRoute allowRoles={["author"]}>
+                            <ProtectedRoute allowRoles={["author", "authors"]}>
                                 <ViewResultsPage />
                             </ProtectedRoute>
                         }
@@ -149,7 +151,7 @@ export default function AppRouter() {
                     <Route
                         path="rebuttal/:submissionId"
                         element={
-                            <ProtectedRoute allowRoles={["author"]}>
+                            <ProtectedRoute allowRoles={["author", "authors"]}>
                                 <AuthorRebuttalPage />
                             </ProtectedRoute>
                         }

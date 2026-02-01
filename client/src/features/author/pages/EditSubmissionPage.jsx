@@ -6,20 +6,21 @@ import { conferenceService } from "../../../services/conferenceService";
 import { Save, Trash2, FileUp, ArrowLeft, Loader2, CheckCircle, UserPlus, Plus } from "lucide-react";
 import StatusAlert from "../../../components/StatusAlert";
 import { canEditSubmission, getSubmissionBlockReason } from "../../../utils/validationUtils";
+import AuthorAISupport from "../../../components/AI/AuthorAISupport";
 
 export default function EditSubmissionPage() {
-  const { paperId } = useParams(); 
+  const { paperId } = useParams();
   const navigate = useNavigate();
-  
-  const { 
-    currentSubmission, 
-    fetchSubmissionById, 
-    updateSubmission, 
+
+  const {
+    currentSubmission,
+    fetchSubmissionById,
+    updateSubmission,
     deleteSubmission,
     isLoading,
-    error 
+    error
   } = useSubmissionStore();
-  
+
   const [formData, setFormData] = useState({
     title: "",
     abstract: "",
@@ -44,11 +45,11 @@ export default function EditSubmissionPage() {
       const rawAuthors = currentSubmission.authors || [];
       const mappedAuthors = rawAuthors.length > 0
         ? rawAuthors.map((author, index) => ({
-            name: author.name || author.full_name || "",
-            email: author.email || "",
-            affiliation: author.affiliation || "",
-            is_main: author.is_main === true || author.order_index === 0 || index === 0
-          }))
+          name: author.name || author.full_name || "",
+          email: author.email || "",
+          affiliation: author.affiliation || "",
+          is_main: author.is_main === true || author.order_index === 0 || index === 0
+        }))
         : [{ name: "", email: "", affiliation: "", is_main: true }];
 
       setFormData({
@@ -70,27 +71,27 @@ export default function EditSubmissionPage() {
   // 3. Xử lý Cập nhật
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Check validation
     if (!canEditSubmission(currentSubmission, conference)) {
       const reason = getSubmissionBlockReason(conference);
       alert(reason || "Không thể chỉnh sửa bài nộp này");
       return;
     }
-    
+
     // Tạo FormData chuẩn để gửi lên Backend
     const data = new FormData();
     data.append("title", formData.title);
     data.append("abstract", formData.abstract);
     data.append("authors", JSON.stringify(formData.authors));
-    
+
     // Chỉ gửi file nếu người dùng thực sự chọn file mới
     if (formData.file) {
       data.append("file", formData.file);
     }
 
     const success = await updateSubmission(paperId, data);
-    
+
     if (success) {
       setTimeout(() => {
         navigate(`/dashboard/submission/${paperId}`);
@@ -187,8 +188,8 @@ export default function EditSubmissionPage() {
           </button>
           <h1 className="text-2xl font-black text-emerald-900 uppercase italic">Chỉnh Sửa Bài Nộp</h1>
         </div>
-        
-        <button 
+
+        <button
           onClick={handleDelete}
           className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all border border-red-100 shadow-sm"
         >
@@ -206,14 +207,14 @@ export default function EditSubmissionPage() {
               message={blockReason}
             />
           )}
-          
+
           {/* Title */}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-emerald-600 ml-1">Tiêu Đề Bài Báo</label>
-            <input 
+            <input
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="w-full p-5 bg-emerald-50/50 rounded-2xl border-2 border-transparent focus:border-emerald-500 focus:bg-white transition-all font-bold text-emerald-900 placeholder-emerald-400/60"
               placeholder="Nhập tiêu đề bài báo..."
               required
@@ -223,13 +224,17 @@ export default function EditSubmissionPage() {
           {/* Abstract */}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-emerald-600 ml-1">Tóm Tắt</label>
-            <textarea 
+            <textarea
               rows="8"
               value={formData.abstract}
-              onChange={(e) => setFormData({...formData, abstract: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, abstract: e.target.value })}
               className="w-full p-5 bg-emerald-50/50 rounded-2xl border-2 border-transparent focus:border-emerald-500 focus:bg-white transition-all font-medium text-emerald-800 leading-relaxed placeholder-emerald-400/60"
               placeholder="Nhập tóm tắt bài báo..."
               required
+            />
+            <AuthorAISupport
+              text={formData.abstract}
+              onApplyRevision={(revised) => setFormData({ ...formData, abstract: revised })}
             />
           </div>
 
@@ -334,10 +339,10 @@ export default function EditSubmissionPage() {
               <p className="text-xs text-emerald-500/70 mt-1">
                 {formData.file ? `Kích thước: ${(formData.file.size / 1024 / 1024).toFixed(2)} MB` : "Chỉ chấp nhận file PDF"}
               </p>
-              <input 
-                type="file" 
+              <input
+                type="file"
                 accept=".pdf"
-                onChange={(e) => setFormData({...formData, file: e.target.files[0]})}
+                onChange={(e) => setFormData({ ...formData, file: e.target.files[0] })}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
             </div>
@@ -351,19 +356,18 @@ export default function EditSubmissionPage() {
 
         {/* Footer Actions */}
         <div className="p-8 bg-emerald-50/50 border-t border-emerald-100 flex gap-4">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isLoading || !canEdit}
-            className={`flex-2 py-5 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-xl ${
-              !canEdit 
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none" 
+            className={`flex-2 py-5 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-xl ${!canEdit
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
                 : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200 hover:shadow-emerald-300 disabled:opacity-50"
-            }`}
+              }`}
           >
             {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
             {isLoading ? "ĐANG CẬP NHẬT..." : !canEdit ? "KHÔNG THỂ CHỈNH SỬA" : "LƯU THAY ĐỔI"}
           </button>
-          <button 
+          <button
             type="button"
             onClick={() => navigate(-1)}
             className="flex-1 bg-white text-emerald-700 py-5 rounded-2xl font-black border border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300 transition-all"

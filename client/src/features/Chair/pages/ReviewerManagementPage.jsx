@@ -36,11 +36,18 @@ export default function ReviewerManagementPage() {
   }, [conferenceId]);
 
   const loadData = async () => {
+    // Validate conferenceId is a valid number to prevent 422 errors
+    const idNum = Number(conferenceId);
+    if (!conferenceId || isNaN(idNum) || idNum <= 0) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
       // Load conference
-      const confData = await conferenceService.getById(conferenceId);
+      const confData = await conferenceService.getById(idNum);
       setConference(confData);
 
       // Load all users with reviewer role

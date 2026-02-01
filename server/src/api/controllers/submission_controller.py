@@ -2,7 +2,7 @@ import datetime
 import json
 from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile, Query
 from starlette.requests import Request
-from typing import List
+from typing import List, Optional
 from dependency_container import get_submission_repo, get_conference_repo, get_system_repo
 from api.schemas.submission_schema import (
     SubmissionPatchSchema,
@@ -18,7 +18,8 @@ from services.submission.delete_submission import DeleteSubmissionService
 from services.submission.create_submission import CreateSubmissionService
 from infrastructure.external_services.cloudinary_service import CloudinaryService
 from api.utils.audit_utils import create_audit_log_sync
-from infrastructure.security.tenant_dependency import validate_conference_tenant, validate_submission_tenant
+from infrastructure.security.tenant_dependency import validate_conference_tenant, validate_submission_tenant, get_current_tenant
+from infrastructure.models.tenant_model import TenantModel
 
 
 router = APIRouter(prefix="/submissions", tags=["Submissions"])
@@ -125,15 +126,17 @@ async def submit_paper(
             detail=f"An error occurred during submission: {str(e)}"
         )
 
-@router.get("/", response_model=List[SubmissionResponseSchema])
+@router.get("", response_model=List[SubmissionResponseSchema])
 def list_submissions(
-    conference_id: int = Query(..., description="ID của hội nghị"),
+    conference_id: Optional[int] = Query(None, description="ID của hội nghị"),
     current_user=Depends(get_current_user),
     repo=Depends(get_submission_repo),
-    valid_conf_id: int = Depends(validate_conference_tenant)
+    valid_conf_id: Optional[int] = Depends(validate_conference_tenant),
+    tenant: Optional[TenantModel] = Depends(get_current_tenant)
 ):
-    """List all submissions for a specific conference - requires authentication."""
-    return ListSubmissionsService(repo).execute(conference_id=conference_id)
+    """List all submissions for a specific conference or within a tenant - requires authentication."""
+    tenant_id = tenant.id if tenant else None
+    return ListSubmissionsService(repo).execute(conference_id=conference_id, tenant_id=tenant_id)
 
 
 @router.get("/me", response_model=List[SubmissionResponseSchema])

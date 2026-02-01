@@ -7,6 +7,7 @@ import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import Table from "../../../components/Table";
 import { toast } from "react-hot-toast";
+import { getErrorMessage } from "../../../utils/errors";
 
 /**
  * Trang quản lý quyết định cho Chair
@@ -62,7 +63,7 @@ export default function DecisionManagementPage() {
       const data = await conferenceService.getAll();
       const conferencesList = Array.isArray(data) ? data : (data.conferences || []);
       setConferences(conferencesList);
-      
+
       // Auto-select first conference if no conferenceId provided
       if (!conferenceId && conferencesList.length > 0 && !selectedConferenceId) {
         setSelectedConferenceId(conferencesList[0].id);
@@ -75,7 +76,8 @@ export default function DecisionManagementPage() {
 
   const loadData = async () => {
     const confId = selectedConferenceId || conferenceId;
-    if (!confId) {
+    const idNum = Number(confId);
+    if (!confId || isNaN(idNum) || idNum <= 0) {
       setLoading(false);
       return;
     }
@@ -83,15 +85,15 @@ export default function DecisionManagementPage() {
     try {
       if (!isMountedRef.current) return;
       setLoading(true);
-      
-      const submissionsResponse = await submissionService.getAll();
+
+      const submissionsResponse = await submissionService.getAll(idNum);
       if (!isMountedRef.current) return;
-      
+
       // Handle both array response and object response
-      const submissionsData = Array.isArray(submissionsResponse) 
-        ? submissionsResponse 
+      const submissionsData = Array.isArray(submissionsResponse)
+        ? submissionsResponse
         : (submissionsResponse.submissions || submissionsResponse.data || []);
-      
+
       if (!Array.isArray(submissionsData)) {
         console.error("Submissions data is not an array:", submissionsData);
         if (isMountedRef.current) {
@@ -99,48 +101,22 @@ export default function DecisionManagementPage() {
         }
         return;
       }
-      
-      // Enhanced function to get conference ID from submission
-      const getConferenceId = (s) => {
-        // Try multiple possible paths
-        if (s.conference_id) return s.conference_id;
-        if (s.track?.conference_id) return s.track.conference_id;
-        if (s.track?.conference?.id) return s.track.conference.id;
-        if (s.conference?.id) return s.conference.id;
-        return null;
-      };
-      
-      // Debug logging
-      console.log("[DecisionManagement] Conference ID:", confId, typeof confId);
-      console.log("[DecisionManagement] Total submissions:", submissionsData.length);
-      
-      // Filter by conference first
-      const conferenceSubmissions = submissionsData.filter((s) => {
-        const sConfId = getConferenceId(s);
-        const matches = sConfId !== null && parseInt(sConfId) === parseInt(confId);
-        if (!matches && sConfId) {
-          console.log("[DecisionManagement] Mismatch:", {
-            submissionId: s.id,
-            submissionConfId: sConfId,
-            expectedConfId: confId,
-            submission: s
-          });
-        }
-        return matches;
-      });
-      
+
+      // Backend now returns only conference submissions, but we keep the status filter
+      const conferenceSubmissions = submissionsData;
+
       console.log("[DecisionManagement] Submissions for conference:", conferenceSubmissions.length);
       if (conferenceSubmissions.length > 0) {
-        console.log("[DecisionManagement] Submission statuses:", conferenceSubmissions.map(s => ({ 
-          id: s.id, 
-          status: s.status, 
-          title: s.title?.substring(0, 50) 
+        console.log("[DecisionManagement] Submission statuses:", conferenceSubmissions.map(s => ({
+          id: s.id,
+          status: s.status,
+          title: s.title?.substring(0, 50)
         })));
       } else {
         console.warn("[DecisionManagement] No submissions found for conference", confId);
         console.log("[DecisionManagement] Sample submission structure:", submissionsData[0]);
       }
-      
+
       // Show submissions that are submitted, under_review, accepted, or rejected (can make/update decisions)
       // Include "submitted" status so Chair can make decisions even before reviewers are assigned
       const filtered = conferenceSubmissions.filter(
@@ -150,9 +126,9 @@ export default function DecisionManagementPage() {
           return allowedStatuses.includes(status);
         }
       );
-      
+
       console.log("[DecisionManagement] Filtered submissions (after status filter):", filtered.length);
-      
+
       if (isMountedRef.current) {
         setSubmissions(filtered);
       }
@@ -161,12 +137,12 @@ export default function DecisionManagementPage() {
       try {
         const decisionsData = await decisionService.getDecisionsByConference(confId);
         if (!isMountedRef.current) return;
-        
+
         // Handle both array response and object response
-        const decisionsArray = Array.isArray(decisionsData) 
-          ? decisionsData 
+        const decisionsArray = Array.isArray(decisionsData)
+          ? decisionsData
           : (decisionsData.decisions || decisionsData.data || []);
-        
+
         const decisionsMap = {};
         if (Array.isArray(decisionsArray)) {
           decisionsArray.forEach((d) => {
@@ -193,7 +169,7 @@ export default function DecisionManagementPage() {
         return;
       }
       if (isMountedRef.current) {
-        toast.error("Không thể tải dữ liệu");
+        toast.error(getErrorMessage(error, "Không thể tải dữ liệu"));
         setSubmissions([]);
         setDecisions({});
       }
@@ -214,7 +190,7 @@ export default function DecisionManagementPage() {
         decision,
         decision_notes: notes,
       };
-      
+
       // Only include final_score if it's provided and different from avg_score
       // or if decision is accepted/rejected (to set final score)
       const avgScore = decisions[decisionModal.id]?.avg_score || decisionModal.avg_score;
@@ -224,7 +200,7 @@ export default function DecisionManagementPage() {
           payload.final_score = parsedFinalScore;
         }
       }
-      
+
       await decisionService.makeDecision(payload);
       toast.success("Quyết định đã được ghi nhận");
       setDecisionModal(null);
@@ -233,14 +209,14 @@ export default function DecisionManagementPage() {
       setFinalScore("");
       loadData();
     } catch (error) {
-      toast.error(error?.response?.data?.detail || "Không thể ghi nhận quyết định");
+      toast.error(getErrorMessage(error, "Không thể ghi nhận quyết định"));
       console.error(error);
     }
   };
 
   const openDecisionModal = async (submission) => {
     setDecisionModal(submission);
-    
+
     // Get current decision from decisions map or submission
     const currentDecision = decisions[submission.id];
     const decisionValue = currentDecision?.decision || submission.decision || "accepted";
@@ -248,12 +224,12 @@ export default function DecisionManagementPage() {
     const normalizedDecision = decisionValue.toLowerCase().replace(" ", "_");
     setDecision(normalizedDecision);
     setNotes(currentDecision?.decision_notes || submission.decision_notes || "");
-    
+
     // Set final_score: use existing final_score, or avg_score if available
     const existingFinalScore = currentDecision?.final_score || submission.final_score;
     const avgScore = currentDecision?.avg_score || submission.avg_score;
     setFinalScore(existingFinalScore ? existingFinalScore.toString() : (avgScore ? avgScore.toString() : ""));
-    
+
     // Load reviews for this submission
     try {
       setLoadingReviews(true);
@@ -335,7 +311,7 @@ export default function DecisionManagementPage() {
         const decisionData = decisions[row.id];
         const finalScore = decisionData?.final_score || row.final_score;
         const avgScore = decisionData?.avg_score || row.avg_score;
-        
+
         if (finalScore) {
           const isAdjusted = avgScore && Math.abs(parseFloat(finalScore) - parseFloat(avgScore)) > 0.01;
           return (
@@ -379,14 +355,14 @@ export default function DecisionManagementPage() {
   const totalSubmissions = submissions.length;
   const decidedCount = Object.keys(decisions).length;
   const pendingCount = Math.max(0, totalSubmissions - decidedCount); // Prevent negative values
-  
+
   const stats = {
     total: totalSubmissions,
     decided: decidedCount,
     pending: pendingCount,
     accepted: Object.values(decisions).filter(d => d.decision?.toLowerCase() === "accepted").length,
     rejected: Object.values(decisions).filter(d => d.decision?.toLowerCase() === "rejected").length,
-    revisions: Object.values(decisions).filter(d => 
+    revisions: Object.values(decisions).filter(d =>
       d.decision?.toLowerCase() === "minor_revision" || d.decision?.toLowerCase() === "major_revision"
     ).length,
   };
@@ -484,7 +460,7 @@ export default function DecisionManagementPage() {
           <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600 font-medium mb-2">Không có bài nộp nào</p>
           <p className="text-sm text-gray-500">
-            {currentConferenceId 
+            {currentConferenceId
               ? "Chưa có bài nộp nào với status 'submitted', 'under_review', 'accepted', hoặc 'rejected' cho hội nghị này."
               : "Vui lòng chọn hội nghị để xem bài nộp."
             }
@@ -565,11 +541,10 @@ export default function DecisionManagementPage() {
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-medium">Reviewer {idx + 1}</span>
                       {review.recommendation && (
-                        <span className={`text-xs px-2 py-0.5 rounded ${
-                          review.recommendation.toLowerCase() === 'accept' 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-red-100 text-red-700'
-                        }`}>
+                        <span className={`text-xs px-2 py-0.5 rounded ${review.recommendation.toLowerCase() === 'accept'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
+                          }`}>
                           {review.recommendation}
                         </span>
                       )}
@@ -593,11 +568,10 @@ export default function DecisionManagementPage() {
               Quyết định
             </label>
             <div className="grid grid-cols-2 gap-3">
-              <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${
-                decision === "accepted" 
-                  ? "border-green-500 bg-green-50" 
-                  : "border-gray-200 hover:border-gray-300"
-              }`}>
+              <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${decision === "accepted"
+                ? "border-green-500 bg-green-50"
+                : "border-gray-200 hover:border-gray-300"
+                }`}>
                 <input
                   type="radio"
                   value="accepted"
@@ -611,11 +585,10 @@ export default function DecisionManagementPage() {
                 </span>
               </label>
 
-              <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${
-                decision === "rejected" 
-                  ? "border-red-500 bg-red-50" 
-                  : "border-gray-200 hover:border-gray-300"
-              }`}>
+              <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${decision === "rejected"
+                ? "border-red-500 bg-red-50"
+                : "border-gray-200 hover:border-gray-300"
+                }`}>
                 <input
                   type="radio"
                   value="rejected"
@@ -629,11 +602,10 @@ export default function DecisionManagementPage() {
                 </span>
               </label>
 
-              <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${
-                decision === "minor_revision" 
-                  ? "border-yellow-500 bg-yellow-50" 
-                  : "border-gray-200 hover:border-gray-300"
-              }`}>
+              <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${decision === "minor_revision"
+                ? "border-yellow-500 bg-yellow-50"
+                : "border-gray-200 hover:border-gray-300"
+                }`}>
                 <input
                   type="radio"
                   value="minor_revision"
@@ -647,11 +619,10 @@ export default function DecisionManagementPage() {
                 </span>
               </label>
 
-              <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${
-                decision === "major_revision" 
-                  ? "border-orange-500 bg-orange-50" 
-                  : "border-gray-200 hover:border-gray-300"
-              }`}>
+              <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${decision === "major_revision"
+                ? "border-orange-500 bg-orange-50"
+                : "border-gray-200 hover:border-gray-300"
+                }`}>
                 <input
                   type="radio"
                   value="major_revision"
@@ -687,7 +658,7 @@ export default function DecisionManagementPage() {
                 <p className="text-xs text-gray-500">
                   {(() => {
                     const avgScore = decisions[decisionModal?.id]?.avg_score || decisionModal?.avg_score;
-                    return avgScore 
+                    return avgScore
                       ? `Điểm TB hiện tại: ${parseFloat(avgScore).toFixed(2)}. Để trống để dùng điểm này.`
                       : "Nhập điểm cuối cùng hoặc để trống nếu chưa có.";
                   })()}

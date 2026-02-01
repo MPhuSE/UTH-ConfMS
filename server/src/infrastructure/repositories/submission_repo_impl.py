@@ -7,7 +7,7 @@ from infrastructure.models.submission_model import (
     SubmissionAuthorModel, 
     SubmissionFileModel
 )
-from infrastructure.models.conference_model import TrackModel
+from infrastructure.models.conference_model import TrackModel, ConferenceModel
 from infrastructure.models.user_model import UserModel
 from infrastructure.repositories_interfaces.submission_repository import SubmissionRepository
 
@@ -15,14 +15,18 @@ class SubmissionRepositoryImpl(SubmissionRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    # 1. Triển khai phương thức get_all (Hỗ trợ lọc theo conference_id)
-    def get_all(self, conference_id: Optional[int] = None):
-        query = self.db.query(SubmissionModel).options(
+    # 1. Triển khai phương thức get_all (Hỗ trợ lọc theo conference_id và tenant_id)
+    def get_all(self, conference_id: Optional[int] = None, tenant_id: Optional[int] = None):
+        query = self.db.query(SubmissionModel).join(ConferenceModel).options(
             joinedload(SubmissionModel.track).joinedload(TrackModel.conference),
             selectinload(SubmissionModel.authors)
         )
         if conference_id:
             query = query.filter(SubmissionModel.conference_id == conference_id)
+        
+        if tenant_id:
+            query = query.filter(ConferenceModel.tenant_id == tenant_id)
+            
         return query.all()
 
     # 2. Triển khai phương thức create

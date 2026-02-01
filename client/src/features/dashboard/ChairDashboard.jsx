@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../app/store/useAuthStore";
-import { 
-  conferenceService, 
-  submissionService, 
+import {
+  conferenceService,
+  submissionService,
   reviewService,
   decisionService,
   reportsService
 } from "../../services";
-import { 
-  FileText, 
-  Users, 
-  CheckCircle, 
+import {
+  FileText,
+  Users,
+  CheckCircle,
   XCircle,
   Clock,
   TrendingUp,
@@ -21,9 +21,11 @@ import {
   Calendar,
   UserPlus,
   Mail,
-  Sparkles
+  Sparkles,
+  AlertCircle
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { getErrorMessage } from "../../utils/errors";
 
 /**
  * Dashboard cho Chair
@@ -31,9 +33,8 @@ import { toast } from "react-hot-toast";
 const StatCard = ({ title, value, icon: Icon, color, onClick, loading = false }) => (
   <div
     onClick={onClick}
-    className={`bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
-      onClick ? "hover:border-teal-300" : ""
-    }`}
+    className={`bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${onClick ? "hover:border-teal-300" : ""
+      }`}
   >
     <div className="flex items-center justify-between">
       <div>
@@ -92,16 +93,14 @@ export default function ChairDashboard() {
   };
 
   const loadStats = async () => {
-    if (!selectedConference) return;
+    if (!selectedConference?.id) return;
 
     try {
-      // Load submissions
-      const submissions = await submissionService.getAll();
-      const getConferenceId = (s) =>
-        s.conference_id ?? s.track?.conference?.id ?? null;
-      const conferenceSubmissions = submissions.filter(
-        (s) => getConferenceId(s) === selectedConference.id
-      );
+      // Load submissions for the selected conference directly
+      const data = await submissionService.getAll(selectedConference.id);
+
+      // Handle both array response and object {submissions: []}
+      const conferenceSubmissions = Array.isArray(data) ? data : (data.submissions || []);
 
       const totalSubmissions = conferenceSubmissions.length;
       const underReview = conferenceSubmissions.filter((s) => s.status === "under_review").length;
@@ -119,7 +118,8 @@ export default function ChairDashboard() {
         pendingDecisions,
       });
     } catch (error) {
-      toast.error("Không thể tải thống kê bài nộp");
+      const msg = getErrorMessage(error, "Không thể tải thống kê bài nộp");
+      toast.error(msg);
       console.error("Error loading stats:", error);
     }
   };
@@ -169,7 +169,7 @@ export default function ChairDashboard() {
           icon={Clock}
           color="text-yellow-500"
           loading={loading}
-          onClick={() => navigate(`/dashboard/chair/assignments/${selectedConference?.id}`)}
+          onClick={() => selectedConference && navigate(`/dashboard/chair/assignments/${selectedConference.id}`)}
         />
         <StatCard
           title="Đã chấp nhận"
@@ -191,7 +191,7 @@ export default function ChairDashboard() {
           icon={TrendingUp}
           color="text-purple-500"
           loading={loading}
-          onClick={() => navigate(`/dashboard/chair/decisions/${selectedConference?.id}`)}
+          onClick={() => selectedConference && navigate(`/dashboard/chair/decisions/${selectedConference.id}`)}
         />
       </div>
 
@@ -200,7 +200,7 @@ export default function ChairDashboard() {
         <h2 className="text-lg font-semibold mb-4">Thao tác nhanh</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <button
-            onClick={() => navigate(`/dashboard/chair/assignments/${selectedConference?.id}`)}
+            onClick={() => selectedConference && navigate(`/dashboard/chair/assignments/${selectedConference.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -211,7 +211,7 @@ export default function ChairDashboard() {
           </button>
 
           <button
-            onClick={() => navigate(`/dashboard/chair/decisions/${selectedConference?.id}`)}
+            onClick={() => selectedConference && navigate(`/dashboard/chair/decisions/${selectedConference.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export default function ChairDashboard() {
           </button>
 
           <button
-            onClick={() => navigate(`/dashboard/chair/review-progress/${selectedConference?.id}`)}
+            onClick={() => selectedConference && navigate(`/dashboard/chair/review-progress/${selectedConference.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -233,7 +233,7 @@ export default function ChairDashboard() {
           </button>
 
           <button
-            onClick={() => navigate(`/dashboard/chair/schedule/${selectedConference?.id}`)}
+            onClick={() => selectedConference && navigate(`/dashboard/chair/schedule/${selectedConference.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -244,7 +244,7 @@ export default function ChairDashboard() {
           </button>
 
           <button
-            onClick={() => navigate(`/dashboard/chair/reviewers/${selectedConference?.id}`)}
+            onClick={() => selectedConference && navigate(`/dashboard/chair/reviewers/${selectedConference.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -255,7 +255,7 @@ export default function ChairDashboard() {
           </button>
 
           <button
-            onClick={() => navigate(`/dashboard/chair/notifications/${selectedConference?.id}`)}
+            onClick={() => selectedConference && navigate(`/dashboard/chair/notifications/${selectedConference.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -266,7 +266,7 @@ export default function ChairDashboard() {
           </button>
 
           <button
-            onClick={() => navigate(`/dashboard/chair/email-templates/${selectedConference?.id}`)}
+            onClick={() => selectedConference && navigate(`/dashboard/chair/email-templates/${selectedConference.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -277,7 +277,7 @@ export default function ChairDashboard() {
           </button>
 
           <button
-            onClick={() => navigate(`/dashboard/chair/proceedings/${selectedConference?.id}`)}
+            onClick={() => selectedConference && navigate(`/dashboard/chair/proceedings/${selectedConference.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -299,7 +299,7 @@ export default function ChairDashboard() {
           </button>
 
           <button
-            onClick={() => navigate(`/dashboard/admin/ai-features/${selectedConference?.id}`)}
+            onClick={() => selectedConference && navigate(`/dashboard/admin/ai-features/${selectedConference.id}`)}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors"
           >
             <div className="flex items-center gap-3">

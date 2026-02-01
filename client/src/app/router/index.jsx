@@ -304,7 +304,7 @@ export default function AppRouter() {
                         }
                     />
                     <Route
-                        path="reviewer/bidding/:conferenceId"
+                        path="reviewer/bidding/:conferenceId?"
                         element={
                             <ProtectedRoute allowRoles={["reviewer"]}>
                                 <BiddingCOIPage />

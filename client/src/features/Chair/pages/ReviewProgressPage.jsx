@@ -23,23 +23,27 @@ export default function ReviewProgressPage() {
   }, [conferenceId]);
 
   const loadData = async () => {
+    // Validate conferenceId is a valid number to prevent 422 errors
+    const idNum = Number(conferenceId);
+    if (!conferenceId || isNaN(idNum) || idNum <= 0) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      
+
       // Load conference
-      const confData = await conferenceService.getById(conferenceId);
+      const confData = await conferenceService.getById(idNum);
       setConference(confData);
 
-      // Load submissions
-      const subsData = await submissionService.getAll();
-      const confSubs = subsData.filter(
-        (s) => s.conference_id === parseInt(conferenceId)
-      );
-      setSubmissions(confSubs);
+      // Load submissions for this conference
+      const confSubs = await submissionService.getAll(idNum);
+      setSubmissions(confSubs || []);
 
       // Load reviews for all submissions
       const allReviews = [];
-      for (const sub of confSubs) {
+      for (const sub of (confSubs || [])) {
         try {
           const reviewsData = await reviewService.getReviewsBySubmission(sub.id);
           if (Array.isArray(reviewsData)) {
@@ -53,7 +57,7 @@ export default function ReviewProgressPage() {
 
       // Load assignments
       const allAssignments = [];
-      for (const sub of confSubs) {
+      for (const sub of (confSubs || [])) {
         try {
           const assignsData = await reviewService.getAssignmentsBySubmission(sub.id);
           if (Array.isArray(assignsData)) {
@@ -100,8 +104,8 @@ export default function ReviewProgressPage() {
     ).length;
     const pendingReviews = totalAssignments - completedReviews;
 
-    const reviewProgress = totalAssignments > 0 
-      ? Math.round((completedReviews / totalAssignments) * 100) 
+    const reviewProgress = totalAssignments > 0
+      ? Math.round((completedReviews / totalAssignments) * 100)
       : 0;
 
     return {
@@ -153,8 +157,8 @@ export default function ReviewProgressPage() {
     return Object.entries(tracks).map(([name, data]) => ({
       name,
       ...data,
-      progress: data.totalAssignments > 0 
-        ? Math.round((data.completedReviews / data.totalAssignments) * 100) 
+      progress: data.totalAssignments > 0
+        ? Math.round((data.completedReviews / data.totalAssignments) * 100)
         : 0,
     }));
   }, [filteredSubmissions, assignments, reviews]);

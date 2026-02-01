@@ -10,6 +10,7 @@ import { useAuthStore } from "../../../app/store/useAuthStore";
 import { tenantService } from "../../../services";
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import { getErrorMessage } from "../../../utils/errors";
 
 const toDateInput = (value) => {
   if (!value) return "";
@@ -298,7 +299,7 @@ export default function ConferenceManagementPage() {
             console.log(`[FRONTEND] ✅ Track created:`, trackResponse);
           } catch (trackErr) {
             console.error(`[FRONTEND] ❌ Error creating track "${track.name}":`, trackErr);
-            trackErrors.push(`Track "${track.name}": ${trackErr?.response?.data?.detail || trackErr.message}`);
+            trackErrors.push(`Track "${track.name}": ${getErrorMessage(trackErr)}`);
           }
         }
 

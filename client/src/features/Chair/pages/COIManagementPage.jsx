@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { reviewService, submissionService, userService, conferenceService } from "../../../services";
+import { getErrorMessage } from "../../../utils/errors";
 import { AlertTriangle, Search, FileText, Users, X } from "lucide-react";
 
 export default function COIManagementPage() {
@@ -31,7 +32,7 @@ export default function COIManagementPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Load conferences
       const confData = await conferenceService.getAll();
       const confList = confData.conferences || confData || [];
@@ -49,22 +50,20 @@ export default function COIManagementPage() {
       const coisData = await reviewService.getCOIsByConference(activeConferenceId);
       setCois(coisData || []);
 
-      // Load submissions for reference
-      const subsData = await submissionService.getAll();
-      const getConferenceId = (s) => s.conference_id ?? s.track?.conference?.id ?? null;
-      const filtered = subsData.filter((s) => getConferenceId(s) === activeConferenceId);
-      setSubmissions(filtered);
+      // Load submissions for reference (filtered by active conference)
+      const subsData = await submissionService.getAll(activeConferenceId);
+      setSubmissions(subsData || []);
 
       // Load users (reviewers) for reference
       const reviewersData = await userService.listUsersByRole("reviewer");
       // Server returns {role: {...}, users: [...]}
-      const reviewersList = Array.isArray(reviewersData) 
-        ? reviewersData 
+      const reviewersList = Array.isArray(reviewersData)
+        ? reviewersData
         : (reviewersData?.users || []);
       setUsers(reviewersList || []);
     } catch (error) {
       console.error("Load COI data error:", error);
-      toast.error("Không thể tải dữ liệu COI");
+      toast.error(getErrorMessage(error, "Không thể tải dữ liệu COI"));
     } finally {
       setLoading(false);
     }
@@ -80,8 +79,7 @@ export default function COIManagementPage() {
       toast.success("Đã khai báo COI thành công");
       loadData();
     } catch (error) {
-      const message = error?.response?.data?.detail || "Lỗi khi khai báo COI";
-      toast.error(message);
+      toast.error(getErrorMessage(error, "Lỗi khi khai báo COI"));
     }
   };
 

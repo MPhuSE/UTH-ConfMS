@@ -14,17 +14,17 @@ const BiddingCOIPage = () => {
   const [cois, setCois] = useState(new Set()); // Lưu danh sách ID bài báo bị xung đột
 
   useEffect(() => {
-    if (!confIdNum || !user?.id) return;
+    if (!user?.id) return;
     fetchData();
   }, [confIdNum, user?.id]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const all = await submissionService.getAll();
-      const getConferenceId = (s) => s.conference_id ?? s.track?.conference?.id ?? null;
-      const filtered = (all || []).filter((s) => getConferenceId(s) === confIdNum);
-      setSubmissions(filtered);
+      // Pass confIdNum if it's a valid number, otherwise pass undefined to get all tenant submissions
+      const effectiveConfId = (confIdNum && !isNaN(confIdNum)) ? confIdNum : undefined;
+      const filtered = await submissionService.getAll(effectiveConfId);
+      setSubmissions(filtered || []);
 
       // 2. Lấy các Bid hiện tại của Reviewer này (để hiển thị trạng thái đã chọn)
       const currentBids = await reviewService.getMyBids();
@@ -95,7 +95,7 @@ const BiddingCOIPage = () => {
           return (
             <div key={sub.id} className={`bg-white border rounded-xl p-5 shadow-sm transition-all ${isCOI ? 'opacity-50 grayscale' : 'hover:shadow-md'}`}>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                
+
                 {/* Thông tin bài báo */}
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">

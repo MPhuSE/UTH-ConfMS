@@ -45,12 +45,10 @@ export default function AssignmentManagementPage() {
         setSelectedConferenceId(String(confList[0].id));
       }
 
-      const submissionsData = await submissionService.getAll();
-      const getConferenceId = (s) => s.conference_id ?? s.track?.conference?.id ?? null;
-      const filtered = activeConferenceId
-        ? submissionsData.filter((s) => getConferenceId(s) === activeConferenceId)
+      const submissionsData = activeConferenceId
+        ? await submissionService.getAll(activeConferenceId)
         : [];
-      setSubmissions(filtered);
+      setSubmissions(submissionsData || []);
 
       // Load reviewer pool
       try {
@@ -63,7 +61,7 @@ export default function AssignmentManagementPage() {
 
       // Load assignments for each submission
       const assignmentsData = {};
-      for (const submission of filtered) {
+      for (const submission of (submissionsData || [])) {
         try {
           const assigns = await reviewService.getAssignmentsBySubmission(submission.id);
           assignmentsData[submission.id] = assigns;

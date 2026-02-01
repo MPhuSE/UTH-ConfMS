@@ -34,6 +34,14 @@ class ConferenceCreateRequest(BaseModel):
     
     tracks: Optional[List[TrackCreateInConference]] = None  # Optional: tạo tracks cùng lúc
 
+class TrackResponse(BaseModel):
+    id: int
+    name: str
+    max_reviewers: int
+
+    class Config:
+        from_attributes = True
+
 class ConferenceResponse(BaseModel):
     id: int
     name: str
@@ -56,6 +64,11 @@ class ConferenceResponse(BaseModel):
     rebuttal_deadline: Optional[datetime] = None
     camera_ready_open: Optional[bool] = False
     camera_ready_deadline: Optional[datetime] = None
+    
+    # Extra fields for create response
+    tracks: Optional[List[TrackResponse]] = None
+    track_warnings: Optional[List[str]] = None
+    message: Optional[str] = None
 
     class Config:
         from_attributes = True

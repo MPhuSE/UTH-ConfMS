@@ -49,12 +49,15 @@ async def require_tenant_membership(
         return tenant
 
 async def validate_conference_tenant(
-    conference_id: int,
+    conference_id: Optional[int] = None,
     tenant: Optional[TenantModel] = Depends(get_current_tenant)
 ):
     """
     Ensures the requested conference belongs to the active tenant.
     """
+    if conference_id is None:
+        return None
+
     if not tenant:
         return conference_id
 

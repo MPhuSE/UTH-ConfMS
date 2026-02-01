@@ -11,7 +11,8 @@ export const trackService = {
    * @returns {Promise<Object>} Created track
    */
   create: async (payload) => {
-    const res = await api.post("/tracks", payload);
+    // Add conference_id as query param to satisfy validate_conference_tenant dependency
+    const res = await api.post(`/tracks?conference_id=${payload.conference_id}`, payload);
     return res.data;
   },
 

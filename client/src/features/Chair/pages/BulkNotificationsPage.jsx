@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { getErrorMessage } from "../../../utils/errors";
 import Button from "../../../components/Button";
 import api from "../../../lib/axios";
 
@@ -13,6 +14,11 @@ export default function BulkNotificationsPage() {
   const [result, setResult] = useState(null);
 
   const handleSend = async () => {
+    if (!confIdNum || isNaN(confIdNum) || confIdNum <= 0) {
+      toast.error("ID hội nghị không hợp lệ");
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await api.post(
@@ -21,8 +27,7 @@ export default function BulkNotificationsPage() {
       setResult(res.data);
       toast.success(`Đã gửi: ${res.data.sent}, lỗi: ${res.data.failed}`);
     } catch (err) {
-      const message = err?.response?.data?.detail || "Gửi email hàng loạt thất bại";
-      toast.error(message);
+      toast.error(getErrorMessage(err, "Gửi email hàng loạt thất bại"));
     } finally {
       setLoading(false);
     }

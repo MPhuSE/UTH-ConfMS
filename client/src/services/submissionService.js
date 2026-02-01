@@ -16,14 +16,14 @@ export const submissionService = {
   },
 
   // Lấy toàn bộ bài nộp (Chair/Admin)
-  getAllSubmissions: async () => {
-    const res = await api.get("/submissions");
+  getAllSubmissions: async (conferenceId) => {
+    const res = await api.get("/submissions", { params: { conference_id: conferenceId } });
     return res.data;
   },
 
   // Backward compatible alias (many Chair/Reviewer pages call getAll)
-  getAll: async () => {
-    const res = await api.get("/submissions");
+  getAll: async (conferenceId) => {
+    const res = await api.get("/submissions", { params: { conference_id: conferenceId } });
     return res.data;
   },
 
@@ -44,15 +44,15 @@ export const submissionService = {
     const res = await api.get(`/submissions/${id}`);
     return res.data;
   },
-  
+
   update: async (id, formData) => {
     const res = await api.patch(`/submissions/${id}/`, formData, {
-        headers: { 
-            "Content-Type": "multipart/form-data" 
-        },
+      headers: {
+        "Content-Type": "multipart/form-data"
+      },
     });
     return res.data;
-},
+  },
 
   delete: async (id) => {
     const res = await api.delete(`/submissions/${id}`);
@@ -65,7 +65,7 @@ export const submissionService = {
       // Lấy download URL từ backend (với redirect=false để nhận JSON)
       const res = await api.get(`/submissions/${id}/download?redirect=false`);
       const { download_url } = res.data;
-      
+
       if (download_url) {
         // Mở URL trong tab mới để download
         window.open(download_url, '_blank');

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from starlette.requests import Request
 from sqlalchemy.orm import Session
+from typing import List, Optional
 
 from api.schemas.conference_schema import (
     ConferenceCreateRequest, 
@@ -200,42 +201,28 @@ def create_conference(
         if not isinstance(created_tracks, list):
             created_tracks = []
         
-        # Convert result (domain model) to dict để serialize đúng
-        data_dict = {
-            "id": result.id,
-            "name": result.name,
-            "abbreviation": result.abbreviation,
-            "description": result.description,
-            "website": result.website,
-            "location": result.location,
-            "start_date": result.start_date.isoformat() if result.start_date else None,
-            "end_date": result.end_date.isoformat() if result.end_date else None,
-            "submission_deadline": result.submission_deadline.isoformat() if result.submission_deadline else None,
-            "review_deadline": result.review_deadline.isoformat() if result.review_deadline else None,
-            "is_open": result.is_open,
-            "blind_mode": result.blind_mode
-        }
-        
-        response_data = {
-            "message": "Conference created successfully",
-            "data": data_dict,
-            "tracks": created_tracks  # Luôn trả về array (có thể empty)
-        }
-        
-        if track_errors:
-            response_data["track_warnings"] = track_errors
-        
-        print(f"[CONFERENCE DEBUG] ===== FINAL RESPONSE =====")
-        print(f"[CONFERENCE DEBUG] Conference ID: {result.id}")
-        print(f"[CONFERENCE DEBUG] Tracks in response: {len(created_tracks)}")
-        print(f"[CONFERENCE DEBUG] Tracks data: {created_tracks}")
-        print(f"[CONFERENCE DEBUG] Track errors: {track_errors}")
-        print(f"[CONFERENCE DEBUG] Response keys: {list(response_data.keys())}")
-        print(f"[CONFERENCE DEBUG] Response has 'tracks' key: {'tracks' in response_data}")
-        print(f"[CONFERENCE DEBUG] Response tracks value: {response_data.get('tracks')}")
-        print(f"[CONFERENCE DEBUG] Response tracks type: {type(response_data.get('tracks'))}")
-        print(f"[CONFERENCE DEBUG] =========================")
-        return response_data
+        return ConferenceResponse(
+            id=result.id,
+            name=result.name,
+            abbreviation=result.abbreviation,
+            description=result.description,
+            website=result.website,
+            location=result.location,
+            start_date=result.start_date,
+            end_date=result.end_date,
+            submission_deadline=result.submission_deadline,
+            review_deadline=result.review_deadline,
+            is_open=result.is_open,
+            blind_mode=result.blind_mode,
+            tenant_id=result.tenant_id,
+            rebuttal_open=result.rebuttal_open,
+            rebuttal_deadline=result.rebuttal_deadline,
+            camera_ready_open=result.camera_ready_open,
+            camera_ready_deadline=result.camera_ready_deadline,
+            tracks=created_tracks,
+            track_warnings=track_errors,
+            message="Conference created successfully"
+        )
     except BusinessRuleException as e:
         print(f"[CONFERENCE DEBUG] BusinessRuleException: {str(e)}")
         # Don't rollback here - conference and tracks may have been committed

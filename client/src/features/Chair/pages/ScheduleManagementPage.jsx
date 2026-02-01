@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { scheduleService, conferenceService, submissionService } from "../../../services";
 import { toast } from "react-hot-toast";
+import { getErrorMessage } from "../../../utils/errors";
 import Table from "../../../components/Table";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
@@ -36,11 +37,18 @@ export default function ScheduleManagementPage() {
   }, [conferenceId]);
 
   const loadData = async () => {
+    // Validate conferenceId is a valid number to prevent 422 errors
+    const idNum = Number(conferenceId);
+    if (!conferenceId || isNaN(idNum) || idNum <= 0) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      
+
       // Load conference
-      const confData = await conferenceService.getById(conferenceId);
+      const confData = await conferenceService.getById(idNum);
       setConference(confData);
 
       // Load schedule items
@@ -52,14 +60,14 @@ export default function ScheduleManagementPage() {
         setSessions(confData.sessions || []);
       }
 
-      // Load accepted submissions for scheduling
-      const subsData = await submissionService.getAll();
-      const acceptedSubs = subsData.filter(
-        (s) => s.conference_id === parseInt(conferenceId) && s.decision === "accepted"
+      // Load accepted submissions for scheduling (filtered by conference)
+      const subsData = await submissionService.getAll(conferenceId);
+      const acceptedSubs = (subsData || []).filter(
+        (s) => s.decision === "accepted" || s.status === "accepted"
       );
       setSubmissions(acceptedSubs);
     } catch (error) {
-      toast.error("Không thể tải dữ liệu schedule");
+      toast.error(getErrorMessage(error, "Không thể tải dữ liệu schedule"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -98,14 +106,14 @@ export default function ScheduleManagementPage() {
       toast.success("Đã xóa schedule item");
       loadData();
     } catch (error) {
-      toast.error("Không thể xóa schedule item");
+      toast.error(getErrorMessage(error, "Không thể xóa schedule item"));
       console.error(error);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       const payload = {
         conference_id: parseInt(conferenceId),
@@ -127,7 +135,7 @@ export default function ScheduleManagementPage() {
       setShowModal(false);
       loadData();
     } catch (error) {
-      toast.error(error?.response?.data?.detail || "Có lỗi xảy ra");
+      toast.error(getErrorMessage(error, "Có lỗi xảy ra"));
       console.error(error);
     }
   };

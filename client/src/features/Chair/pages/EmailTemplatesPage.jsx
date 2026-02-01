@@ -8,6 +8,8 @@ import Input from "../../../components/Input";
 import Modal from "../../../components/Modal";
 import AIEmailTemplateAssistant from "./AIEmailTemplateAssistant";
 import { Plus, Edit, Trash2, Mail, Eye } from "lucide-react";
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 
 /**
  * Trang quản lý Email Templates cho Conference Manager
@@ -37,7 +39,7 @@ export default function EmailTemplatesPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Load conference
       const confData = await conferenceService.getById(conferenceId);
       setConference(confData);
@@ -95,7 +97,7 @@ export default function EmailTemplatesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       const payload = {
         ...formData,
@@ -298,14 +300,15 @@ export default function EmailTemplatesPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Body *
             </label>
-            <textarea
-              value={formData.body}
-              onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-              required
-              rows={10}
-              className="w-full px-4 py-2 border rounded-lg"
-              placeholder="Email body (supports variables like {{author_name}}, {{paper_title}}, etc.)"
-            />
+            <div className="bg-white">
+              <ReactQuill
+                theme="snow"
+                value={formData.body}
+                onChange={(content) => setFormData({ ...formData, body: content })}
+                className="h-64 mb-12"
+                placeholder="Email body (supports variables like {{author_name}}, {{paper_title}}, etc.)"
+              />
+            </div>
             <p className="mt-1 text-xs text-gray-500">
               Available variables: {"{{author_name}}"}, {"{{paper_title}}"}, {"{{conference_name}}"}, {"{{decision}}"}
             </p>
@@ -342,9 +345,10 @@ export default function EmailTemplatesPage() {
             </div>
             <div>
               <div className="text-sm font-medium text-gray-700 mb-1">Body:</div>
-              <div className="p-3 bg-gray-50 rounded-lg whitespace-pre-wrap">
-                {previewTemplate.body}
-              </div>
+              <div
+                className="p-4 bg-gray-50 rounded-lg border prose max-w-none"
+                dangerouslySetInnerHTML={{ __html: previewTemplate.body }}
+              />
             </div>
             <div className="pt-4">
               <Button onClick={() => setShowPreviewModal(false)} className="w-full">

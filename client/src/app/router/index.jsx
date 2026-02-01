@@ -44,8 +44,10 @@ import BulkNotificationsPage from "../../features/Chair/pages/BulkNotificationsP
 import ConferenceManagementPage from "../../features/Chair/pages/ConferenceManagementPage";
 import COIManagementPage from "../../features/Chair/pages/COIManagementPage";
 import ScheduleManagementPage from "../../features/Chair/pages/ScheduleManagementPage";
+import ReviewFormConfigPage from "../../features/Chair/pages/ReviewFormConfigPage";
 import ReviewerManagementPage from "../../features/Chair/pages/ReviewerManagementPage";
 import ReviewProgressPage from "../../features/Chair/pages/ReviewProgressPage";
+import TrackManagementPage from "../../features/Chair/pages/TrackManagementPage";
 import EmailTemplatesPage from "../../features/Chair/pages/EmailTemplatesPage";
 
 // Reviewer

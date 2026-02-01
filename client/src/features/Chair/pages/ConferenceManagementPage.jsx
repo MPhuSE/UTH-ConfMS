@@ -5,9 +5,11 @@ import Table from "../../../components/Table";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import Modal from "../../../components/Modal";
-import { Plus, Edit, Trash2, X, Settings, Building2 } from "lucide-react";
+import { Plus, Edit, Trash2, X, Settings, Building2, Mail, ListChecks, Layers } from "lucide-react";
 import { useAuthStore } from "../../../app/store/useAuthStore";
 import { tenantService } from "../../../services";
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 
 const toDateInput = (value) => {
   if (!value) return "";
@@ -543,6 +545,27 @@ export default function ConferenceManagementPage() {
               <Settings className="w-4 h-4" />
             </button>
             <button
+              onClick={() => navigate(`/dashboard/chair/tracks/${row.id}`)}
+              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Quản lý Tracks"
+            >
+              <Layers className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => navigate(`/dashboard/chair/email-templates/${row.id}`)}
+              className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+              title="Mẫu Email"
+            >
+              <Mail className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => navigate(`/dashboard/chair/review-form/${row.id}`)}
+              className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+              title="Form Đánh giá"
+            >
+              <ListChecks className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => setDeleteModal(row)}
               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title="Xóa"
@@ -606,13 +629,16 @@ export default function ConferenceManagementPage() {
           <Input label="Website" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
           <Input label="Địa điểm" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Mô tả</label>
-            <textarea
-              rows={4}
-              className="w-full px-4 py-2 rounded-lg border text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-300"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
+            <label className="text-sm font-medium text-gray-700">Mô tả (CFP Content)</label>
+            <div className="bg-white">
+              <ReactQuill
+                theme="snow"
+                value={form.description}
+                onChange={(content) => setForm({ ...form, description: content })}
+                className="h-48 mb-12"
+                placeholder="Nội dung giới thiệu hội nghị, Call for Papers..."
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input label="Start date" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
@@ -768,13 +794,16 @@ export default function ConferenceManagementPage() {
           <Input label="Website" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
           <Input label="Địa điểm" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Mô tả</label>
-            <textarea
-              rows={4}
-              className="w-full px-4 py-2 rounded-lg border text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-300"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
+            <label className="text-sm font-medium text-gray-700">Mô tả (CFP Content)</label>
+            <div className="bg-white">
+              <ReactQuill
+                theme="snow"
+                value={form.description}
+                onChange={(content) => setForm({ ...form, description: content })}
+                className="h-48 mb-12"
+                placeholder="Nội dung giới thiệu hội nghị, Call for Papers..."
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input label="Start date" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />

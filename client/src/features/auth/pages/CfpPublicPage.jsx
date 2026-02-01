@@ -655,20 +655,20 @@ export default function CfpPublicPage() {
 
                         {/* Description */}
                         {cfp?.description && (
-                          <p
+                          <div
                             style={{
                               fontSize: "14px",
                               color: "#64748B",
                               lineHeight: "1.6",
                               marginBottom: "16px",
                               display: "-webkit-box",
-                              WebkitLineClamp: 2,
+                              WebkitLineClamp: 3,
                               WebkitBoxOrient: "vertical",
                               overflow: "hidden",
                             }}
-                          >
-                            {cfp.description}
-                          </p>
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: cfp.description }}
+                          />
                         )}
                       </div>
 

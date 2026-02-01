@@ -18,3 +18,4 @@ class Conference:
 
     is_open: bool
     blind_mode: str  # Đổi từ double_blind: enum single, double, open
+    tenant_id: Optional[int] = None

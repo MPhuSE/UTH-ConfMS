@@ -13,9 +13,12 @@ class User:
     
     is_verified: bool = False
     is_active: bool = True
+    last_login: Optional[datetime] = None
     created_at: Optional[datetime] = None
     
     roles: List[str] = field(default_factory=list)
+    sso_provider: Optional[str] = None
+    sso_id: Optional[str] = None
 
     def update_profile(
         self, 

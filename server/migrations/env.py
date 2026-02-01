@@ -18,6 +18,11 @@ from infrastructure.models import (
     submission_model,
     review_model,
     system_model,
+    tenant_model,
+    pc_model,
+    discussion_model,
+    rebuttal_model,
+    audit_log_model,
 )
 
 from config import settings

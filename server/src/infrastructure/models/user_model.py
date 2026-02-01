@@ -30,16 +30,21 @@ class UserModel(Base):
     avatar_url = Column(String)      
     is_verified = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+    last_login = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=func.now())
     roles = relationship("RoleModel", secondary="user_roles", backref="users", lazy="selectin")
     refresh_token_hash = Column(String(255), nullable=True, index=True)
     refresh_token_expires_at = Column(DateTime, nullable=True)
+    
+    # SSO Support
+    sso_provider = Column(String, nullable=True)
+    sso_id = Column(String, nullable=True)
 
     @property
     def role_names(self) -> list[str]:
         return [role.name for role in self.roles] if self.roles else []
     def to_domain_model(self):
-        from src.domain.models.user import User 
+        from domain.models.user import User 
         
         return User( 
             id=self.id,
@@ -50,6 +55,9 @@ class UserModel(Base):
             website_url=self.website_url,
             is_verified=self.is_verified,
             is_active=self.is_active,
+            last_login=self.last_login,
             created_at=self.created_at,
-            roles=self.role_names
+            roles=self.role_names,
+            sso_provider=self.sso_provider,
+            sso_id=self.sso_id
         )

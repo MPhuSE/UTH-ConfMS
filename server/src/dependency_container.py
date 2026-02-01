@@ -22,7 +22,8 @@ from services.auth.refresh_service import RefreshTokenService
 from services.auth.auth_communication_service import AuthCommunicationService
 from services.user.user_management_service import UserManagementService
 from services.audit_log.audit_log_service import AuditLogService
-from services.auth.email_verification_service import EmailVerificationService  
+from services.auth.verification_service import VerificationService  
+from services.auth.sso_service import SSOService
 from services.email.email_service import EmailService
 # Conference Services
 from services.conference.create_conference import CreateConferenceService
@@ -128,14 +129,26 @@ def get_email_verification_service(
     email_service: EmailService = Depends(get_email_service),
 ) -> AuthCommunicationService:
     return AuthCommunicationService(user_repo, db_session, jwt_service, email_service)
+
+def get_sso_service(
+    user_repo: UserRepository = Depends(get_user_repo),
+    db_session: AsyncSession = Depends(get_db_session),
+    jwt_service: JWTService = Depends(get_jwt_service)
+) -> SSOService:
+    return SSOService(user_repo, db_session, jwt_service)
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from infrastructure.databases.postgres import get_db
-from infrastructure.repositories.submission_repo_impl import SubmissionRepositoryImpl  # type: ignore
+from infrastructure.repositories.submission_repo_impl import SubmissionRepositoryImpl 
+from infrastructure.repositories.system_repo_impl import SystemRepository
 
 
 def get_submission_repo(db: Session = Depends(get_db)):
     return SubmissionRepositoryImpl(db)
+
 def get_conference_repo(db: Session = Depends(get_db)):
     return ConferenceRepositoryImpl(db)
+
+def get_system_repo(db: Session = Depends(get_db)):
+    return SystemRepository(db)

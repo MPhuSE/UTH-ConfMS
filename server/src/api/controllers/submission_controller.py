@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile, Query
 from starlette.requests import Request
 from typing import List
-from dependency_container import get_submission_repo, get_conference_repo
+from dependency_container import get_submission_repo, get_conference_repo, get_system_repo
 from api.schemas.submission_schema import (
     SubmissionPatchSchema,
     SubmissionResponseSchema
@@ -35,9 +35,20 @@ async def submit_paper(
     req: Request = None,
     current_user = Depends(get_current_user),
     repo = Depends(get_submission_repo),
-    conf_repo = Depends(get_conference_repo) 
+    conf_repo = Depends(get_conference_repo),
+    system_repo = Depends(get_system_repo)
 ):
     try:
+        # Check overall system file size limit if configured
+        settings = system_repo.get_settings()
+        if settings.quota_max_file_size_mb:
+            # Note: file.size is already available in FastAPI/Starlette UploadFile
+            if file.size > (settings.quota_max_file_size_mb * 1024 * 1024):
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Dung lượng file quá lớn. Giới hạn tối đa là {settings.quota_max_file_size_mb}MB."
+                )
+
         conference = conf_repo.get_by_id(conference_id)
         if not conference:
             raise HTTPException(status_code=404, detail="Conference not found")
@@ -67,7 +78,7 @@ async def submit_paper(
             if not isinstance(authors_payload, list):
                 raise HTTPException(status_code=400, detail="Authors must be a list")
 
-        service = CreateSubmissionService(repo)
+        service = CreateSubmissionService(repo, system_repo)
         result = service.execute(
             title=title,
             abstract=abstract,

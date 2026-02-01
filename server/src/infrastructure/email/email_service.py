@@ -19,45 +19,57 @@ class EmailService:
         Priority: Database (SystemSettings) > config.py > defaults
         """
         self.db_session = db_session
-        self._load_smtp_config()
-    
-    def _load_smtp_config(self):
-        """Load SMTP config from database (if available) or fallback to config.py"""
-        # Try to load from database first
-        if self.db_session:
-            try:
-                from infrastructure.models.system_model import SystemSettingsModel
-                # Handle both sync and async sessions
-                if hasattr(self.db_session, 'query'):
-                    # Sync session
-                    system_settings = self.db_session.query(SystemSettingsModel).first()
-                else:
-                    # Async session - we'll skip database config for async sessions
-                    # as it requires sync query. Fallback to config.py
-                    system_settings = None
-                
-                if system_settings and system_settings.smtp_host:
-                    # Use database config
-                    self.smtp_host = system_settings.smtp_host
-                    self.smtp_port = system_settings.smtp_port or int(settings.SMTP_PORT)
-                    self.smtp_user = system_settings.smtp_user
-                    self.smtp_password = system_settings.smtp_password
-                    self.from_email = system_settings.smtp_from_email
-                    self.from_name = system_settings.smtp_from_name or settings.SMTP_FROM_NAME
-                    logger.info("Using SMTP config from database")
-                    return
-            except Exception as e:
-                logger.warning(f"Could not load SMTP config from database: {e}")
-        
-        # Fallback to config.py
+        # Initial config from settings, will be refreshed from DB in _execute_send
         self.smtp_host = settings.SMTP_HOST
-        self.smtp_port = settings.SMTP_PORT
+        self.smtp_port = int(settings.SMTP_PORT)
         self.smtp_user = settings.SMTP_USER
         self.smtp_password = settings.SMTP_PASSWORD
         self.from_email = settings.SMTP_FROM_EMAIL
         self.from_name = settings.SMTP_FROM_NAME
         self.frontend_url = settings.FRONTEND_URL
-        logger.info("Using SMTP config from config.py")
+    
+    async def _get_db_settings(self):
+        """Fetch settings from database (async-safe)"""
+        if not self.db_session:
+            return None
+            
+        try:
+            from infrastructure.models.system_model import SystemSettingsModel
+            if hasattr(self.db_session, 'query'):
+                # Sync session
+                return self.db_session.query(SystemSettingsModel).first()
+            else:
+                # Async session
+                from sqlalchemy.future import select
+                stmt = select(SystemSettingsModel)
+                result = await self.db_session.execute(stmt)
+                return result.scalar_one_or_none()
+        except Exception as e:
+            logger.warning(f"Could not load settings from DB: {e}")
+            return None
+
+    async def _ensure_config_loaded(self):
+        """Ensure config is loaded from database prior to sending"""
+        db_settings = await self._get_db_settings()
+        
+        if db_settings and db_settings.smtp_host:
+            self.smtp_host = db_settings.smtp_host
+            self.smtp_port = db_settings.smtp_port or int(settings.SMTP_PORT)
+            self.smtp_user = db_settings.smtp_user
+            self.smtp_password = db_settings.smtp_password
+            self.from_email = db_settings.smtp_from_email
+            self.from_name = db_settings.smtp_from_name or settings.SMTP_FROM_NAME
+            logger.info("Using SMTP config from database")
+        else:
+            self.smtp_host = settings.SMTP_HOST
+            self.smtp_port = int(settings.SMTP_PORT)
+            self.smtp_user = settings.SMTP_USER
+            self.smtp_password = settings.SMTP_PASSWORD
+            self.from_email = settings.SMTP_FROM_EMAIL
+            self.from_name = settings.SMTP_FROM_NAME
+            logger.info("Using SMTP config from config.py")
+        
+        self.frontend_url = settings.FRONTEND_URL
 
     def _create_base_message(self, to_email: str, subject: str) -> MIMEMultipart:
         """Tạo khung email MIME cơ bản hỗ trợ đính kèm"""
@@ -80,16 +92,77 @@ class EmailService:
             return False
 
     async def _execute_send(self, msg: MIMEMultipart) -> bool:
-        """Wrapper để chạy gửi mail không gây chặn (non-blocking)"""
+        """Wrapper để chạy gửi mail không gây chặn (non-blocking) và kiểm tra quota"""
+        # Config is already loaded in calling methods
+        
         if not self.smtp_user or not self.smtp_password:
             logger.error("SMTP chưa cấu hình!")
             return False
+            
+        # Kiểm tra quota trước khi gửi
+        if not await self._check_and_increment_quota():
+            logger.error("Vượt quá hạn mức gửi mail hàng ngày!")
+            return False
+
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self._send_email_sync, msg)
 
+    async def _check_and_increment_quota(self) -> bool:
+        """Kiểm tra và cập nhật hạn mức gửi email hàng ngày"""
+        if not self.db_session:
+            return True # Không có DB thì bỏ qua kiểm tra quota (mặc định cho phép)
+
+        try:
+            from infrastructure.models.system_model import SystemSettingsModel
+            from datetime import datetime
+            
+            # Lấy settings
+            if hasattr(self.db_session, 'query'):
+                # Sync session
+                settings = self.db_session.query(SystemSettingsModel).first()
+            else:
+                # Async session
+                from sqlalchemy.future import select
+                stmt = select(SystemSettingsModel)
+                result = await self.db_session.execute(stmt)
+                settings = result.scalar_one_or_none()
+
+            if not settings:
+                return True
+
+            # Kiểm tra xem có cần reset quota không (nếu qua ngày mới)
+            now = datetime.utcnow()
+            last_reset = settings.last_quota_reset or now
+            
+            if now.date() > last_reset.date():
+                settings.mail_sent_today = 0
+                settings.last_quota_reset = now
+                await self.db_session.commit()
+
+            # Kiểm tra quota
+            if settings.mail_sent_today >= (settings.mail_quota_daily or 500):
+                return False
+
+            # Tăng số lượng đã gửi
+            settings.mail_sent_today += 1
+            await self.db_session.commit()
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Lỗi kiểm tra quota: {e}")
+            return True # Lỗi thì cho phép gửi để tránh chặn email quan trọng
+
     # --- CÁC PHƯƠNG THỨC PUBLIC ---
 
+    async def send_email(self, to_email: str, subject: str, content: str, is_html: bool = False) -> bool:
+        """Phương thức gửi email chung"""
+        await self._ensure_config_loaded()
+        msg = self._create_base_message(to_email, subject)
+        msg.attach(MIMEText(content, 'html' if is_html else 'plain'))
+        return await self._execute_send(msg)
+
     async def send_verification_email(self, to_email: str, token: str) -> bool:
+        await self._ensure_config_loaded()
         msg = self._create_base_message(to_email, "Xác thực tài khoản")
         url = f"{self.frontend_url}/verify-email?token={token}"
         
@@ -102,6 +175,7 @@ class EmailService:
         return await self._execute_send(msg)
 
     async def send_reset_password_email(self, to_email: str, token: str) -> bool:
+        await self._ensure_config_loaded()
         msg = self._create_base_message(to_email, "Khôi phục mật khẩu")
         url = f"{self.frontend_url}/reset-password?token={token}"
         html = f"<h3>Yêu cầu đổi mật khẩu</h3><p>Click vào link: <a href='{url}'>{url}</a></p>"

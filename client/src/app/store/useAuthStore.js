@@ -13,6 +13,7 @@ export const useAuthStore = create(
       isAuthenticated: !!localStorage.getItem("access_token"),
       isCheckingAuth: false,
       isLoading: false,
+      tenantSlug: localStorage.getItem("tenant_slug") || null,
 
       setAuthState: ({ user, access_token, refresh_token }) => {
         const role = user?.role_names?.[0] || user?.roles?.[0] || null;
@@ -26,6 +27,12 @@ export const useAuthStore = create(
           role,
           isAuthenticated: !!access_token,
         });
+      },
+
+      setTenantSlug: (slug) => {
+        if (slug) localStorage.setItem("tenant_slug", slug);
+        else localStorage.removeItem("tenant_slug");
+        set({ tenantSlug: slug });
       },
 
       checkAuth: async () => {
@@ -67,18 +74,24 @@ export const useAuthStore = create(
 
       login: async (data) => {
         set({ isLoading: true });
-        const res = await authService.login(data);
-        const { access_token, refresh_token, user } = res;
-        get().setAuthState({ user, access_token, refresh_token });
-        set({ isLoading: false });
-        return user;
+        try {
+          const res = await authService.login(data);
+          const { access_token, refresh_token, user } = res;
+          get().setAuthState({ user, access_token, refresh_token });
+          return user;
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       signup: async (userData) => {
         set({ isLoading: true });
-        const res = await authService.register(userData);
-        set({ isLoading: false });
-        return res;
+        try {
+          const res = await authService.register(userData);
+          return res;
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       refreshTokens: async () => {
@@ -94,37 +107,53 @@ export const useAuthStore = create(
 
       verifyEmail: async (tokenValue) => {
         set({ isLoading: true });
-        const res = await authService.verifyEmail(tokenValue);
-        set({ isLoading: false });
-        return res;
+        try {
+          const res = await authService.verifyEmail(tokenValue);
+          return res;
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       resendVerification: async (email) => {
         set({ isLoading: true });
-        const res = await authService.resendVerification(email);
-        set({ isLoading: false });
-        return res;
+        try {
+          const res = await authService.resendVerification(email);
+          return res;
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       forgotPassword: async (email) => {
         set({ isLoading: true });
-        const res = await authService.forgotPassword(email);
-        set({ isLoading: false });
-        return res;
+        try {
+          const res = await authService.forgotPassword(email);
+          return res;
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       resetPasswordConfirm: async (token, newPassword) => {
         set({ isLoading: true });
-        const res = await authService.resetPasswordConfirm({ token, newPassword });
-        set({ isLoading: false });
-        return res;
+        try {
+          const res = await authService.resetPasswordConfirm({ token, newPassword });
+          return res;
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       updateProfile: async (data) => {
         set({ isLoading: true });
-        const res = await api.put("/users/me", data);
-        set({ user: res.data, isLoading: false });
-        return res.data;
+        try {
+          const res = await api.put("/users/me", data);
+          set({ user: res.data });
+          return res.data;
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       logout: () => {
@@ -136,7 +165,11 @@ export const useAuthStore = create(
     }),
     {
       name: "auth-storage",
-      partialize: (state) => ({ user: state.user, role: state.role }),
+      partialize: (state) => ({
+        user: state.user,
+        role: state.role,
+        tenantSlug: state.tenantSlug
+      }),
     }
   )
 );

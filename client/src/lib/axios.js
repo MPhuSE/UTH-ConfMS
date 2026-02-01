@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "https://9klwjq49-8000.asse.devtunnels.ms/";
+const BASE_URL = "http://localhost:8000/";
 
 // Client chính
 const api = axios.create({
@@ -19,9 +19,16 @@ const refreshClient = axios.create({
 // --- REQUEST INTERCEPTOR: gắn Access Token ---
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
+  const tenantSlug = localStorage.getItem("tenant_slug");
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  if (tenantSlug) {
+    config.headers["X-Tenant-Slug"] = tenantSlug;
+  }
+
   return config;
 });
 

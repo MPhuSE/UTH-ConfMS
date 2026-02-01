@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, func, ForeignKey, Bool
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from infrastructure.databases.postgres import Base
+from infrastructure.models.tenant_model import TenantModel
 
 class ConferenceModel(Base):
     """Thông tin chính về Hội nghị."""
@@ -29,6 +30,9 @@ class ConferenceModel(Base):
     blind_mode = Column(String, default="double")  # Đã được migration đổi từ double_blind thành blind_mode
     is_open = Column(Boolean, default=True)
     
+    # Multitenancy
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    tenant = relationship("TenantModel")
 
     tracks = relationship("TrackModel", back_populates="conference", lazy="selectin")
     email_templates = relationship("EmailTemplateModel", back_populates="conference")

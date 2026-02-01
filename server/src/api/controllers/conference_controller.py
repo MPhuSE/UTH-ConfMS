@@ -13,7 +13,8 @@ from domain.models.conference import Conference
 from domain.exceptions import BusinessRuleException, NotFoundError
 from infrastructure.databases.postgres import get_db
 from infrastructure.repositories.conference_repo_impl import ConferenceRepositoryImpl 
-from infrastructure.security.auth_dependencies import get_current_user
+from infrastructure.security.tenant_dependency import get_current_tenant
+from infrastructure.models.tenant_model import TenantModel
 from infrastructure.security.rbac import require_admin_or_chair
 from api.utils.audit_utils import create_audit_log_sync
 
@@ -30,38 +31,42 @@ from infrastructure.models.conference_model import ConferenceModel
 
 router = APIRouter(prefix="/conferences", tags=["Conferences"])
 
-@router.post("", response_model=dict)
+@router.post("", response_model=ConferenceResponse, status_code=status.HTTP_201_CREATED)
 def create_conference(
     request: ConferenceCreateRequest,
     req: Request,
     current_user=Depends(require_admin_or_chair),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    tenant: Optional[TenantModel] = Depends(get_current_tenant)
 ):
     try:
         # Log request để debug
         print(f"[CONFERENCE DEBUG] ===== START CREATE CONFERENCE =====")
         print(f"[CONFERENCE DEBUG] Conference name: {request.name}")
         print(f"[CONFERENCE DEBUG] Request object type: {type(request)}")
-        print(f"[CONFERENCE DEBUG] Request has tracks attribute: {hasattr(request, 'tracks')}")
-        print(f"[CONFERENCE DEBUG] Request.tracks value: {request.tracks}")
-        print(f"[CONFERENCE DEBUG] Request.tracks is None: {request.tracks is None}")
-        print(f"[CONFERENCE DEBUG] Request.tracks type: {type(request.tracks) if request.tracks is not None else 'None'}")
-        if request.tracks is not None:
-            print(f"[CONFERENCE DEBUG] Tracks count: {len(request.tracks)}")
-            print(f"[CONFERENCE DEBUG] Tracks data: {[(t.name if hasattr(t, 'name') else str(t), t.max_reviewers if hasattr(t, 'max_reviewers') else 'N/A') for t in request.tracks]}")
-        else:
-            print(f"[CONFERENCE DEBUG] No tracks in request")
+        
+        tenant_id = tenant.id if tenant else None
         
         repo = ConferenceRepositoryImpl(db)
         service = CreateConferenceService(repo)
+        
+        # Mapping request schema sang domain model
         conference = Conference(
-            id=None, name=request.name, abbreviation=request.abbreviation,
-            description=request.description, website=request.website,
-            location=request.location, start_date=request.start_date, end_date=request.end_date,
+            id=None,
+            name=request.name,
+            abbreviation=request.abbreviation,
+            description=request.description,
+            website=request.website,
+            location=request.location,
+            start_date=request.start_date,
+            end_date=request.end_date,
             submission_deadline=request.submission_deadline,
             review_deadline=request.review_deadline,
-            is_open=request.is_open, blind_mode=request.blind_mode
+            is_open=request.is_open,
+            blind_mode=request.blind_mode or 'double',
+            tenant_id=tenant_id
         )
+        
         result = service.execute(conference)
         print(f"[CONFERENCE DEBUG] Conference created with ID: {result.id}")
         
@@ -260,6 +265,7 @@ def get_conference_by_id(conference_id: int, db: Session = Depends(get_db)):
             submission_deadline=conf.submission_deadline,
             review_deadline=conf.review_deadline,
             is_open=conf.is_open, blind_mode=conf.blind_mode,
+            tenant_id=conf.tenant_id,
             rebuttal_open=conf_model.rebuttal_open,
             rebuttal_deadline=conf_model.rebuttal_deadline,
             camera_ready_open=conf_model.camera_ready_open,
@@ -269,10 +275,16 @@ def get_conference_by_id(conference_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.get("", response_model=ConferenceListResponse)
-def get_all_conferences(skip: int = Query(0), limit: int = Query(100), db: Session = Depends(get_db)):
+def get_all_conferences(
+    skip: int = Query(0), 
+    limit: int = Query(100), 
+    db: Session = Depends(get_db),
+    tenant: Optional[TenantModel] = Depends(get_current_tenant)
+):
+    tenant_id = tenant.id if tenant else None
     repo = ConferenceRepositoryImpl(db)
     service = GetConferenceService(repo)
-    conferences = service.get_all(skip=skip, limit=limit)
+    conferences = service.get_all(skip=skip, limit=limit, tenant_id=tenant_id)
     total = service.count_all()
     
     # Get full models to access workflow fields
@@ -287,6 +299,7 @@ def get_all_conferences(skip: int = Query(0), limit: int = Query(100), db: Sessi
             website=c.website, location=c.location, start_date=c.start_date, end_date=c.end_date,
             submission_deadline=c.submission_deadline, review_deadline=c.review_deadline,
             is_open=c.is_open, blind_mode=c.blind_mode,
+            tenant_id=c.tenant_id,
             rebuttal_open=conf_models[c.id].rebuttal_open if c.id in conf_models else False,
             rebuttal_deadline=conf_models[c.id].rebuttal_deadline if c.id in conf_models else None,
             camera_ready_open=conf_models[c.id].camera_ready_open if c.id in conf_models else False,

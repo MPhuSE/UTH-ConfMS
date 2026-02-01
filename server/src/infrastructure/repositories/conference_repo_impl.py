@@ -24,7 +24,8 @@ class ConferenceRepositoryImpl(ConferenceRepository):
             submission_deadline=model.submission_deadline,
             review_deadline=model.review_deadline,
             is_open=model.is_open,
-            blind_mode=model.blind_mode or 'double'
+            blind_mode=model.blind_mode or 'double',
+            tenant_id=model.tenant_id
         )
 
     def create(self, conference: Conference) -> Conference:
@@ -39,7 +40,8 @@ class ConferenceRepositoryImpl(ConferenceRepository):
             submission_deadline=conference.submission_deadline,
             review_deadline=conference.review_deadline,
             is_open=conference.is_open,
-            blind_mode=conference.blind_mode or 'double'
+            blind_mode=conference.blind_mode or 'double',
+            tenant_id=conference.tenant_id
         )
 
         self.db.add(model)
@@ -66,9 +68,13 @@ class ConferenceRepositoryImpl(ConferenceRepository):
             return None
         return self._model_to_domain(model)
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[Conference]:
-        """Get all conferences with pagination."""
-        models = self.db.query(ConferenceModel).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int = 100, tenant_id: Optional[int] = None) -> List[Conference]:
+        """Get all conferences with pagination and tenant filtering."""
+        query = self.db.query(ConferenceModel)
+        if tenant_id is not None:
+            query = query.filter(ConferenceModel.tenant_id == tenant_id)
+        
+        models = query.offset(skip).limit(limit).all()
         return [self._model_to_domain(model) for model in models]
 
     def count_all(self) -> int:
@@ -101,6 +107,7 @@ class ConferenceRepositoryImpl(ConferenceRepository):
         model.review_deadline = conference.review_deadline
         model.is_open = conference.is_open
         model.blind_mode = conference.blind_mode or 'double'
+        model.tenant_id = conference.tenant_id
 
         self.db.add(model)
         self.db.commit()

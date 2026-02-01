@@ -1,12 +1,12 @@
 import React from "react";
 import { Outlet, Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
-import { 
-  Home, 
-  FileText, 
-  Upload, 
-  Award, 
-  User, 
+import {
+  Home,
+  FileText,
+  Upload,
+  Award,
+  User,
   Settings,
   Users,
   Building,
@@ -176,6 +176,30 @@ export default function DashboardLayout() {
             </div>
           </div>
         </div>
+
+        {/* Tenant Indicator */}
+        {useAuthStore.getState().tenantSlug && (
+          <div style={{ padding: "0 24px 15px", marginTop: "-5px" }}>
+            <div style={{
+              background: "white",
+              padding: "8px 12px",
+              borderRadius: "10px",
+              border: "1px dashed #008689",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "#008689",
+              fontSize: "12px",
+              fontWeight: "600",
+              overflow: "hidden"
+            }}>
+              <Building size={14} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                Tenant: {useAuthStore.getState().tenantSlug}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav
@@ -775,7 +799,7 @@ export default function DashboardLayout() {
               </Link>
 
               <Link
-                to="/dashboard/admin/smtp-config"
+                to="/dashboard/admin/settings"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -800,8 +824,8 @@ export default function DashboardLayout() {
                   e.currentTarget.querySelector("svg").style.color = "#94A3B8";
                 }}
               >
-                <Mail size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
-                <span>SMTP</span>
+                <Settings size={20} style={{ color: "#94A3B8", transition: "color 0.3s ease" }} />
+                <span>Cấu hình Hệ thống</span>
               </Link>
 
               <Link

@@ -32,7 +32,9 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             "/auth/resend-verification",
             "/auth/forgot-password",
             "/auth/reset-password-confirm",
-            "/auth/initial-chair-setup"
+            "/auth/initial-chair-setup",
+            "/auth/sso/google/login",
+            "/auth/sso/google/callback"
         ]
     
     async def dispatch(self, request: Request, call_next):

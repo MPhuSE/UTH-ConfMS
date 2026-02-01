@@ -12,6 +12,7 @@ import Login from "../../features/auth/pages/Login";
 import Register from "../../features/auth/pages/Register";
 import ForgotPassword from "../../features/auth/pages/ForgotPassword";
 import ResetPasswordConfirm from "../../features/auth/pages/ResetPasswordConfirm"
+import GoogleCallback from "../../features/auth/pages/GoogleCallback";
 
 // Dashboard Components
 import DashboardSelector from "../../features/dashboard/pages/DashboardSelector";
@@ -29,8 +30,7 @@ import AdminDashboard from "../../features/dashboard/AdminDashboard";
 import VerifyEmail from "../../features/auth/pages/VerifyEmail";
 import EditSubmissionPage from "../../features/author/pages/EditSubmissionPage";
 import UserManagementPage from "../../features/admin/pages/UserManagementPage";
-import SmtpConfigPage from "../../features/admin/pages/SmtpConfigPage";
-import QuotaConfigPage from "../../features/admin/pages/QuotaConfigPage";
+import SystemSettingsPage from "../../features/admin/pages/SystemSettingsPage";
 import SystemHealthPage from "../../features/admin/pages/SystemHealthPage";
 import TenantManagementPage from "../../features/admin/pages/TenantManagementPage";
 import AIFeatureFlagsPage from "../../features/admin/pages/AIFeatureFlagsPage";
@@ -71,8 +71,9 @@ export default function AppRouter() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/forgotpassword" element={<ForgotPassword />} />
-                    <Route path="/verify-email" element= {<VerifyEmail />} />
-                    <Route path= "/reset-password" element = {<ResetPasswordConfirm />}/>
+                    <Route path="/verify-email" element={<VerifyEmail />} />
+                    <Route path="/reset-password" element={<ResetPasswordConfirm />} />
+                    <Route path="/auth/google/callback" element={<GoogleCallback />} />
                 </Route>
 
                 {/* 2. Dashboard Protected Routes */}
@@ -86,14 +87,14 @@ export default function AppRouter() {
                 >
                     {/* Tự động điều hướng dựa trên Role */}
                     <Route index element={<DashboardSelector />} />
-                    
+
                     {/* Author Routes */}
                     <Route path="overview" element={<AuthorDashboard />} />
                     <Route path="conference/:conferenceId" element={<ConferenceDetailPage />} />
                     <Route path="my-submissions" element={<MySubmissionsPage />} />
                     <Route path="submission" element={<PaperSubmissionPage />} />
                     <Route path="submission/edit/:paperId" element={<EditSubmissionPage />} />
-                    <Route path="submission/:id" element={<SubmissionDetailPage />} /> 
+                    <Route path="submission/:id" element={<SubmissionDetailPage />} />
                     <Route path="submission/:id/camera-ready" element={<CameraReadyUploadPage />} />
                     <Route path="results" element={<ViewResultsPage />} />
                     <Route path="profile" element={<AuthorProfile />} />
@@ -298,18 +299,10 @@ export default function AppRouter() {
                         }
                     />
                     <Route
-                        path="admin/smtp-config"
+                        path="admin/settings"
                         element={
                             <ProtectedRoute allowRoles={["admin"]}>
-                                <SmtpConfigPage />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="admin/quota-config"
-                        element={
-                            <ProtectedRoute allowRoles={["admin"]}>
-                                <QuotaConfigPage />
+                                <SystemSettingsPage />
                             </ProtectedRoute>
                         }
                     />

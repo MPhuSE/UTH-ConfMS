@@ -18,7 +18,7 @@ class ConferenceRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[Conference]:
+    def get_all(self, skip: int = 0, limit: int = 100, tenant_id: Optional[int] = None) -> List[Conference]:
         pass
 
     @abstractmethod

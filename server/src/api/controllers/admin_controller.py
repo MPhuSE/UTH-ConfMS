@@ -21,6 +21,10 @@ class SMTPConfigRequest(BaseModel):
     password: str
     from_email: str
     from_name: str
+    frontend_url: Optional[str] = None
+    google_client_id: Optional[str] = None
+    google_client_secret: Optional[str] = None
+    google_redirect_uri: Optional[str] = None
 
 
 class SMTPConfigResponse(BaseModel):
@@ -29,6 +33,10 @@ class SMTPConfigResponse(BaseModel):
     user: str
     from_email: str
     from_name: str
+    frontend_url: Optional[str] = None
+    google_client_id: Optional[str] = None
+    google_client_secret: Optional[str] = None
+    google_redirect_uri: Optional[str] = None
 
 
 class QuotaConfigRequest(BaseModel):
@@ -58,6 +66,7 @@ def get_smtp_config(
             smtp_password=settings.SMTP_PASSWORD,
             smtp_from_email=settings.SMTP_FROM_EMAIL,
             smtp_from_name=settings.SMTP_FROM_NAME,
+            frontend_url=settings.FRONTEND_URL,
             quota_max_submissions_per_user=10,
             quota_max_reviews_per_reviewer=20,
             quota_max_file_size_mb=10,
@@ -72,6 +81,10 @@ def get_smtp_config(
         user=system_settings.smtp_user,
         from_email=system_settings.smtp_from_email,
         from_name=system_settings.smtp_from_name,
+        frontend_url=system_settings.frontend_url or settings.FRONTEND_URL,
+        google_client_id=system_settings.google_client_id,
+        google_client_secret=system_settings.google_client_secret,
+        google_redirect_uri=system_settings.google_redirect_uri,
     )
 
 
@@ -93,6 +106,7 @@ def update_smtp_config(
         "smtp_user": system_settings.smtp_user,
         "smtp_from_email": system_settings.smtp_from_email,
         "smtp_from_name": system_settings.smtp_from_name,
+        "frontend_url": system_settings.frontend_url,
     }
 
     system_settings.smtp_host = request.host
@@ -101,6 +115,10 @@ def update_smtp_config(
     system_settings.smtp_password = request.password
     system_settings.smtp_from_email = request.from_email
     system_settings.smtp_from_name = request.from_name
+    system_settings.frontend_url = request.frontend_url
+    system_settings.google_client_id = request.google_client_id
+    system_settings.google_client_secret = request.google_client_secret
+    system_settings.google_redirect_uri = request.google_redirect_uri
     db.commit()
     db.refresh(system_settings)
 
@@ -117,6 +135,7 @@ def update_smtp_config(
             "smtp_user": system_settings.smtp_user,
             "smtp_from_email": system_settings.smtp_from_email,
             "smtp_from_name": system_settings.smtp_from_name,
+            "frontend_url": system_settings.frontend_url,
         },
         metadata={"section": "smtp-config"},
     )
@@ -127,6 +146,10 @@ def update_smtp_config(
         user=system_settings.smtp_user,
         from_email=system_settings.smtp_from_email,
         from_name=system_settings.smtp_from_name,
+        frontend_url=system_settings.frontend_url,
+        google_client_id=system_settings.google_client_id,
+        google_client_secret=system_settings.google_client_secret,
+        google_redirect_uri=system_settings.google_redirect_uri,
     )
 
 

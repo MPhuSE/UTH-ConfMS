@@ -10,17 +10,17 @@ export const adminService = {
    * @returns {Promise<Object>} SMTP config
    */
   getSMTPConfig: async () => {
-    const res = await api.get("/admin/smtp-config");
+    const res = await api.get("/smtp/config");
     return res.data;
   },
 
-  /**
-   * Update SMTP configuration
-   * @param {Object} payload - SMTP config data
-   * @returns {Promise<Object>} Updated SMTP config
-   */
   updateSMTPConfig: async (payload) => {
-    const res = await api.put("/admin/smtp-config", payload);
+    const res = await api.post("/smtp/config", payload);
+    return res.data;
+  },
+
+  testSMTPConfig: async (payload) => {
+    const res = await api.post("/smtp/test", payload);
     return res.data;
   },
 

@@ -55,5 +55,16 @@ class SystemSettingsModel(Base):
     quota_max_submissions_per_user = Column(Integer)
     quota_max_reviews_per_reviewer = Column(Integer)
     quota_max_file_size_mb = Column(Integer)
+    frontend_url = Column(String)
+    
+    # SSO Config
+    google_client_id = Column(String)
+    google_client_secret = Column(String)
+    google_redirect_uri = Column(String)
+    
+    # Mail Quota
+    mail_quota_daily = Column(Integer, default=500)
+    mail_sent_today = Column(Integer, default=0)
+    last_quota_reset = Column(DateTime, default=func.now())
 
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

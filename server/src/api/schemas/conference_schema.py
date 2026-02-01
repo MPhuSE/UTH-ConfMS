@@ -24,6 +24,14 @@ class ConferenceCreateRequest(BaseModel):
 
     is_open: bool = True
     blind_mode: str = "double"  # Đổi từ double_blind: enum single, double, open
+    tenant_id: Optional[int] = None # Optional: gán cho tenant cụ thể
+    
+    # Workflow settings (Thêm mới)
+    rebuttal_open: bool = False
+    rebuttal_deadline: Optional[datetime] = None
+    camera_ready_open: bool = False
+    camera_ready_deadline: Optional[datetime] = None
+    
     tracks: Optional[List[TrackCreateInConference]] = None  # Optional: tạo tracks cùng lúc
 
 class ConferenceResponse(BaseModel):

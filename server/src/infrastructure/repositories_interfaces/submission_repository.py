@@ -9,7 +9,7 @@ class SubmissionRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all(self) -> List[Any]:
+    def get_all(self, conference_id: Optional[int] = None) -> List[Any]:
         pass
 
     @abstractmethod

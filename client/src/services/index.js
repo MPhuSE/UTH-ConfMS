@@ -18,6 +18,7 @@ import emailTemplateService from "./emailTemplateService";
 import aiService from "./aiService";
 import scheduleService from "./scheduleService";
 import notificationService from "./notificationService";
+import tenantService from "./tenantService";
 
 // Named exports
 export {
@@ -36,6 +37,7 @@ export {
   aiService,
   scheduleService,
   notificationService,
+  tenantService,
 };
 
 // Default export with all services
@@ -55,6 +57,7 @@ const services = {
   aiService,
   scheduleService,
   notificationService,
+  tenantService,
 };
 
 export default services;

@@ -95,16 +95,55 @@ export default function AppRouter() {
                     {/* Tự động điều hướng dựa trên Role */}
                     <Route index element={<DashboardSelector />} />
 
-                    {/* Author Routes */}
-                    <Route path="overview" element={<AuthorDashboard />} />
-                    <Route path="conference/:conferenceId" element={<ConferenceDetailPage />} />
-                    <Route path="my-submissions" element={<MySubmissionsPage />} />
-                    <Route path="submission" element={<PaperSubmissionPage />} />
-                    <Route path="submission/edit/:paperId" element={<EditSubmissionPage />} />
-                    <Route path="submission/:id" element={<SubmissionDetailPage />} />
-                    <Route path="submission/:id/camera-ready" element={<CameraReadyUploadPage />} />
-                    <Route path="results" element={<ViewResultsPage />} />
-                    <Route path="profile" element={<AuthorProfile />} />
+                    {/* Author Routes (Strictly for Authors) */}
+                    <Route
+                        path="overview"
+                        element={
+                            <ProtectedRoute allowRoles={["author"]}>
+                                <AuthorDashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="my-submissions"
+                        element={
+                            <ProtectedRoute allowRoles={["author"]}>
+                                <MySubmissionsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="submission"
+                        element={
+                            <ProtectedRoute allowRoles={["author"]}>
+                                <PaperSubmissionPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="submission/edit/:paperId"
+                        element={
+                            <ProtectedRoute allowRoles={["author"]}>
+                                <EditSubmissionPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="submission/:id/camera-ready"
+                        element={
+                            <ProtectedRoute allowRoles={["author"]}>
+                                <CameraReadyUploadPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="results"
+                        element={
+                            <ProtectedRoute allowRoles={["author"]}>
+                                <ViewResultsPage />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route
                         path="rebuttal/:submissionId"
                         element={
@@ -113,6 +152,11 @@ export default function AppRouter() {
                             </ProtectedRoute>
                         }
                     />
+
+                    {/* Common Routes */}
+                    <Route path="conference/:conferenceId" element={<ConferenceDetailPage />} />
+                    <Route path="submission/:id" element={<SubmissionDetailPage />} />
+                    <Route path="profile" element={<AuthorProfile />} />
 
                     {/* Internal discussion (Chair/Reviewer) */}
                     <Route
@@ -331,6 +375,7 @@ export default function AppRouter() {
                     />
                 </Route>
 
+                <Route path="/unauthorized" element={<div className="p-10 text-center text-2xl text-red-600 font-bold">403 - Bạn không có quyền truy cập trang này</div>} />
                 <Route path="*" element={<div className="p-10 text-center text-2xl">404 - Trang không tồn tại</div>} />
             </Routes>
         </BrowserRouter>

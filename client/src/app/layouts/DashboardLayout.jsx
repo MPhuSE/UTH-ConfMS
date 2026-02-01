@@ -44,7 +44,6 @@ export default function DashboardLayout() {
   const isReviewer = roleNames.includes("reviewer");
   const isAuthor = roleNames.includes("author") || roleNames.includes("authors");
 
-  // Map role to display name
   const getRoleName = () => {
     if (isAdmin) return "Quản trị viên";
     if (isChair) return "Chủ tịch";
@@ -54,6 +53,13 @@ export default function DashboardLayout() {
   };
 
   const displayName = user?.full_name || user?.name || user?.email || "Người dùng";
+
+  const getDashboardRoot = () => {
+    if (isAdmin) return "/dashboard/admin/users";
+    if (isChair) return "/dashboard/chair/dashboard";
+    if (isReviewer) return "/dashboard/reviewer/dashboard";
+    return "/dashboard/overview";
+  };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#F8FAFC" }}>
@@ -77,7 +83,7 @@ export default function DashboardLayout() {
           }}
         >
           <Link
-            to="/dashboard/overview"
+            to={getDashboardRoot()}
             style={{
               display: "flex",
               alignItems: "center",
@@ -211,7 +217,7 @@ export default function DashboardLayout() {
         >
           {/* Common Links */}
           <Link
-            to="/dashboard"
+            to={getDashboardRoot()}
             style={{
               display: "flex",
               alignItems: "center",

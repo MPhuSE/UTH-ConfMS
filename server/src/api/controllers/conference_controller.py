@@ -45,7 +45,8 @@ def create_conference(
         print(f"[CONFERENCE DEBUG] Conference name: {request.name}")
         print(f"[CONFERENCE DEBUG] Request object type: {type(request)}")
         
-        tenant_id = tenant.id if tenant else None
+        # Ưu tiên tenant_id từ request (dành cho Admin), nếu không có thì lấy từ context header
+        tenant_id = request.tenant_id if request.tenant_id else (tenant.id if tenant else None)
         
         repo = ConferenceRepositoryImpl(db)
         service = CreateConferenceService(repo)
@@ -64,7 +65,11 @@ def create_conference(
             review_deadline=request.review_deadline,
             is_open=request.is_open,
             blind_mode=request.blind_mode or 'double',
-            tenant_id=tenant_id
+            tenant_id=tenant_id,
+            rebuttal_open=request.rebuttal_open,
+            rebuttal_deadline=request.rebuttal_deadline,
+            camera_ready_open=request.camera_ready_open,
+            camera_ready_deadline=request.camera_ready_deadline
         )
         
         result = service.execute(conference)
@@ -373,7 +378,11 @@ def update_conference_by_id(
             location=request.location, start_date=request.start_date, end_date=request.end_date,
             submission_deadline=request.submission_deadline,
             review_deadline=request.review_deadline,
-            is_open=request.is_open, blind_mode=request.blind_mode
+            is_open=request.is_open, blind_mode=request.blind_mode,
+            rebuttal_open=request.rebuttal_open,
+            rebuttal_deadline=request.rebuttal_deadline,
+            camera_ready_open=request.camera_ready_open,
+            camera_ready_deadline=request.camera_ready_deadline
         )
         updated = service.update(conf)
         
@@ -407,7 +416,11 @@ def update_conference_by_id(
             location=updated.location, start_date=updated.start_date, end_date=updated.end_date,
             submission_deadline=updated.submission_deadline,
             review_deadline=updated.review_deadline,
-            is_open=updated.is_open, blind_mode=updated.blind_mode
+            is_open=updated.is_open, blind_mode=updated.blind_mode,
+            rebuttal_open=updated.rebuttal_open,
+            rebuttal_deadline=updated.rebuttal_deadline,
+            camera_ready_open=updated.camera_ready_open,
+            camera_ready_deadline=updated.camera_ready_deadline
         )
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))

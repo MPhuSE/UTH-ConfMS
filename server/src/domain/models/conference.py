@@ -19,3 +19,9 @@ class Conference:
     is_open: bool
     blind_mode: str  # Đổi từ double_blind: enum single, double, open
     tenant_id: Optional[int] = None
+    
+    # Workflow settings
+    rebuttal_open: bool = False
+    rebuttal_deadline: Optional[datetime] = None
+    camera_ready_open: bool = False
+    camera_ready_deadline: Optional[datetime] = None

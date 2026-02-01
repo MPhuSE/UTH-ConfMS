@@ -1,60 +1,42 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../../app/store/useAuthStore"; 
+import { useAuthStore } from "../../../app/store/useAuthStore";
 
 export default function DashboardSelector() {
   const navigate = useNavigate();
-  const { user } = useAuthStore(); 
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    // 1. Debug cực mạnh để diệt tận gốc lỗi undefined
-    console.log("=== DEBUG USER DATA ===");
-    console.log("Full Object:", user);
-
     if (!user) {
-      console.log("Chưa có user, về trang login");
       navigate("/login");
       return;
     }
 
+    const userRoles = (user.role_names || []).map(r => r.toLowerCase());
 
-    const role = (
-      user.role_names[0] || 
-      user.user?.role || 
-      user.data?.role || 
-      user.profile?.role
-    );
-
-
-    if (!role) {
-      console.error("LỖI: Không tìm thấy trường 'role' trong dữ liệu Store!");
-      navigate("/dashboard/my-submissions");
+    // Phân quyền ưu tiên: Admin > Chair > Reviewer > Author
+    if (userRoles.includes("admin")) {
+      navigate("/dashboard/admin/users");
       return;
     }
 
-
-
-    // 3. Điều hướng chính xác dựa trên role
-    // Chú ý: Dùng .includes hoặc nhiều case để tránh lỗi 'author' vs 'authors'
-    switch (role) {
-      case "admin":
-        navigate("/dashboard/admin/users");
-        break;
-      case "chair":
-        navigate("/dashboard/chair/dashboard");
-        break;
-      case "reviewer":
-        navigate("/dashboard/reviewer/dashboard");
-        break;
-      case "author":
-      case "authors":
-        navigate("/dashboard/overview");
-        break;
-      default:
-        console.warn("Role lạ, chuyển về my-submissions:", role);
-        navigate("/dashboard/my-submissions");
-        break;
+    if (userRoles.includes("chair")) {
+      navigate("/dashboard/chair/dashboard");
+      return;
     }
+
+    if (userRoles.includes("reviewer")) {
+      navigate("/dashboard/reviewer/dashboard");
+      return;
+    }
+
+    if (userRoles.includes("author") || userRoles.includes("authors")) {
+      navigate("/dashboard/overview");
+      return;
+    }
+
+    // Default if no specific role matched
+    navigate("/dashboard/profile");
   }, [user, navigate]);
 
   return (

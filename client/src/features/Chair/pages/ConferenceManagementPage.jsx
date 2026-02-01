@@ -5,7 +5,9 @@ import Table from "../../../components/Table";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import Modal from "../../../components/Modal";
-import { Plus, Edit, Trash2, X, Settings } from "lucide-react";
+import { Plus, Edit, Trash2, X, Settings, Building2 } from "lucide-react";
+import { useAuthStore } from "../../../app/store/useAuthStore";
+import { tenantService } from "../../../services";
 
 const toDateInput = (value) => {
   if (!value) return "";
@@ -45,6 +47,11 @@ export default function ConferenceManagementPage() {
     rebuttal_open: false,
     rebuttal_deadline: "",
   });
+  const [deletedTracks, setDeletedTracks] = useState([]); // Track các tracks đã bị xóa
+  const [tenants, setTenants] = useState([]);
+  const { role, user } = useAuthStore();
+  const isAdmin = role?.toLowerCase() === "admin";
+
   const [form, setForm] = useState({
     name: "",
     abbreviation: "",
@@ -57,13 +64,29 @@ export default function ConferenceManagementPage() {
     review_deadline: "",
     is_open: true,
     blind_mode: "double",
+    tenant_id: "",
+    rebuttal_open: false,
+    rebuttal_deadline: "",
+    camera_ready_open: false,
+    camera_ready_deadline: "",
     tracks: [], // Danh sách tracks: existing (có id) và new (không có id)
   });
-  const [deletedTracks, setDeletedTracks] = useState([]); // Track các tracks đã bị xóa
 
   useEffect(() => {
     loadConferences();
-  }, []);
+    if (isAdmin) {
+      loadTenants();
+    }
+  }, [isAdmin]);
+
+  const loadTenants = async () => {
+    try {
+      const data = await tenantService.getAll();
+      setTenants(data.tenants || data || []);
+    } catch (err) {
+      console.error("Failed to load tenants:", err);
+    }
+  };
 
   const loadConferences = async () => {
     try {
@@ -91,6 +114,11 @@ export default function ConferenceManagementPage() {
       review_deadline: "",
       is_open: true,
       blind_mode: "double",
+      tenant_id: "",
+      rebuttal_open: false,
+      rebuttal_deadline: "",
+      camera_ready_open: false,
+      camera_ready_deadline: "",
       tracks: [],
     });
     setDeletedTracks([]);
@@ -106,12 +134,12 @@ export default function ConferenceManagementPage() {
   const removeTrack = (index) => {
     const trackToRemove = form.tracks[index];
     const newTracks = (form.tracks || []).filter((_, i) => i !== index);
-    
+
     // Nếu track có id (existing track), thêm vào deletedTracks để xóa sau
     if (trackToRemove && trackToRemove.id) {
       setDeletedTracks([...deletedTracks, trackToRemove.id]);
     }
-    
+
     setForm({
       ...form,
       tracks: newTracks,
@@ -132,7 +160,7 @@ export default function ConferenceManagementPage() {
 
   const openEdit = async (conf) => {
     setEditModal(conf);
-    
+
     // Load existing tracks
     let existingTracks = [];
     try {
@@ -141,7 +169,7 @@ export default function ConferenceManagementPage() {
     } catch (err) {
       console.warn("[FRONTEND] Could not load existing tracks:", err);
     }
-    
+
     setForm({
       name: conf.name || "",
       abbreviation: conf.abbreviation || "",
@@ -154,11 +182,16 @@ export default function ConferenceManagementPage() {
       review_deadline: toDateInput(conf.review_deadline),
       is_open: !!conf.is_open,
       blind_mode: conf.blind_mode || "double",
+      rebuttal_open: !!conf.rebuttal_open,
+      rebuttal_deadline: toDateInput(conf.rebuttal_deadline),
+      camera_ready_open: !!conf.camera_ready_open,
+      camera_ready_deadline: toDateInput(conf.camera_ready_deadline),
       tracks: existingTracks.map(t => ({
         id: t.id,
         name: t.name || "",
         max_reviewers: t.max_reviewers || 3,
       })),
+      tenant_id: conf.tenant_id || "",
     });
     setDeletedTracks([]);
   };
@@ -172,24 +205,31 @@ export default function ConferenceManagementPage() {
       location: form.location?.trim() || null,
       is_open: Boolean(form.is_open),
       blind_mode: form.blind_mode || "double",
+      tenant_id: form.tenant_id ? parseInt(form.tenant_id) : null,
+      rebuttal_open: Boolean(form.rebuttal_open),
+      camera_ready_open: Boolean(form.camera_ready_open),
     };
-    
-    // Add dates only if they exist (Pydantic expects Optional[datetime] or None)
+
+    // Add dates only if they exist
     const startDate = fromDateInput(form.start_date);
     const endDate = fromDateInput(form.end_date);
     const submissionDeadline = fromDateInput(form.submission_deadline);
     const reviewDeadline = fromDateInput(form.review_deadline);
-    
+    const rebuttalDeadline = fromDateInput(form.rebuttal_deadline);
+    const cameraReadyDeadline = fromDateInput(form.camera_ready_deadline);
+
     if (startDate) payload.start_date = startDate;
     if (endDate) payload.end_date = endDate;
     if (submissionDeadline) payload.submission_deadline = submissionDeadline;
     if (reviewDeadline) payload.review_deadline = reviewDeadline;
-    
+    if (rebuttalDeadline) payload.rebuttal_deadline = rebuttalDeadline;
+    if (cameraReadyDeadline) payload.camera_ready_deadline = cameraReadyDeadline;
+
     // NOTE: Tracks sẽ được tạo riêng bằng API /tracks sau khi tạo conference
     // Không thêm tracks vào payload nữa
     console.log("[FRONTEND DEBUG] Tracks will be created separately via /tracks API");
     console.log("[FRONTEND DEBUG] Form tracks:", form.tracks);
-    
+
     return payload;
   };
 
@@ -199,29 +239,29 @@ export default function ConferenceManagementPage() {
         toast.error("Tên hội nghị không được để trống");
         return;
       }
-      
+
       // Validate tracks before creating
-      const tracksToCreate = form.tracks && form.tracks.length > 0 
+      const tracksToCreate = form.tracks && form.tracks.length > 0
         ? form.tracks.filter(t => t && t.name && t.name.trim())
         : [];
-      
+
       if (form.tracks && form.tracks.length > 0 && tracksToCreate.length !== form.tracks.length) {
         toast.error("Vui lòng điền tên cho tất cả các tracks");
         return;
       }
-      
+
       // Build payload WITHOUT tracks (tạo conference trước)
       const payload = buildPayload();
       // Remove tracks from payload - sẽ tạo bằng API riêng
       delete payload.tracks;
-      
+
       console.log("[FRONTEND] Creating conference (without tracks):", JSON.stringify(payload, null, 2));
       console.log("[FRONTEND] Tracks to create separately:", tracksToCreate);
-      
+
       // Step 1: Tạo conference
       const response = await conferenceService.create(payload);
       console.log("[FRONTEND] Conference created response:", response);
-      
+
       // Get conference ID từ response
       const conferenceId = response.data?.id || response.data?.id || response.id;
       if (!conferenceId) {
@@ -232,16 +272,16 @@ export default function ConferenceManagementPage() {
         loadConferences();
         return;
       }
-      
+
       console.log("[FRONTEND] Conference ID:", conferenceId);
-      
+
       // Step 2: Tạo tracks bằng API riêng
       const createdTracks = [];
       const trackErrors = [];
-      
+
       if (tracksToCreate.length > 0) {
         console.log(`[FRONTEND] Creating ${tracksToCreate.length} tracks via API...`);
-        
+
         for (const track of tracksToCreate) {
           try {
             const trackPayload = {
@@ -249,7 +289,7 @@ export default function ConferenceManagementPage() {
               name: track.name.trim(),
               max_reviewers: parseInt(track.max_reviewers) || 3,
             };
-            
+
             console.log(`[FRONTEND] Creating track:`, trackPayload);
             const trackResponse = await trackService.create(trackPayload);
             createdTracks.push(trackResponse);
@@ -259,10 +299,10 @@ export default function ConferenceManagementPage() {
             trackErrors.push(`Track "${track.name}": ${trackErr?.response?.data?.detail || trackErr.message}`);
           }
         }
-        
+
         console.log(`[FRONTEND] Created ${createdTracks.length}/${tracksToCreate.length} tracks`);
       }
-      
+
       // Show success/error messages
       if (trackErrors.length > 0) {
         toast.error(`Hội nghị đã được tạo nhưng có lỗi khi tạo ${trackErrors.length} track(s): ${trackErrors.join(", ")}`);
@@ -273,7 +313,7 @@ export default function ConferenceManagementPage() {
       } else {
         toast.success("Tạo hội nghị thành công");
       }
-      
+
       setCreateModal(false);
       resetForm();
       loadConferences();
@@ -281,10 +321,10 @@ export default function ConferenceManagementPage() {
       console.error("Create conference error:", err);
       console.error("Error response:", err?.response?.data);
       console.error("Error detail:", err?.response?.data?.detail);
-      
+
       const detail = err?.response?.data?.detail;
       let message = "Không thể tạo hội nghị";
-      
+
       if (typeof detail === "string") {
         message = detail;
       } else if (Array.isArray(detail)) {
@@ -297,7 +337,7 @@ export default function ConferenceManagementPage() {
       } else if (detail && typeof detail === "object") {
         message = JSON.stringify(detail, null, 2);
       }
-      
+
       toast.error(message);
     }
   };
@@ -309,15 +349,15 @@ export default function ConferenceManagementPage() {
       const payload = buildPayload();
       await conferenceService.update(editModal.id, payload);
       console.log("[FRONTEND] Conference updated successfully");
-      
+
       // Step 2: Xử lý tracks
       const existingTracks = (form.tracks || []).filter(t => t && t.id); // Tracks có id (existing)
       const newTracks = (form.tracks || []).filter(t => t && !t.id && t.name && t.name.trim()); // Tracks mới
-      
+
       const createdTracks = [];
       const updatedTracks = [];
       const trackErrors = [];
-      
+
       // Step 2a: Xóa tracks đã bị xóa
       if (deletedTracks.length > 0) {
         console.log(`[FRONTEND] Deleting ${deletedTracks.length} tracks...`);
@@ -331,7 +371,7 @@ export default function ConferenceManagementPage() {
           }
         }
       }
-      
+
       // Step 2b: Cập nhật existing tracks (nếu có thay đổi)
       if (existingTracks.length > 0) {
         console.log(`[FRONTEND] Updating ${existingTracks.length} existing tracks...`);
@@ -341,7 +381,7 @@ export default function ConferenceManagementPage() {
               name: track.name.trim(),
               max_reviewers: parseInt(track.max_reviewers) || 3,
             };
-            
+
             console.log(`[FRONTEND] Updating track ${track.id}:`, trackPayload);
             const trackResponse = await trackService.update(track.id, trackPayload);
             updatedTracks.push(trackResponse);
@@ -352,7 +392,7 @@ export default function ConferenceManagementPage() {
           }
         }
       }
-      
+
       // Step 2c: Tạo tracks mới
       if (newTracks.length > 0) {
         console.log(`[FRONTEND] Creating ${newTracks.length} new tracks...`);
@@ -363,7 +403,7 @@ export default function ConferenceManagementPage() {
               name: track.name.trim(),
               max_reviewers: parseInt(track.max_reviewers) || 3,
             };
-            
+
             console.log(`[FRONTEND] Creating track:`, trackPayload);
             const trackResponse = await trackService.create(trackPayload);
             createdTracks.push(trackResponse);
@@ -374,13 +414,13 @@ export default function ConferenceManagementPage() {
           }
         }
       }
-      
+
       // Show success/error messages
       const actions = [];
       if (deletedTracks.length > 0) actions.push(`xóa ${deletedTracks.length}`);
       if (updatedTracks.length > 0) actions.push(`cập nhật ${updatedTracks.length}`);
       if (createdTracks.length > 0) actions.push(`thêm ${createdTracks.length}`);
-      
+
       if (trackErrors.length > 0) {
         toast.error(`Hội nghị đã được cập nhật nhưng có lỗi: ${trackErrors.join(", ")}`);
       } else if (actions.length > 0) {
@@ -388,7 +428,7 @@ export default function ConferenceManagementPage() {
       } else {
         toast.success("Cập nhật hội nghị thành công");
       }
-      
+
       setEditModal(null);
       resetForm();
       loadConferences();
@@ -437,13 +477,13 @@ export default function ConferenceManagementPage() {
         camera_ready_open: workflowForm.camera_ready_open,
         rebuttal_open: workflowForm.rebuttal_open,
       };
-      
+
       const cameraReadyDeadline = fromDateInput(workflowForm.camera_ready_deadline);
       const rebuttalDeadline = fromDateInput(workflowForm.rebuttal_deadline);
-      
+
       if (cameraReadyDeadline) payload.camera_ready_deadline = cameraReadyDeadline;
       if (rebuttalDeadline) payload.rebuttal_deadline = rebuttalDeadline;
-      
+
       await conferenceService.updateWorkflow(workflowModal.id, payload);
       toast.success("Cập nhật workflow thành công");
       setWorkflowModal(null);
@@ -542,6 +582,25 @@ export default function ConferenceManagementPage() {
         size="lg"
       >
         <div className="space-y-4">
+          {isAdmin && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                <Building2 className="w-4 h-4" />
+                Đơn vị / Tổ chức <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full px-4 py-2 rounded-lg border text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                value={form.tenant_id}
+                onChange={(e) => setForm({ ...form, tenant_id: e.target.value })}
+                required
+              >
+                <option value="">-- Chọn đơn vị --</option>
+                {tenants.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.slug})</option>
+                ))}
+              </select>
+            </div>
+          )}
           <Input label="Tên hội nghị" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <Input label="Viết tắt" value={form.abbreviation} onChange={(e) => setForm({ ...form, abbreviation: e.target.value })} />
           <Input label="Website" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
@@ -587,6 +646,26 @@ export default function ConferenceManagementPage() {
                 <option value="double">Double Blind</option>
                 <option value="open">Open</option>
               </select>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Workflow (Tiến độ)</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={form.rebuttal_open} onChange={(e) => setForm({ ...form, rebuttal_open: e.target.checked })} />
+                  Mở Rebuttal
+                </label>
+                <Input label="Hạn chót Rebuttal" type="date" value={form.rebuttal_deadline} onChange={(e) => setForm({ ...form, rebuttal_deadline: e.target.value })} disabled={!form.rebuttal_open} />
+              </div>
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={form.camera_ready_open} onChange={(e) => setForm({ ...form, camera_ready_open: e.target.checked })} />
+                  Mở Camera-ready
+                </label>
+                <Input label="Hạn chót Camera-ready" type="date" value={form.camera_ready_deadline} onChange={(e) => setForm({ ...form, camera_ready_deadline: e.target.value })} disabled={!form.camera_ready_open} />
+              </div>
             </div>
           </div>
 
@@ -666,6 +745,24 @@ export default function ConferenceManagementPage() {
         size="lg"
       >
         <div className="space-y-4">
+          {isAdmin && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                <Building2 className="w-4 h-4" />
+                Đơn vị / Tổ chức
+              </label>
+              <select
+                className="w-full px-4 py-2 rounded-lg border text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                value={form.tenant_id}
+                onChange={(e) => setForm({ ...form, tenant_id: e.target.value })}
+              >
+                <option value="">-- Mặc định --</option>
+                {tenants.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.slug})</option>
+                ))}
+              </select>
+            </div>
+          )}
           <Input label="Tên hội nghị" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <Input label="Viết tắt" value={form.abbreviation} onChange={(e) => setForm({ ...form, abbreviation: e.target.value })} />
           <Input label="Website" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
@@ -714,6 +811,26 @@ export default function ConferenceManagementPage() {
             </div>
           </div>
 
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Workflow (Tiến độ)</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={form.rebuttal_open} onChange={(e) => setForm({ ...form, rebuttal_open: e.target.checked })} />
+                  Mở Rebuttal
+                </label>
+                <Input label="Hạn chót Rebuttal" type="date" value={form.rebuttal_deadline} onChange={(e) => setForm({ ...form, rebuttal_deadline: e.target.value })} disabled={!form.rebuttal_open} />
+              </div>
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={form.camera_ready_open} onChange={(e) => setForm({ ...form, camera_ready_open: e.target.checked })} />
+                  Mở Camera-ready
+                </label>
+                <Input label="Hạn chót Camera-ready" type="date" value={form.camera_ready_deadline} onChange={(e) => setForm({ ...form, camera_ready_deadline: e.target.value })} disabled={!form.camera_ready_open} />
+              </div>
+            </div>
+          </div>
+
           {/* Tracks Section - Edit existing and add new tracks */}
           <div className="border-t pt-4">
             <div className="flex items-center justify-between mb-3">
@@ -736,11 +853,10 @@ export default function ConferenceManagementPage() {
                 {(form.tracks || []).map((track, index) => {
                   const isExisting = track && track.id;
                   return (
-                    <div 
-                      key={isExisting ? track.id : `new-${index}`} 
-                      className={`flex gap-2 items-start p-3 rounded-lg ${
-                        isExisting ? "bg-blue-50 border border-blue-200" : "bg-gray-50"
-                      }`}
+                    <div
+                      key={isExisting ? track.id : `new-${index}`}
+                      className={`flex gap-2 items-start p-3 rounded-lg ${isExisting ? "bg-blue-50 border border-blue-200" : "bg-gray-50"
+                        }`}
                     >
                       <div className="flex-1 grid grid-cols-2 gap-2">
                         <div className="relative">

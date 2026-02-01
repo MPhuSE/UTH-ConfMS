@@ -11,6 +11,7 @@ from infrastructure.security.auth_dependencies import get_current_user
 from infrastructure.security.rbac import require_admin_or_chair
 from domain.exceptions import NotFoundError
 from api.utils.audit_utils import create_audit_log_sync
+from infrastructure.security.tenant_dependency import validate_conference_tenant, validate_track_tenant
 
 router = APIRouter(prefix="/tracks", tags=["Tracks"])
 
@@ -20,14 +21,19 @@ def get_track_repo(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=TrackResponse, status_code=status.HTTP_201_CREATED)
-def create_track(
+async def create_track(
     request: TrackCreateRequest,
     req: Request,
     current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db),
-    repo=Depends(get_track_repo)
+    repo=Depends(get_track_repo),
+    valid_conf_id: int = Depends(validate_conference_tenant)
 ):
-    """Create a new track - only admin or chair can create."""
+    """
+    Create a new track - only admin or chair can create.
+    Note: conference_id is passed as a query param via validate_conference_tenant 
+    but also exists in request.body. We must ensure they match or just use body.
+    """
     try:
         track = TrackModel(
             conference_id=request.conference_id,
@@ -68,7 +74,8 @@ def create_track(
 @router.get("/{track_id}", response_model=TrackResponse)
 def get_track(
     track_id: int,
-    repo=Depends(get_track_repo)
+    repo=Depends(get_track_repo),
+    valid_id: int = Depends(validate_track_tenant)
 ):
     """Get a track by ID."""
     try:
@@ -90,7 +97,8 @@ def get_track(
 @router.get("/conferences/{conference_id}", response_model=List[TrackResponse])
 def get_tracks_by_conference(
     conference_id: int,
-    repo=Depends(get_track_repo)
+    repo=Depends(get_track_repo),
+    valid_conf_id: int = Depends(validate_conference_tenant)
 ):
     """Get all tracks for a conference."""
     try:
@@ -115,7 +123,8 @@ def update_track(
     req: Request,
     current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db),
-    repo=Depends(get_track_repo)
+    repo=Depends(get_track_repo),
+    valid_id: int = Depends(validate_track_tenant)
 ):
     """Update a track - only admin or chair can update."""
     try:
@@ -172,7 +181,8 @@ def delete_track(
     req: Request,
     current_user=Depends(require_admin_or_chair),
     db: Session = Depends(get_db),
-    repo=Depends(get_track_repo)
+    repo=Depends(get_track_repo),
+    valid_id: int = Depends(validate_track_tenant)
 ):
     try:
         track = repo.get_by_id(track_id)

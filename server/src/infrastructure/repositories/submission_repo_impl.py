@@ -1,5 +1,4 @@
-# infrastructure/repositories/submission_repo_impl.py
-
+from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 from fastapi import HTTPException
@@ -16,16 +15,15 @@ class SubmissionRepositoryImpl(SubmissionRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    # 1. Triển khai phương thức get_all (Đây là hàm đang gây lỗi)
-    def get_all(self):
-        return (
-            self.db.query(SubmissionModel)
-            .options(
-                joinedload(SubmissionModel.track).joinedload(TrackModel.conference),
-                selectinload(SubmissionModel.authors)
-            )
-            .all()
+    # 1. Triển khai phương thức get_all (Hỗ trợ lọc theo conference_id)
+    def get_all(self, conference_id: Optional[int] = None):
+        query = self.db.query(SubmissionModel).options(
+            joinedload(SubmissionModel.track).joinedload(TrackModel.conference),
+            selectinload(SubmissionModel.authors)
         )
+        if conference_id:
+            query = query.filter(SubmissionModel.conference_id == conference_id)
+        return query.all()
 
     # 2. Triển khai phương thức create
     def create(self, data: dict):

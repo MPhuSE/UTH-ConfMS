@@ -36,6 +36,8 @@ class UserModel(Base):
     refresh_token_hash = Column(String(255), nullable=True, index=True)
     refresh_token_expires_at = Column(DateTime, nullable=True)
     
+    tenant_memberships = relationship("TenantMemberModel", back_populates="user", lazy="selectin")
+    
     # SSO Support
     sso_provider = Column(String, nullable=True)
     sso_id = Column(String, nullable=True)

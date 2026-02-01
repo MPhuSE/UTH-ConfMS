@@ -24,4 +24,4 @@ class TenantMemberModel(Base):
     created_at = Column(DateTime, default=func.now())
 
     tenant = relationship("TenantModel", back_populates="members")
-    user = relationship("UserModel")
+    user = relationship("UserModel", back_populates="tenant_memberships")

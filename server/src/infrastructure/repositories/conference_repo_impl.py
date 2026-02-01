@@ -25,7 +25,11 @@ class ConferenceRepositoryImpl(ConferenceRepository):
             review_deadline=model.review_deadline,
             is_open=model.is_open,
             blind_mode=model.blind_mode or 'double',
-            tenant_id=model.tenant_id
+            tenant_id=model.tenant_id,
+            rebuttal_open=model.rebuttal_open or False,
+            rebuttal_deadline=model.rebuttal_deadline,
+            camera_ready_open=model.camera_ready_open or False,
+            camera_ready_deadline=model.camera_ready_deadline
         )
 
     def create(self, conference: Conference) -> Conference:
@@ -41,7 +45,11 @@ class ConferenceRepositoryImpl(ConferenceRepository):
             review_deadline=conference.review_deadline,
             is_open=conference.is_open,
             blind_mode=conference.blind_mode or 'double',
-            tenant_id=conference.tenant_id
+            tenant_id=conference.tenant_id,
+            rebuttal_open=conference.rebuttal_open,
+            rebuttal_deadline=conference.rebuttal_deadline,
+            camera_ready_open=conference.camera_ready_open,
+            camera_ready_deadline=conference.camera_ready_deadline
         )
 
         self.db.add(model)
@@ -111,6 +119,10 @@ class ConferenceRepositoryImpl(ConferenceRepository):
         model.is_open = conference.is_open
         model.blind_mode = conference.blind_mode or 'double'
         model.tenant_id = conference.tenant_id
+        model.rebuttal_open = conference.rebuttal_open
+        model.rebuttal_deadline = conference.rebuttal_deadline
+        model.camera_ready_open = conference.camera_ready_open
+        model.camera_ready_deadline = conference.camera_ready_deadline
 
         self.db.add(model)
         self.db.commit()

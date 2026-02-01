@@ -10,7 +10,6 @@ from api.schemas.submission_schema import (
 )
 
 
-from dependency_container import get_submission_repo
 from infrastructure.security.auth_dependencies import get_current_user
 from services.submission.get_submission import GetSubmissionService
 from services.submission.list_submissions import ListSubmissionsService
@@ -19,6 +18,7 @@ from services.submission.delete_submission import DeleteSubmissionService
 from services.submission.create_submission import CreateSubmissionService
 from infrastructure.external_services.cloudinary_service import CloudinaryService
 from api.utils.audit_utils import create_audit_log_sync
+from infrastructure.security.tenant_dependency import validate_conference_tenant, validate_submission_tenant
 
 
 router = APIRouter(prefix="/submissions", tags=["Submissions"])
@@ -36,7 +36,8 @@ async def submit_paper(
     current_user = Depends(get_current_user),
     repo = Depends(get_submission_repo),
     conf_repo = Depends(get_conference_repo),
-    system_repo = Depends(get_system_repo)
+    system_repo = Depends(get_system_repo),
+    valid_conf_id: int = Depends(validate_conference_tenant)
 ):
     try:
         # Check overall system file size limit if configured
@@ -123,13 +124,16 @@ async def submit_paper(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"An error occurred during submission: {str(e)}"
         )
+
 @router.get("/", response_model=List[SubmissionResponseSchema])
 def list_submissions(
+    conference_id: int = Query(..., description="ID của hội nghị"),
     current_user=Depends(get_current_user),
-    repo=Depends(get_submission_repo)
+    repo=Depends(get_submission_repo),
+    valid_conf_id: int = Depends(validate_conference_tenant)
 ):
-    """List all submissions - requires authentication."""
-    return ListSubmissionsService(repo).execute()
+    """List all submissions for a specific conference - requires authentication."""
+    return ListSubmissionsService(repo).execute(conference_id=conference_id)
 
 
 @router.get("/me", response_model=List[SubmissionResponseSchema])
@@ -147,7 +151,8 @@ async def download_submission_pdf(
     req: Request,
     current_user=Depends(get_current_user),
     repo=Depends(get_submission_repo),
-    redirect: bool = Query(True, description="Whether to redirect or return JSON")
+    redirect: bool = Query(True, description="Whether to redirect or return JSON"),
+    valid_id: int = Depends(validate_submission_tenant)
 ):
     """Download PDF file của submission - Trả về download URL hoặc redirect"""
     from fastapi.responses import RedirectResponse
@@ -160,16 +165,13 @@ async def download_submission_pdf(
             raise HTTPException(status_code=404, detail="Submission not found")
         
         # Lấy file_path từ database (bảng submission_files)
-        # GetSubmissionService đã lấy file_path từ submission.files[0].file_path trong DB
         file_url = submission.get("file_path") or submission.get("file_url")
         if not file_url:
             raise HTTPException(status_code=404, detail="File not found for this submission")
         
         # Tạo download URL với fl_attachment
-        # Lấy tên file từ submission title hoặc dùng tên mặc định
         submission_title = submission.get("title", "")
         filename = f"{submission_title[:50] if submission_title else 'paper'}_{submission_id}.pdf"
-        # Làm sạch filename
         filename = "".join(c if c.isalnum() or c in ['_', '-', '.'] else '_' for c in filename)
         
         download_url = CloudinaryService.get_download_url(file_url, filename)
@@ -190,11 +192,9 @@ async def download_submission_pdf(
         except Exception:
             pass
         
-        # Nếu redirect=false, trả về JSON
         if not redirect:
             return {"download_url": download_url, "filename": filename}
         
-        # Mặc định: Redirect đến Cloudinary URL với fl_attachment
         return RedirectResponse(url=download_url, status_code=302)
     except HTTPException:
         raise
@@ -207,39 +207,18 @@ def get_submission(
     submission_id: int,
     req: Request,
     current_user=Depends(get_current_user),
-    repo=Depends(get_submission_repo)
+    repo=Depends(get_submission_repo),
+    valid_id: int = Depends(validate_submission_tenant)
 ):
     """Lấy chi tiết bài nộp - Yêu cầu đăng nhập."""
     submission_dict = GetSubmissionService(repo).execute(submission_id)
     
-    # Debug: Log scores để kiểm tra
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"[API] GET /submissions/{submission_id} - Dict from service: avg_score={submission_dict.get('avg_score')} (type={type(submission_dict.get('avg_score'))}), final_score={submission_dict.get('final_score')} (type={type(submission_dict.get('final_score'))})")
-    logger.info(f"[API] Full submission_dict keys: {list(submission_dict.keys())}")
-    
-    # Đảm bảo scores luôn có trong dict, kể cả khi None
     if 'avg_score' not in submission_dict:
         submission_dict['avg_score'] = None
     if 'final_score' not in submission_dict:
         submission_dict['final_score'] = None
     
-    # Convert dict to Pydantic model để đảm bảo serialization đúng
-    # Pydantic sẽ tự động validate và serialize
-    try:
-        submission = SubmissionResponseSchema(**submission_dict)
-        
-        # Debug: Log sau khi convert
-        logger.info(f"[API] After Pydantic conversion: avg_score={submission.avg_score}, final_score={submission.final_score}")
-        
-        # Debug: Convert to dict để xem serialization
-        submission_dict_after = submission.model_dump(exclude_none=False)
-        logger.info(f"[API] After model_dump: avg_score={submission_dict_after.get('avg_score')}, final_score={submission_dict_after.get('final_score')}")
-        logger.info(f"[API] Keys in model_dump: {list(submission_dict_after.keys())}")
-    except Exception as e:
-        logger.error(f"[API] Error creating Pydantic model: {e}")
-        logger.error(f"[API] submission_dict: {submission_dict}")
-        raise
+    submission = SubmissionResponseSchema(**submission_dict)
 
     try:
         create_audit_log_sync(
@@ -267,7 +246,8 @@ async def update_submission(
     authors: str = Form(None),
     req: Request = None,
     current_user = Depends(get_current_user),
-    repo = Depends(get_submission_repo)
+    repo = Depends(get_submission_repo),
+    valid_id: int = Depends(validate_submission_tenant)
 ):
     """Update submission - Hỗ trợ cả text và file PDF."""
     
@@ -293,11 +273,9 @@ async def update_submission(
 
  
     if file:
-        # Kiểm tra định dạng file - CHỈ CHẤP NHẬN PDF
         if not file.content_type or file.content_type != "application/pdf":
             raise HTTPException(status_code=400, detail="Chỉ chấp nhận file PDF (.pdf). File hiện tại không phải PDF.")
         
-        # Kiểm tra đuôi file phải là .pdf
         if file.filename and not file.filename.lower().endswith(".pdf"):
             raise HTTPException(status_code=400, detail="Chỉ chấp nhận file có đuôi .pdf")
         
@@ -308,8 +286,6 @@ async def update_submission(
     updated = EditSubmissionService(repo).execute(submission_id, update_data)
 
     try:
-        # before là dict từ GetSubmissionService
-        # updated có thể là dict hoặc object, cần xử lý an toàn
         old_title = before.get("title") if isinstance(before, dict) else getattr(before, "title", None)
         old_abstract = before.get("abstract") if isinstance(before, dict) else getattr(before, "abstract", None)
         old_status = before.get("status") if isinstance(before, dict) else getattr(before, "status", None)
@@ -342,14 +318,14 @@ def delete_submission(
     submission_id: int,
     req: Request,
     current_user=Depends(get_current_user),
-    repo=Depends(get_submission_repo)
+    repo=Depends(get_submission_repo),
+    valid_id: int = Depends(validate_submission_tenant)
 ):
     """Delete submission - only author or admin/chair can delete."""
     submission = GetSubmissionService(repo).execute(submission_id)
     DeleteSubmissionService(repo).execute(submission_id)
 
     try:
-        # submission là dict từ GetSubmissionService
         submission_title = submission.get("title") if isinstance(submission, dict) else getattr(submission, "title", None)
         create_audit_log_sync(
             repo.db,

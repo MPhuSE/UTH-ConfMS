@@ -22,7 +22,7 @@ class ConferenceRepository(ABC):
         pass
 
     @abstractmethod
-    def count_all(self) -> int:
+    def count_all(self, tenant_id: Optional[int] = None) -> int:
         pass
 
     @abstractmethod

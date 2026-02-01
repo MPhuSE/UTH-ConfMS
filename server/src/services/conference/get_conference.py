@@ -15,11 +15,11 @@ class GetConferenceService:
             raise NotFoundError(f"Conference with id {conference_id} not found")
         return conference
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[Conference]:
-        """Get all conferences with pagination."""
-        return self.repo.get_all(skip=skip, limit=limit)
+    def get_all(self, skip: int = 0, limit: int = 100, tenant_id: Optional[int] = None) -> List[Conference]:
+        """Get all conferences with pagination and tenant filtering."""
+        return self.repo.get_all(skip=skip, limit=limit, tenant_id=tenant_id)
 
-    def count_all(self) -> int:
+    def count_all(self, tenant_id: Optional[int] = None) -> int:
         """Count total number of conferences."""
-        return self.repo.count_all()
+        return self.repo.count_all(tenant_id=tenant_id)
 

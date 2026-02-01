@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../app/store/useAuthStore";
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  CheckCircle, 
+import {
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle,
   AlertCircle,
   UserPlus,
   ArrowLeft,
@@ -40,6 +40,14 @@ const RegisterPage = () => {
 
   const signup = useAuthStore((state) => state.signup);
   const isLoading = useAuthStore((state) => state.isLoading);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+
+  React.useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,7 +92,7 @@ const RegisterPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     // Email validation
     if (!formData.email.includes('@')) {
       newErrors.email = language === 'VI' ? 'Email không hợp lệ' : 'Invalid email address';
@@ -127,17 +135,17 @@ const RegisterPage = () => {
       });
 
       // Success message
-      const successMsg = language === 'VI' 
+      const successMsg = language === 'VI'
         ? 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.'
         : 'Registration successful! Please check your email to verify your account.';
-      
+
       alert(successMsg);
       navigate("/login");
     } catch (error) {
       console.error("Lỗi đăng ký:", error.response?.data);
-      const serverMessage = error.response?.data?.message || 
+      const serverMessage = error.response?.data?.message ||
         (language === 'VI' ? "Đăng ký thất bại, vui lòng thử lại!" : "Registration failed, please try again!");
-      
+
       // Set server errors
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
@@ -171,7 +179,7 @@ const RegisterPage = () => {
                 {language === 'VI' ? 'Quay lại đăng nhập' : 'Back to Login'}
               </span>
             </Link>
-            
+
             <button
               onClick={() => setLanguage(lang => lang === 'VI' ? 'EN' : 'VI')}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 hover:border-[#2C7A7B] transition-colors"
@@ -195,7 +203,7 @@ const RegisterPage = () => {
                         UTH-ConfMS
                       </h2>
                       <p className="text-gray-600">
-                        {language === 'VI' 
+                        {language === 'VI'
                           ? 'Hệ thống quản lý hội nghị nghiên cứu khoa học'
                           : 'Scientific Conference Management System'
                         }
@@ -274,7 +282,7 @@ const RegisterPage = () => {
                             {language === 'VI' ? 'Đăng ký tài khoản mới' : 'Register New Account'}
                           </h2>
                           <p className="text-white/80">
-                            {language === 'VI' 
+                            {language === 'VI'
                               ? 'Tham gia hệ thống quản lý hội nghị UTH'
                               : 'Join UTH Conference Management System'
                             }
@@ -306,11 +314,10 @@ const RegisterPage = () => {
                             name="full_name"
                             value={formData.full_name}
                             onChange={handleChange}
-                            className={`w-full px-4 py-3 pl-11 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
-                              errors.full_name 
-                                ? 'border-red-300 focus:ring-red-500/50 focus:border-red-500' 
-                                : 'border-gray-300 focus:ring-[#2C7A7B]/50 focus:border-[#2C7A7B]'
-                            }`}
+                            className={`w-full px-4 py-3 pl-11 border rounded-lg focus:outline-none focus:ring-2 transition-all ${errors.full_name
+                              ? 'border-red-300 focus:ring-red-500/50 focus:border-red-500'
+                              : 'border-gray-300 focus:ring-[#2C7A7B]/50 focus:border-[#2C7A7B]'
+                              }`}
                             placeholder={language === 'VI' ? "Nguyễn Văn A" : "John Smith"}
                             required
                             disabled={isLoading}
@@ -337,11 +344,10 @@ const RegisterPage = () => {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            className={`w-full px-4 py-3 pl-11 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
-                              errors.email 
-                                ? 'border-red-300 focus:ring-red-500/50 focus:border-red-500' 
-                                : 'border-gray-300 focus:ring-[#2C7A7B]/50 focus:border-[#2C7A7B]'
-                            }`}
+                            className={`w-full px-4 py-3 pl-11 border rounded-lg focus:outline-none focus:ring-2 transition-all ${errors.email
+                              ? 'border-red-300 focus:ring-red-500/50 focus:border-red-500'
+                              : 'border-gray-300 focus:ring-[#2C7A7B]/50 focus:border-[#2C7A7B]'
+                              }`}
                             placeholder={language === 'VI' ? "nguyenvana@uth.edu.vn" : "your.email@uth.edu.vn"}
                             required
                             disabled={isLoading}
@@ -408,11 +414,10 @@ const RegisterPage = () => {
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            className={`w-full px-4 py-3 pl-11 pr-11 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
-                              errors.password 
-                                ? 'border-red-300 focus:ring-red-500/50 focus:border-red-500' 
-                                : 'border-gray-300 focus:ring-[#2C7A7B]/50 focus:border-[#2C7A7B]'
-                            }`}
+                            className={`w-full px-4 py-3 pl-11 pr-11 border rounded-lg focus:outline-none focus:ring-2 transition-all ${errors.password
+                              ? 'border-red-300 focus:ring-red-500/50 focus:border-red-500'
+                              : 'border-gray-300 focus:ring-[#2C7A7B]/50 focus:border-[#2C7A7B]'
+                              }`}
                             placeholder="••••••••"
                             required
                             disabled={isLoading}
@@ -426,35 +431,34 @@ const RegisterPage = () => {
                             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
-                        
+
                         {/* Password Strength Meter */}
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">
                               {language === 'VI' ? 'Độ mạnh mật khẩu:' : 'Password strength:'}
                             </span>
-                            <span className={`font-medium ${
-                              passwordStrength <= 25 ? 'text-red-600' :
+                            <span className={`font-medium ${passwordStrength <= 25 ? 'text-red-600' :
                               passwordStrength <= 50 ? 'text-orange-600' :
-                              passwordStrength <= 75 ? 'text-yellow-600' : 'text-green-600'
-                            }`}>
+                                passwordStrength <= 75 ? 'text-yellow-600' : 'text-green-600'
+                              }`}>
                               {getStrengthText(passwordStrength)}
                             </span>
                           </div>
                           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className={`h-full transition-all duration-300 ${getStrengthColor(passwordStrength)}`}
                               style={{ width: `${passwordStrength}%` }}
                             />
                           </div>
                           <p className="text-xs text-gray-500">
-                            {language === 'VI' 
+                            {language === 'VI'
                               ? 'Yêu cầu: 8+ ký tự, chữ hoa, số, ký tự đặc biệt'
                               : 'Requirements: 8+ chars, uppercase, number, special char'
                             }
                           </p>
                         </div>
-                        
+
                         {errors.password && (
                           <p className="text-sm text-red-600 flex items-center gap-2">
                             <AlertCircle className="w-4 h-4" />
@@ -475,11 +479,10 @@ const RegisterPage = () => {
                             name="password_confirmation"
                             value={formData.password_confirmation}
                             onChange={handleChange}
-                            className={`w-full px-4 py-3 pl-11 pr-11 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
-                              errors.password_confirmation 
-                                ? 'border-red-300 focus:ring-red-500/50 focus:border-red-500' 
-                                : 'border-gray-300 focus:ring-[#2C7A7B]/50 focus:border-[#2C7A7B]'
-                            }`}
+                            className={`w-full px-4 py-3 pl-11 pr-11 border rounded-lg focus:outline-none focus:ring-2 transition-all ${errors.password_confirmation
+                              ? 'border-red-300 focus:ring-red-500/50 focus:border-red-500'
+                              : 'border-gray-300 focus:ring-[#2C7A7B]/50 focus:border-[#2C7A7B]'
+                              }`}
                             placeholder="••••••••"
                             required
                             disabled={isLoading}
@@ -514,21 +517,21 @@ const RegisterPage = () => {
                         />
                         <div className="text-sm text-gray-700">
                           <p>
-                            {language === 'VI' 
+                            {language === 'VI'
                               ? 'Tôi đồng ý với '
                               : 'I agree to the '
                             }
                             <Link to="/terms" className="text-[#2C7A7B] hover:underline font-medium">
                               {language === 'VI' ? 'Điều khoản dịch vụ' : 'Terms of Service'}
                             </Link>
-                            {language === 'VI' 
+                            {language === 'VI'
                               ? ' và '
                               : ' and '
                             }
                             <Link to="/privacy" className="text-[#2C7A7B] hover:underline font-medium">
                               {language === 'VI' ? 'Chính sách bảo mật' : 'Privacy Policy'}
                             </Link>
-                            {language === 'VI' 
+                            {language === 'VI'
                               ? ' của UTH-ConfMS.'
                               : ' of UTH-ConfMS.'
                             }
@@ -541,7 +544,7 @@ const RegisterPage = () => {
                           )}
                         </div>
                       </label>
-                      
+
                       <p className="text-xs text-gray-500">
                         {language === 'VI'
                           ? 'Tài khoản phải được xác thực qua email trước khi sử dụng đầy đủ tính năng.'

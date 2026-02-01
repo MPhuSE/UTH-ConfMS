@@ -29,8 +29,30 @@ from dependency_container import (
 )
 from services.audit_log.audit_log_service import AuditLogService
 from domain.models.audit_log import ActionType, ResourceType
+from infrastructure.security.auth_dependencies import get_current_user
+from domain.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+@router.post("/logout", response_model=MessageResponse)
+async def logout_endpoint(
+    current_user: User = Depends(get_current_user),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
+    req: Request = None,
+):
+    """Ghi nhận log logout và trả về thông báo thành công."""
+    await audit_log_service.create_audit_log(
+        action_type=ActionType.LOGOUT,
+        resource_type=ResourceType.USER,
+        user_id=current_user.id,
+        resource_id=current_user.id,
+        description="User logged out",
+        ip_address=req.client.host if req and req.client else None,
+        user_agent=req.headers.get("user-agent") if req else None,
+        metadata={"event": "logout"},
+    )
+    return MessageResponse(message="Đăng xuất thành công.")
 
 
 @router.post("/register", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)

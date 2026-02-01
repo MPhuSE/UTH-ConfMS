@@ -20,6 +20,14 @@ class UserRepositoryImpl(UserRepository):
         stmt = select(UserModel).where(UserModel.email == email)
         result = await self.db_session.execute(stmt)
         return result.scalar_one_or_none()
+    
+    async def get_by_sso(self, provider: str, sso_id: str) -> Optional[UserModel]:
+        stmt = select(UserModel).where(
+            UserModel.sso_provider == provider,
+            UserModel.sso_id == sso_id
+        )
+        result = await self.db_session.execute(stmt)
+        return result.scalar_one_or_none()
 
     async def get_user_by_role(self, role_id: int) -> List[UserModel]:
         stmt = (

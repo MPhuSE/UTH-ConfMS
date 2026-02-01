@@ -285,7 +285,7 @@ def get_all_conferences(
     repo = ConferenceRepositoryImpl(db)
     service = GetConferenceService(repo)
     conferences = service.get_all(skip=skip, limit=limit, tenant_id=tenant_id)
-    total = service.count_all()
+    total = service.count_all(tenant_id=tenant_id)
     
     # Get full models to access workflow fields
     conf_ids = [c.id for c in conferences] if conferences else []

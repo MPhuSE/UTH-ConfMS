@@ -77,9 +77,12 @@ class ConferenceRepositoryImpl(ConferenceRepository):
         models = query.offset(skip).limit(limit).all()
         return [self._model_to_domain(model) for model in models]
 
-    def count_all(self) -> int:
+    def count_all(self, tenant_id: Optional[int] = None) -> int:
         """Count total number of conferences."""
-        return self.db.query(ConferenceModel).count()
+        query = self.db.query(ConferenceModel)
+        if tenant_id is not None:
+            query = query.filter(ConferenceModel.tenant_id == tenant_id)
+        return query.count()
 
     def delete(self, conference_id: int) -> None:
         """Delete a conference by ID."""

@@ -21,6 +21,7 @@ import Header from "../../../components/Header";
 import Footer from "../../../components/Footer";
 import { conferenceService } from "../../../services/conferenceService";
 import { trackService } from "../../../services/trackService";
+import { useAuthStore } from "../../../app/store/useAuthStore";
 
 export default function CfpPublicPage() {
   const [searchParams] = useSearchParams();
@@ -29,6 +30,7 @@ export default function CfpPublicPage() {
   const [conferencesData, setConferencesData] = useState([]);
   const [error, setError] = useState(null);
   const [language, setLanguage] = useState("EN");
+  const { isAuthenticated, user } = useAuthStore();
 
   // Màu chủ đạo và bảng màu phụ
   const primaryColor = "#008689";
@@ -227,66 +229,100 @@ export default function CfpPublicPage() {
 
             {/* Auth Buttons */}
             <div style={{ display: "flex", gap: "12px" }}>
-              <button
-                onClick={() => navigate("/login")}
-                style={{
-                  background: "transparent",
-                  border: "2px solid white",
-                  color: "white",
-                  padding: "10px 24px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  transition: "all 0.3s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                <LogIn size={18} />
-                {language === "EN" ? "Sign In" : "Đăng nhập"}
-              </button>
+              {isAuthenticated ? (
+                <button
+                  onClick={() => {
+                    navigate("/dashboard");
+                  }}
+                  style={{
+                    background: "white",
+                    border: "none",
+                    color: primaryColor,
+                    padding: "10px 24px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    transition: "all 0.3s ease",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+                  }}
+                >
+                  <Sparkles size={18} />
+                  {language === "EN" ? "Dashboard" : "Bảng điều khiển"}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate("/login")}
+                    style={{
+                      background: "transparent",
+                      border: "2px solid white",
+                      color: "white",
+                      padding: "10px 24px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                  >
+                    <LogIn size={18} />
+                    {language === "EN" ? "Sign In" : "Đăng nhập"}
+                  </button>
 
-              <button
-                onClick={() => navigate("/register")}
-                style={{
-                  background: "white",
-                  border: "none",
-                  color: primaryColor,
-                  padding: "10px 24px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  transition: "all 0.3s ease",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 6px 20px rgba(0,0,0,0.15)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 12px rgba(0,0,0,0.1)";
-                }}
-              >
-                <UserPlus size={18} />
-                {language === "EN" ? "Sign Up" : "Đăng ký"}
-              </button>
+                  <button
+                    onClick={() => navigate("/register")}
+                    style={{
+                      background: "white",
+                      border: "none",
+                      color: primaryColor,
+                      padding: "10px 24px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      transition: "all 0.3s ease",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+                    }}
+                  >
+                    <UserPlus size={18} />
+                    {language === "EN" ? "Sign Up" : "Đăng ký"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -572,8 +608,8 @@ export default function CfpPublicPage() {
                                 ? "Accepting Submissions"
                                 : "Đang nhận bài"
                               : language === "EN"
-                              ? "Submissions Closed"
-                              : "Đã đóng nhận bài"}
+                                ? "Submissions Closed"
+                                : "Đã đóng nhận bài"}
                           </div>
 
                           {isDeadlineNear && isOpen && (

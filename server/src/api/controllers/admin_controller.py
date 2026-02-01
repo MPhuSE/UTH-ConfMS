@@ -110,6 +110,8 @@ def update_smtp_config(
         "smtp_from_email": system_settings.smtp_from_email,
         "smtp_from_name": system_settings.smtp_from_name,
         "frontend_url": system_settings.frontend_url,
+        "google_client_id": system_settings.google_client_id,
+        "google_redirect_uri": system_settings.google_redirect_uri,
     }
 
     system_settings.smtp_host = request.smtp_host
@@ -141,6 +143,8 @@ def update_smtp_config(
             "smtp_from_email": system_settings.smtp_from_email,
             "smtp_from_name": system_settings.smtp_from_name,
             "frontend_url": system_settings.frontend_url,
+            "google_client_id": system_settings.google_client_id,
+            "google_redirect_uri": system_settings.google_redirect_uri,
         },
         metadata={"section": "smtp-config"},
     )

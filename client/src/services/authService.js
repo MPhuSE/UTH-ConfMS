@@ -93,6 +93,15 @@ export const authService = {
     const res = await api.post("/auth/initial-chair-setup", payload);
     return res.data;
   },
+
+  /**
+   * Logout user
+   * @returns {Promise<Object>} Response message
+   */
+  logout: async () => {
+    const res = await api.post("/auth/logout");
+    return res.data;
+  },
 };
 
 export default authService;

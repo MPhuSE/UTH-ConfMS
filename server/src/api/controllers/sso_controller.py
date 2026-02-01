@@ -11,17 +11,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth/sso", tags=["SSO"])
 
 @router.get("/google/login")
-async def google_login():
+async def google_login(sso_service: SSOService = Depends(get_sso_service)):
     """Returns the Google OAuth2 login URL."""
-    auth_url = (
-        f"https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={settings.GOOGLE_CLIENT_ID}&"
-        f"redirect_uri={settings.GOOGLE_REDIRECT_URI}&"
-        f"response_type=code&"
-        f"scope=openid%20email%20profile&"
-        f"access_type=offline"
-    )
-    return {"url": auth_url}
+    try:
+        auth_url = await sso_service.get_google_auth_url()
+        return {"url": auth_url}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.get("/google/callback", response_model=TokenResponse)
 async def google_callback(

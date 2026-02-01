@@ -32,4 +32,10 @@ class Settings:
     SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "")  # Email người gửi
     SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "UTH-ConfMS")  # Tên hiển thị
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")  # URL frontend để tạo links
+
+    # --- Cấu hình SSO (Google) ---
+    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "")
+
 settings = Settings()

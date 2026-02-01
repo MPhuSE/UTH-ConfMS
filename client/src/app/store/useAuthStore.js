@@ -156,11 +156,33 @@ export const useAuthStore = create(
         }
       },
 
-      logout: () => {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        localStorage.removeItem("role");
-        set({ user: null, token: null, refreshToken: null, role: null, isAuthenticated: false });
+      logout: async () => {
+        try {
+          // 1. Call backend to log the event (optional, but good for Audit Log)
+          await authService.logout();
+        } catch (error) {
+          console.error("Logout error (backend):", error);
+        } finally {
+          // 2. Clear all auth related storage
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          localStorage.removeItem("role");
+
+          // Clear Zustand persist storage if needed (optional since we set null)
+          // localStorage.removeItem("auth-storage"); 
+
+          // 3. Reset internal state
+          set({
+            user: null,
+            token: null,
+            refreshToken: null,
+            role: null,
+            isAuthenticated: false
+          });
+
+          // 4. Hard redirect to login for a clean slate
+          window.location.href = "/login";
+        }
       },
     }),
     {

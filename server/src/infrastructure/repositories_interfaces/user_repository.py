@@ -12,6 +12,10 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_by_sso(self, provider: str, sso_id: str) -> Optional[UserModel]:
+        pass
+
+    @abstractmethod
     async def get_user_by_role(self, role_id: int) -> List[UserModel]:
         """Tìm tất cả người dùng có vai trò cụ thể."""
         pass

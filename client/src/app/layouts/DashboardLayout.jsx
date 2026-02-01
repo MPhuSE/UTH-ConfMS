@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 
 export default function DashboardLayout() {
-  const { role, user } = useAuthStore();
+  const { role, user, logout } = useAuthStore();
 
   // Color scheme - CFP Green Theme
   const colors = {
@@ -929,15 +929,18 @@ export default function DashboardLayout() {
             background: "#FAFAFA",
           }}
         >
-          <Link
-            to="/login"
+          <button
+            onClick={logout}
             style={{
+              width: "100%",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               padding: "12px 16px",
               color: "#EF4444",
-              textDecoration: "none",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
               borderRadius: "12px",
               transition: "all 0.3s ease",
               fontSize: "14px",
@@ -945,13 +948,19 @@ export default function DashboardLayout() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#FEE2E2";
-              e.currentTarget.querySelector(".chevron").style.opacity = "1";
-              e.currentTarget.querySelector(".chevron").style.transform = "translateX(4px)";
+              const chevron = e.currentTarget.querySelector(".chevron");
+              if (chevron) {
+                chevron.style.opacity = "1";
+                chevron.style.transform = "translateX(4px)";
+              }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "transparent";
-              e.currentTarget.querySelector(".chevron").style.opacity = "0";
-              e.currentTarget.querySelector(".chevron").style.transform = "translateX(0)";
+              const chevron = e.currentTarget.querySelector(".chevron");
+              if (chevron) {
+                chevron.style.opacity = "0";
+                chevron.style.transform = "translateX(0)";
+              }
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -963,7 +972,7 @@ export default function DashboardLayout() {
               size={16}
               style={{ opacity: 0, transition: "all 0.3s ease" }}
             />
-          </Link>
+          </button>
         </div>
       </aside>
 

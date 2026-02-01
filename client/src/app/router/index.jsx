@@ -60,8 +60,15 @@ import CheckCOIPage from "../../features/reviewer/pages/CheckCOIPage";
 import InternalDiscussion from "../../features/dashboard/pages/InternalDisscusion";
 import AuthorRebuttalPage from "../../features/rebuttal/AuthorRebuttalPage";
 import ReviewerRebuttalPage from "../../features/rebuttal/ReviewerRebuttalPage";
+import { useAuthStore } from "../store/useAuthStore";
 
 export default function AppRouter() {
+    const checkAuth = useAuthStore((state) => state.checkAuth);
+
+    React.useEffect(() => {
+        checkAuth();
+    }, [checkAuth]);
+
     return (
         <BrowserRouter>
             <Routes>

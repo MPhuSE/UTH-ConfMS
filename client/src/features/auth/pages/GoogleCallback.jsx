@@ -7,6 +7,7 @@ const GoogleCallback = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [error, setError] = useState(null);
+    const hasCalledRef = React.useRef(false);
 
     useEffect(() => {
         const code = searchParams.get("code");
@@ -14,6 +15,9 @@ const GoogleCallback = () => {
             setError("No authorization code found");
             return;
         }
+
+        if (hasCalledRef.current) return;
+        hasCalledRef.current = true;
 
         const authenticate = async () => {
             try {
@@ -24,7 +28,7 @@ const GoogleCallback = () => {
                     const { setAuthState } = useAuthStore.getState();
                     setAuthState({ user, access_token, refresh_token });
 
-                    // Redirect to dashboard using window.location to ensure state is clear
+                    // Redirect to dashboard
                     window.location.href = "/dashboard";
                 } else {
                     setError("Failed to retrieve access token");
@@ -36,7 +40,7 @@ const GoogleCallback = () => {
         };
 
         authenticate();
-    }, [searchParams, navigate]);
+    }, [searchParams]);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">

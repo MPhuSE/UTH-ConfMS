@@ -34,36 +34,28 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             "/auth/reset-password-confirm",
             "/auth/initial-chair-setup",
             "/auth/sso/google/login",
-            "/auth/sso/google/callback"
+            "/auth/sso/google/callback",
+            "/conferences",
+            "/tracks"
         ]
     
     async def dispatch(self, request: Request, call_next):
         # Always allow CORS preflight
         if request.method == "OPTIONS":
             return await call_next(request)
-        # Bỏ qua các route công khai
-        if any(request.url.path == route or request.url.path.startswith(route + "/") for route in self.public_routes):
+        # Bỏ qua các route công khai (kiểm tra chính xác hoặc bắt đầu bằng route + /)
+        path = request.url.path
+        if any(path == route or path.startswith(route + "/") for route in self.public_routes):
             response = await call_next(request)
             return response
         
         # Kiểm tra Authorization header
         auth_header = request.headers.get("Authorization")
         
-        if not auth_header:
+        if not auth_header or not auth_header.startswith("Bearer "):
             # Nếu không có token, vẫn cho phép request đi qua
             # Các controller sẽ tự kiểm tra authentication bằng Depends(get_current_user)
-            response = await call_next(request)
-            return response
-        
-        if not auth_header.startswith("Bearer "):
-            response = JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Invalid authorization header format. Expected 'Bearer <token>'"}
-            )
-            response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = "*"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            return response
+            return await call_next(request)
         
         token = auth_header.split(" ", 1)[1]
         
@@ -72,58 +64,23 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             payload = self.jwt_service.decode_token(token)
             user_id = payload.get("user_id")
             
-            if not user_id:
-                response = JSONResponse(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    content={"detail": "Invalid token: missing user_id"}
-                )
-                response.headers["Access-Control-Allow-Origin"] = "*"
-                response.headers["Access-Control-Allow-Methods"] = "*"
-                response.headers["Access-Control-Allow-Headers"] = "*"
-                return response
-            
-            # Load user từ database
-            async with async_session() as session:
-                repo = UserRepositoryImpl(session)
-                user = await repo.get_by_id(user_id)
-                
-                if not user:
-                    response = JSONResponse(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        content={"detail": "User not found"}
-                    )
-                    response.headers["Access-Control-Allow-Origin"] = "*"
-                    response.headers["Access-Control-Allow-Methods"] = "*"
-                    response.headers["Access-Control-Allow-Headers"] = "*"
-                    return response
-                
-                if not user.is_active:
-                    response = JSONResponse(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        content={"detail": "Account is disabled"}
-                    )
-                    response.headers["Access-Control-Allow-Origin"] = "*"
-                    response.headers["Access-Control-Allow-Methods"] = "*"
-                    response.headers["Access-Control-Allow-Headers"] = "*"
-                    return response
-                
-                # Gắn user vào request state để controller có thể sử dụng
-                request.state.user = user
-                request.state.user_id = user.id
-                request.state.user_roles = user.role_names
+            if user_id:
+                # Load user từ database
+                async with async_session() as session:
+                    repo = UserRepositoryImpl(session)
+                    user = await repo.get_by_id(user_id)
+                    
+                    if user and user.is_active:
+                        # Gắn user vào request state để controller có thể sử dụng
+                        request.state.user = user
+                        request.state.user_id = user.id
+                        request.state.user_roles = user.role_names
         
-        except Exception as e:
-            # Nếu có lỗi decode token, trả về 401
-            response = JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": f"Authentication failed: {str(e)}"}
-            )
-            response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = "*"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            return response
+        except Exception:
+            # Nếu có lỗi decode token (hết hạn, sai format...), vẫn cho qua
+            # Controller cần auth sẽ tự fail thông qua Depends(get_current_user)
+            pass
         
         # Tiếp tục xử lý request
-        response = await call_next(request)
-        return response
+        return await call_next(request)
 

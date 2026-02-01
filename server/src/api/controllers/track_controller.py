@@ -68,7 +68,6 @@ def create_track(
 @router.get("/{track_id}", response_model=TrackResponse)
 def get_track(
     track_id: int,
-    current_user=Depends(get_current_user),
     repo=Depends(get_track_repo)
 ):
     """Get a track by ID."""
@@ -91,7 +90,6 @@ def get_track(
 @router.get("/conferences/{conference_id}", response_model=List[TrackResponse])
 def get_tracks_by_conference(
     conference_id: int,
-    current_user=Depends(get_current_user),
     repo=Depends(get_track_repo)
 ):
     """Get all tracks for a conference."""

@@ -22,7 +22,7 @@ class SSOService:
         self.jwt_service = jwt_service
 
     async def _get_sso_config(self):
-        """Fetch SSO config from database"""
+        """Fetch SSO config from database and clean it."""
         try:
             from infrastructure.models.system_model import SystemSettingsModel
             from sqlalchemy.future import select
@@ -32,18 +32,37 @@ class SSOService:
             
             if settings_db and settings_db.google_client_id:
                 return {
-                    "client_id": settings_db.google_client_id,
-                    "client_secret": settings_db.google_client_secret,
-                    "redirect_uri": settings_db.google_redirect_uri or settings.GOOGLE_REDIRECT_URI
+                    "client_id": (settings_db.google_client_id or "").strip(),
+                    "client_secret": (settings_db.google_client_secret or "").strip(),
+                    "redirect_uri": (settings_db.google_redirect_uri or settings.GOOGLE_REDIRECT_URI or "").strip()
                 }
         except Exception as e:
             logger.warning(f"Error loading SSO config from DB: {e}")
         
         return {
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI
+            "client_id": (settings.GOOGLE_CLIENT_ID or "").strip(),
+            "client_secret": (settings.GOOGLE_CLIENT_SECRET or "").strip(),
+            "redirect_uri": (settings.GOOGLE_REDIRECT_URI or "").strip()
         }
+
+    async def get_google_auth_url(self) -> str:
+        """Generates the Google OAuth2 login URL using database or env settings."""
+        config = await self._get_sso_config()
+        if not config["client_id"]:
+            raise Exception("Google SSO is not configured. Please configure it in System Settings.")
+            
+        from urllib.parse import urlencode
+        params = {
+            "client_id": config["client_id"],
+            "redirect_uri": config["redirect_uri"],
+            "response_type": "code",
+            "scope": "openid email profile",
+            "access_type": "offline",
+            "prompt": "select_account"
+        }
+        
+        auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+        return auth_url
 
     async def get_google_user_info(self, code: str) -> Dict[str, Any]:
         """Exchanges Google auth code for user info."""
@@ -59,10 +78,13 @@ class SSOService:
                 "redirect_uri": sso_config["redirect_uri"],
                 "grant_type": "authorization_code",
             }
+            logger.info(f"Exchanging Google code. ClientID: {data['client_id']}, RedirectURI: {data['redirect_uri']}")
+            
             token_response = await client.post(token_url, data=data)
             if token_response.status_code != 200:
-                logger.error(f"Failed to get Google token: {token_response.text}")
-                raise Exception("Failed to get Google token")
+                error_detail = token_response.text
+                logger.error(f"Failed to get Google token: {error_detail}")
+                raise Exception(f"Google Token Error: {error_detail}")
             
             access_token = token_response.json().get("access_token")
 
@@ -102,6 +124,7 @@ class SSOService:
             else:
                 # Create new user
                 from infrastructure.security.password_hash import Hasher
+                from infrastructure.models.user_model import RoleModel
                 import secrets
                 
                 random_password = secrets.token_urlsafe(32)
@@ -114,16 +137,42 @@ class SSOService:
                     sso_id=sso_id,
                     avatar_url=avatar_url
                 )
+                
+                # Assign default author role (ID 4)
+                author_role = await self.db_session.get(RoleModel, 4)
+                if not author_role:
+                    author_role = RoleModel(id=4, name="author")
+                    self.db_session.add(author_role)
+                    await self.db_session.flush()
+                
+                user_model.roles.append(author_role)
+                
                 self.db_session.add(user_model)
                 await self.db_session.commit()
                 await self.db_session.refresh(user_model)
+
+        # Ensure user has at least one role (Author by default)
+        if not user_model.roles:
+            from infrastructure.models.user_model import RoleModel
+            author_role = await self.db_session.get(RoleModel, 4)
+            if not author_role:
+                author_role = RoleModel(id=4, name="author")
+                self.db_session.add(author_role)
+                await self.db_session.flush()
+            user_model.roles.append(author_role)
+            await self.db_session.commit()
+            await self.db_session.refresh(user_model)
 
         # Generate tokens
         access_token = self.jwt_service.create_access_token(
             data={"sub": user_model.email, "user_id": user_model.id}
         )
-        refresh_token = self.jwt_service.create_refresh_token(
-            data={"sub": user_model.email, "user_id": user_model.id}
-        )
+        refresh_token, expires_at = self.jwt_service.create_refresh_token()
+        
+        # Save refresh token hash to user model
+        from infrastructure.security.password_hash import Hasher
+        user_model.refresh_token_hash = Hasher.hash_password(refresh_token)
+        user_model.refresh_token_expires_at = expires_at
+        await self.db_session.commit()
 
         return access_token, refresh_token, user_model.to_domain_model()

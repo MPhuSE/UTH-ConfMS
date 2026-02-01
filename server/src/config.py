@@ -4,18 +4,29 @@ import os
 load_dotenv()  
 
 class Settings:
-    DB_HOST = os.getenv("DB_HOST", "localhost")
-    DB_PORT = os.getenv("DB_PORT", "5432")
-    DB_USER = os.getenv("DB_USER", "postgres")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "123456")
-    DB_NAME = os.getenv("DB_NAME", "ConfMS123")
+    # 1. Thử lấy link tổng từ Render trước
+    _DATABASE_URL_ENV = os.getenv("DATABASE_URL")
 
     @property
     def DATABASE_URL(self):
-        return (
-            f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}"
-            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-        )
+        # Nếu có link tổng (trên Render), dùng luôn link đó
+        if self._DATABASE_URL_ENV:
+            url = self._DATABASE_URL_ENV
+            # Render dùng postgres://, asyncpg cần postgresql+asyncpg://
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif url.startswith("postgresql://"):
+                url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            return url
+        
+        # Nếu không có (chạy local), thì mới ghép từ các biến lẻ
+        db_host = os.getenv("DB_HOST", "localhost")
+        db_port = os.getenv("DB_PORT", "5432")
+        db_user = os.getenv("DB_USER", "postgres")
+        db_password = os.getenv("DB_PASSWORD", "123456")
+        db_name = os.getenv("DB_NAME", "ConfMS123")
+        
+        return f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
     # --- Cấu hình Bảo mật  ---
     # KHÓA BÍ MẬT DÙNG CHO JWT
     SECRET_KEY = os.getenv("SECRET_KEY") 

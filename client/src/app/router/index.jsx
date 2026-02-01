@@ -26,7 +26,7 @@ import CameraReadyUploadPage from "../../features/author/pages/CameraReadyUpload
 import ViewResultsPage from "../../features/author/pages/ViewResultsPage";
 import ConferenceDetailPage from "../../features/author/pages/ConferenceDetailPage";
 import AuthorProfile from "../../features/auth/pages/AuthorProfile";
-import AuditLogs from "../../features/dashboard/pages/AuditLogs";
+import AuditLogs from "../../features/dashboard/pages/auditLogs";
 import AuthorDashboard from "../../features/dashboard/AuthorDashboard";
 import AdminDashboard from "../../features/dashboard/AdminDashboard";
 import VerifyEmail from "../../features/auth/pages/VerifyEmail";

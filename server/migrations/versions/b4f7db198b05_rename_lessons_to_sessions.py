@@ -43,7 +43,7 @@ def upgrade() -> None:
         op.drop_constraint(constraint_name, 'schedule_items', type_='foreignkey')
     
     # Rename column from lesson_id to session_id in schedule_items table using SQL
-    op.execute('ALTER TABLE schedule_items RENAME COLUMN lesson_id TO session_id')
+    # op.execute('ALTER TABLE schedule_items RENAME COLUMN lesson_id TO session_id')
     
     # Rename table from lessons to sessions
     op.rename_table('lessons', 'sessions')

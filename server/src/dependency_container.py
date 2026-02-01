@@ -22,7 +22,7 @@ from services.auth.refresh_service import RefreshTokenService
 from services.auth.auth_communication_service import AuthCommunicationService
 from services.user.user_management_service import UserManagementService
 from services.audit_log.audit_log_service import AuditLogService
-from services.auth.verification_service import VerificationService  
+# VerificationService removed as it moved to AuthCommunicationService or EmailVerificationService
 from services.auth.sso_service import SSOService
 from services.email.email_service import EmailService
 # Conference Services

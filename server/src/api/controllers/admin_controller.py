@@ -15,28 +15,30 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
 class SMTPConfigRequest(BaseModel):
-    host: str
-    port: int
-    user: str
-    password: str
-    from_email: str
-    from_name: str
+    smtp_host: Optional[str] = ""
+    smtp_port: Optional[int] = 587
+    smtp_user: Optional[str] = ""
+    smtp_password: Optional[str] = None
+    smtp_from_email: Optional[str] = ""
+    smtp_from_name: Optional[str] = ""
     frontend_url: Optional[str] = None
     google_client_id: Optional[str] = None
     google_client_secret: Optional[str] = None
     google_redirect_uri: Optional[str] = None
+    mail_quota_daily: Optional[int] = 500
 
 
 class SMTPConfigResponse(BaseModel):
-    host: str
-    port: int
-    user: str
-    from_email: str
-    from_name: str
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = None
+    smtp_from_email: Optional[str] = None
+    smtp_from_name: Optional[str] = None
     frontend_url: Optional[str] = None
     google_client_id: Optional[str] = None
     google_client_secret: Optional[str] = None
     google_redirect_uri: Optional[str] = None
+    mail_quota_daily: Optional[int] = None
 
 
 class QuotaConfigRequest(BaseModel):
@@ -76,15 +78,16 @@ def get_smtp_config(
         db.refresh(system_settings)
 
     return SMTPConfigResponse(
-        host=system_settings.smtp_host,
-        port=system_settings.smtp_port or int(settings.SMTP_PORT),
-        user=system_settings.smtp_user,
-        from_email=system_settings.smtp_from_email,
-        from_name=system_settings.smtp_from_name,
+        smtp_host=system_settings.smtp_host,
+        smtp_port=system_settings.smtp_port or int(settings.SMTP_PORT),
+        smtp_user=system_settings.smtp_user,
+        smtp_from_email=system_settings.smtp_from_email,
+        smtp_from_name=system_settings.smtp_from_name,
         frontend_url=system_settings.frontend_url or settings.FRONTEND_URL,
         google_client_id=system_settings.google_client_id,
         google_client_secret=system_settings.google_client_secret,
         google_redirect_uri=system_settings.google_redirect_uri,
+        mail_quota_daily=system_settings.mail_quota_daily,
     )
 
 
@@ -109,16 +112,18 @@ def update_smtp_config(
         "frontend_url": system_settings.frontend_url,
     }
 
-    system_settings.smtp_host = request.host
-    system_settings.smtp_port = request.port
-    system_settings.smtp_user = request.user
-    system_settings.smtp_password = request.password
-    system_settings.smtp_from_email = request.from_email
-    system_settings.smtp_from_name = request.from_name
+    system_settings.smtp_host = request.smtp_host
+    system_settings.smtp_port = request.smtp_port
+    system_settings.smtp_user = request.smtp_user
+    if request.smtp_password:
+        system_settings.smtp_password = request.smtp_password
+    system_settings.smtp_from_email = request.smtp_from_email
+    system_settings.smtp_from_name = request.smtp_from_name
     system_settings.frontend_url = request.frontend_url
     system_settings.google_client_id = request.google_client_id
     system_settings.google_client_secret = request.google_client_secret
     system_settings.google_redirect_uri = request.google_redirect_uri
+    system_settings.mail_quota_daily = request.mail_quota_daily
     db.commit()
     db.refresh(system_settings)
 
@@ -141,16 +146,47 @@ def update_smtp_config(
     )
 
     return SMTPConfigResponse(
-        host=system_settings.smtp_host,
-        port=system_settings.smtp_port,
-        user=system_settings.smtp_user,
-        from_email=system_settings.smtp_from_email,
-        from_name=system_settings.smtp_from_name,
+        smtp_host=system_settings.smtp_host,
+        smtp_port=system_settings.smtp_port,
+        smtp_user=system_settings.smtp_user,
+        smtp_from_email=system_settings.smtp_from_email,
+        smtp_from_name=system_settings.smtp_from_name,
         frontend_url=system_settings.frontend_url,
         google_client_id=system_settings.google_client_id,
         google_client_secret=system_settings.google_client_secret,
         google_redirect_uri=system_settings.google_redirect_uri,
+        mail_quota_daily=system_settings.mail_quota_daily,
     )
+
+
+class SMTPTestRequest(BaseModel):
+    to_email: str
+
+
+@router.post("/smtp-config/test")
+async def test_smtp_config(
+    request: SMTPTestRequest,
+    current_user=Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Test SMTP configuration by sending a test email."""
+    from infrastructure.email.email_service import EmailService
+    
+    email_service = EmailService(db_session=db)
+    success = await email_service.send_email(
+        to_email=request.to_email,
+        subject="Test SMTP Configuration - UTH-ConfMS",
+        content="<p>This is a test email to verify your SMTP settings. If you received this, your configuration is correct!</p>",
+        is_html=True
+    )
+    
+    if success:
+        return {"message": f"Email test đã được gửi tới {request.to_email}"}
+    else:
+        raise HTTPException(
+            status_code=500, 
+            detail="Gửi email test thất bại. Vui lòng kiểm tra lại cấu hình SMTP."
+        )
 
 
 @router.get("/quotas", response_model=QuotaConfigResponse)

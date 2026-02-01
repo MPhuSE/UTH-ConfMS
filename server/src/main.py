@@ -14,8 +14,7 @@ from api.controllers import (
     tenant_controller, pc_controller,
     discussion_controller, rebuttal_controller, proceedings_controller,
     role_controller,
-    sso_controller,
-    smtp_controller
+    sso_controller
 )
 
 from infrastructure.models import (
@@ -116,7 +115,7 @@ app.include_router(rebuttal_controller.router)
 app.include_router(proceedings_controller.router)
 app.include_router(role_controller.router)
 app.include_router(sso_controller.router)
-app.include_router(smtp_controller.router)
+# app.include_router(smtp_controller.router)
 
 
 

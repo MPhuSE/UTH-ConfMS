@@ -53,10 +53,14 @@ const SystemSettingsPage = () => {
 
             setConfig({
                 smtp: {
+                    ...config.smtp,
                     ...smtpRes,
                     smtp_password: "" // Don't show password
                 },
-                quotas: quotaRes
+                quotas: {
+                    ...config.quotas,
+                    ...quotaRes
+                }
             });
         } catch (err) {
             console.error("Error loading config:", err);
@@ -68,9 +72,10 @@ const SystemSettingsPage = () => {
 
     const handleSmtpChange = (e) => {
         const { name, value } = e.target;
+        const processedValue = name.includes("port") || name.includes("quota") ? (value === "" ? "" : Number(value)) : value;
         setConfig(prev => ({
             ...prev,
-            smtp: { ...prev.smtp, [name]: value }
+            smtp: { ...prev.smtp, [name]: processedValue }
         }));
     };
 
@@ -190,7 +195,7 @@ const SystemSettingsPage = () => {
                                         <label className="text-sm font-semibold text-gray-700">SMTP Host</label>
                                         <input
                                             name="smtp_host"
-                                            value={config.smtp.smtp_host}
+                                            value={config.smtp.smtp_host || ""}
                                             onChange={handleSmtpChange}
                                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                                             placeholder="smtp.gmail.com"
@@ -201,7 +206,7 @@ const SystemSettingsPage = () => {
                                         <input
                                             name="smtp_port"
                                             type="number"
-                                            value={config.smtp.smtp_port}
+                                            value={config.smtp.smtp_port || 587}
                                             onChange={handleSmtpChange}
                                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                                             placeholder="587"
@@ -211,7 +216,7 @@ const SystemSettingsPage = () => {
                                         <label className="text-sm font-semibold text-gray-700">Username / Client ID</label>
                                         <input
                                             name="smtp_user"
-                                            value={config.smtp.smtp_user}
+                                            value={config.smtp.smtp_user || ""}
                                             onChange={handleSmtpChange}
                                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                                         />
@@ -221,7 +226,7 @@ const SystemSettingsPage = () => {
                                         <input
                                             name="smtp_password"
                                             type="password"
-                                            value={config.smtp.smtp_password}
+                                            value={config.smtp.smtp_password || ""}
                                             onChange={handleSmtpChange}
                                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                                             placeholder="••••••••"
@@ -231,7 +236,7 @@ const SystemSettingsPage = () => {
                                         <label className="text-sm font-semibold text-gray-700">From Email</label>
                                         <input
                                             name="smtp_from_email"
-                                            value={config.smtp.smtp_from_email}
+                                            value={config.smtp.smtp_from_email || ""}
                                             onChange={handleSmtpChange}
                                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                                         />
@@ -240,7 +245,7 @@ const SystemSettingsPage = () => {
                                         <label className="text-sm font-semibold text-gray-700">From Name (Display)</label>
                                         <input
                                             name="smtp_from_name"
-                                            value={config.smtp.smtp_from_name}
+                                            value={config.smtp.smtp_from_name || ""}
                                             onChange={handleSmtpChange}
                                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                                         />
@@ -249,7 +254,7 @@ const SystemSettingsPage = () => {
                                         <label className="text-sm font-semibold text-gray-700">Frontend URL (Lưu ý: Không có dấu / ở cuối)</label>
                                         <input
                                             name="frontend_url"
-                                            value={config.smtp.frontend_url}
+                                            value={config.smtp.frontend_url || ""}
                                             onChange={handleSmtpChange}
                                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                                             placeholder="http://localhost:5173"
@@ -299,7 +304,7 @@ const SystemSettingsPage = () => {
                                             <input
                                                 name="max_submissions_per_user"
                                                 type="number"
-                                                value={config.quotas.max_submissions_per_user}
+                                                value={config.quotas.max_submissions_per_user || 0}
                                                 onChange={handleQuotaChange}
                                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
                                             />
@@ -316,7 +321,7 @@ const SystemSettingsPage = () => {
                                             <input
                                                 name="max_reviews_per_reviewer"
                                                 type="number"
-                                                value={config.quotas.max_reviews_per_reviewer}
+                                                value={config.quotas.max_reviews_per_reviewer || 0}
                                                 onChange={handleQuotaChange}
                                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none"
                                             />
@@ -333,7 +338,7 @@ const SystemSettingsPage = () => {
                                             <input
                                                 name="max_file_size_mb"
                                                 type="number"
-                                                value={config.quotas.max_file_size_mb}
+                                                value={config.quotas.max_file_size_mb || 0}
                                                 onChange={handleQuotaChange}
                                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
                                             />

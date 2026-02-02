@@ -15,7 +15,6 @@ import {
   BookOpen,
   Users
 } from "lucide-react";
-import api from "../../../lib/axios";
 import Header from "../../../components/Header";
 
 const Login = () => {
@@ -75,34 +74,20 @@ const Login = () => {
   const handleDemoLogin = (role) => {
     // Demo accounts for testing
     const demoAccounts = {
-      AUTHOR: { email: "author@demo.uth.edu.vn", password: "demo123" },
-      REVIEWER: { email: "reviewer@demo.uth.edu.vn", password: "demo123" },
-      CHAIR: { email: "chair@demo.uth.edu.vn", password: "demo123" },
-      ADMIN: { email: "admin@demo.uth.edu.vn", password: "demo123" }
+      AUTHOR: { email: "gatv3102006@gmail.com", password: "123456" },
+      REVIEWER: { email: "haha@gmail.com", password: "123456" },
+      CHAIR: { email: "giangnth5054@ut.edu.vn", password: "123456" },
+      ADMIN: { email: "phulhm1749@ut.edu.vn", password: "123456" }
     };
 
     setEmail(demoAccounts[role].email);
     setPassword(demoAccounts[role].password);
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      // Fetch dynamic URL from backend (database-driven)
-      const res = await api.get("/auth/sso/google/login");
-      if (res.data?.url) {
-        window.location.href = res.data.url;
-      } else {
-        throw new Error("Invalid SSO URL received");
-      }
-    } catch (error) {
-      console.error("Lỗi SSO Google:", error);
-      const errorContainer = document.getElementById('login-error');
-      const errorText = document.getElementById('error-text');
-      if (errorContainer && errorText) {
-        errorText.textContent = language === 'VI' ? "Lỗi kết nối SSO Google" : "Google SSO Connection Error";
-        errorContainer.classList.remove('hidden');
-      }
-    }
+  const handleGoogleLogin = () => {
+    // Redirect to backend Google Auth endpoint
+    // We use window.location.href because it's an external redirect
+    window.location.href = `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/auth/sso/google/login`;
   };
 
   return (

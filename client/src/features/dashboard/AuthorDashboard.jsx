@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useSubmissionStore } from '../../app/store/useSubmissionStore';
-import { 
-  FileText, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Calendar, 
-  ArrowRight, 
-  MapPin, 
+import {
+  FileText,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  ArrowRight,
+  MapPin,
   Trophy,
   TrendingUp,
   Users,
@@ -44,7 +44,7 @@ export default function AuthorDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAllConferences, setShowAllConferences] = useState(false);
   const { user } = useAuthStore();
-  
+
   const { getMyCounts, fetchDashboardData, conferences, isLoading } = useSubmissionStore();
   const counts = getMyCounts();
 
@@ -54,40 +54,40 @@ export default function AuthorDashboard() {
 
   // Updated color palette - Teal/Cyan theme
   const conferenceStats = [
-    { 
-      label: language === 'VI' ? 'Tổng bài nộp' : 'Total Submissions', 
-      value: counts.total || 0, 
-      icon: FileText, 
+    {
+      label: language === 'VI' ? 'Tổng bài nộp' : 'Total Submissions',
+      value: counts.total || 0,
+      icon: FileText,
       color: 'from-[#0d9488] to-[#14b8a6]',
       bgColor: 'bg-gradient-to-br from-[#0d9488]/10 to-[#14b8a6]/10',
       iconColor: 'text-[#0d9488]',
       trend: '+12%',
       detail: language === 'VI' ? 'tăng so với tháng trước' : 'up from last month'
     },
-    { 
-      label: language === 'VI' ? 'Đang phản biện' : 'Under Review', 
-      value: counts.underReview || 0, 
-      icon: Clock, 
+    {
+      label: language === 'VI' ? 'Đang phản biện' : 'Under Review',
+      value: counts.underReview || 0,
+      icon: Clock,
       color: 'from-[#0d9488] to-[#14b8a6]',
       bgColor: 'bg-gradient-to-br from-[#0d9488]/10 to-[#14b8a6]/10',
       iconColor: 'text-[#14b8a6]',
 
       detail: language === 'VI' ? 'bài đang xử lý' : 'in process'
     },
-    { 
-      label: language === 'VI' ? 'Đã chấp nhận' : 'Accepted', 
-      value: counts.accepted || 0, 
-      icon: CheckCircle, 
+    {
+      label: language === 'VI' ? 'Đã chấp nhận' : 'Accepted',
+      value: counts.accepted || 0,
+      icon: CheckCircle,
       color: 'from-emerald-500 to-emerald-600',
       bgColor: 'bg-gradient-to-br from-emerald-100 to-emerald-50',
       iconColor: 'text-emerald-600',
       trend: '80%',
       detail: language === 'VI' ? 'tỷ lệ chấp nhận' : 'acceptance rate'
     },
-    { 
-      label: language === 'VI' ? 'Bị từ chối' : 'Rejected', 
-      value: counts.rejected || 0, 
-      icon: XCircle, 
+    {
+      label: language === 'VI' ? 'Bị từ chối' : 'Rejected',
+      value: counts.rejected || 0,
+      icon: XCircle,
       color: 'from-rose-500 to-rose-600',
       bgColor: 'bg-gradient-to-br from-rose-100 to-rose-50',
       iconColor: 'text-rose-600',
@@ -97,37 +97,37 @@ export default function AuthorDashboard() {
   ];
 
   const recentActivities = [
-    { 
-      id: 1, 
-      action: language === 'VI' ? 'Gửi bài đến hội nghị CS2024' : 'Submitted to CS2024', 
-      time: '2 giờ trước', 
+    {
+      id: 1,
+      action: language === 'VI' ? 'Gửi bài đến hội nghị CS2024' : 'Submitted to CS2024',
+      time: '2 giờ trước',
       type: 'submit',
       color: 'bg-gradient-to-r from-[#0d9488]/10 to-[#14b8a6]/10',
       icon: FileEdit,
       iconColor: 'text-[#14b8a6]'
     },
-    { 
-      id: 2, 
-      action: language === 'VI' ? 'Nhận phản hồi phản biện' : 'Received review feedback', 
-      time: '1 ngày trước', 
+    {
+      id: 2,
+      action: language === 'VI' ? 'Nhận phản hồi phản biện' : 'Received review feedback',
+      time: '1 ngày trước',
       type: 'review',
       color: 'bg-gradient-to-r from-[#0d9488]/10 to-[#14b8a6]/10',
       icon: Star,
       iconColor: 'text-[#14b8a6]'
     },
-    { 
-      id: 3, 
-      action: language === 'VI' ? 'Bài báo được chấp nhận' : 'Paper accepted', 
-      time: '3 ngày trước', 
+    {
+      id: 3,
+      action: language === 'VI' ? 'Bài báo được chấp nhận' : 'Paper accepted',
+      time: '3 ngày trước',
       type: 'accept',
       color: 'bg-gradient-to-r from-emerald-100 to-emerald-50',
       icon: Target,
       iconColor: 'text-emerald-600'
     },
-    { 
-      id: 4, 
-      action: language === 'VI' ? 'Cập nhật thông tin hồ sơ' : 'Profile updated', 
-      time: '1 tuần trước', 
+    {
+      id: 4,
+      action: language === 'VI' ? 'Cập nhật thông tin hồ sơ' : 'Profile updated',
+      time: '1 tuần trước',
       type: 'update',
       color: 'bg-gradient-to-r from-[#0d9488]/10 to-[#14b8a6]/10',
       icon: UserIcon,
@@ -136,29 +136,29 @@ export default function AuthorDashboard() {
   ];
 
   const filterOptions = [
-    { 
-      id: 'all', 
-      label: language === 'VI' ? 'Tất cả' : 'All', 
+    {
+      id: 'all',
+      label: language === 'VI' ? 'Tất cả' : 'All',
       active: 'bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white',
-      inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+      inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
     },
-    { 
-      id: 'open', 
-      label: language === 'VI' ? 'Đang mở' : 'Open', 
+    {
+      id: 'open',
+      label: language === 'VI' ? 'Đang mở' : 'Open',
       active: 'bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white',
-      inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+      inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
     },
-    { 
-      id: 'upcoming', 
-      label: language === 'VI' ? 'Sắp tới' : 'Upcoming', 
+    {
+      id: 'upcoming',
+      label: language === 'VI' ? 'Sắp tới' : 'Upcoming',
       active: 'bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white',
-      inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+      inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
     },
-    { 
-      id: 'past', 
-      label: language === 'VI' ? 'Đã kết thúc' : 'Past', 
+    {
+      id: 'past',
+      label: language === 'VI' ? 'Đã kết thúc' : 'Past',
       active: 'bg-gradient-to-r from-gray-500 to-gray-600 text-white',
-      inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+      inactive: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
     },
   ];
 
@@ -184,16 +184,16 @@ export default function AuthorDashboard() {
 
   // Filter conferences based on search and filter
   const filteredConferences = conferences?.filter(conf => {
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = searchQuery === '' ||
       conf.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conf.title?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     if (selectedFilter === 'all') return matchesSearch;
-    
+
     const deadline = new Date(conf.submission_deadline);
     const now = new Date();
-    
-    switch(selectedFilter) {
+
+    switch (selectedFilter) {
       case 'open':
         return matchesSearch && deadline > now;
       case 'upcoming':
@@ -209,24 +209,24 @@ export default function AuthorDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0d9488]/5 via-white to-[#14b8a6]/5">
-      
+
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Welcome Header */}
         <div className="mb-8 bg-gradient-to-r from-[#0d9488] to-[#14b8a6] rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -translate-x-24 translate-y-24" />
-          
+
           <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative">
                   <button
-              onClick={() => setLanguage(lang => lang === 'VI' ? 'EN' : 'VI')}
-              className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:border-[#14b8a6] transition-colors mb-2"
-            >
-              <span className="font-medium text-gray-700">{language}</span>
-            </button>
+                    onClick={() => setLanguage(lang => lang === 'VI' ? 'EN' : 'VI')}
+                    className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:border-[#14b8a6] transition-colors mb-2"
+                  >
+                    <span className="font-medium text-gray-700">{language}</span>
+                  </button>
                   <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
                     <Award className="w-7 h-7" />
                   </div>
@@ -239,14 +239,14 @@ export default function AuthorDashboard() {
                     {language === 'VI' ? `Chào mừng trở lại, ${user?.full_name || 'Tác giả'}!` : `Welcome back, ${user?.full_name || 'Author'}!`}
                   </h1>
                   <p className="text-white/80 mt-2 max-w-2xl">
-                    {language === 'VI' 
-                      ? 'Theo dõi tiến độ bài báo và tham gia hội nghị nghiên cứu' 
+                    {language === 'VI'
+                      ? 'Theo dõi tiến độ bài báo và tham gia hội nghị nghiên cứu'
                       : 'Track your paper progress and participate in research conferences'
                     }
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                   <Users className="w-4 h-4" />
@@ -265,14 +265,14 @@ export default function AuthorDashboard() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-0">
-              <button 
+              <button
                 onClick={() => navigate('/dashboard/submission')}
                 className="flex items-center justify-center gap-2 px-5 py-3 bg-white text-[#14b8a6] rounded-lg font-semibold hover:bg-gray-50 shadow-md transition-colors"
               >
                 <Plus className="w-5 h-5" />
                 {language === 'VI' ? 'Nộp bài mới' : 'Submit Paper'}
               </button>
-              <button 
+              <button
                 onClick={() => navigate('/dashboard/my-submissions')}
                 className="flex items-center justify-center gap-2 px-5 py-3 bg-white/20 border border-white/30 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors"
               >
@@ -286,7 +286,7 @@ export default function AuthorDashboard() {
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {conferenceStats.map((stat, index) => (
-            <div 
+            <div
               key={index}
               className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow"
             >
@@ -319,7 +319,7 @@ export default function AuthorDashboard() {
                       {language === 'VI' ? 'Hội nghị đang mở' : 'Open Conferences'}
                     </h3>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -331,7 +331,7 @@ export default function AuthorDashboard() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="flex items-center gap-1">
                       {filterOptions.map(option => (
                         <button
@@ -359,7 +359,7 @@ export default function AuthorDashboard() {
                       const deadline = new Date(conf.submission_deadline);
                       const isUpcoming = deadline > new Date();
                       const status = isUpcoming ? 'open' : 'past';
-                      
+
                       return (
                         <div key={conf.id} className="border border-gray-200 rounded-lg p-4 hover:border-[#14b8a6] hover:shadow-sm transition-all">
                           <div className="flex items-start justify-between mb-3">
@@ -372,7 +372,7 @@ export default function AuthorDashboard() {
                                   {getStatusText(status)}
                                 </span>
                               </div>
-                              
+
                               <div className="flex items-center gap-4 text-xs text-gray-600 mb-2">
                                 <div className="flex items-center gap-1">
                                   <MapPin className="w-3 h-3" />
@@ -383,7 +383,7 @@ export default function AuthorDashboard() {
                                   <span>{conf.participants || '150+'}</span>
                                 </div>
                               </div>
-                              
+
                               <div className="text-xs text-gray-500">
                                 {language === 'VI' ? 'Hạn nộp:' : 'Deadline:'}{' '}
                                 <span className="font-medium">
@@ -392,15 +392,15 @@ export default function AuthorDashboard() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                            <button 
+                            <button
                               onClick={() => navigate(`/dashboard/conference/${conf.id}`)}
                               className="text-sm text-[#14b8a6] hover:text-[#0d9488] font-medium"
                             >
                               {language === 'VI' ? 'Chi tiết' : 'Details'}
                             </button>
-                            <button 
+                            <button
                               onClick={() => navigate(`/dashboard/submission?confId=${conf.id}`)}
                               className="px-3 py-1.5 bg-gradient-to-r from-[#0d9488] to-[#14b8a6] text-white text-sm font-medium rounded hover:shadow-md transition-colors"
                             >
@@ -410,9 +410,9 @@ export default function AuthorDashboard() {
                         </div>
                       );
                     })}
-                    
+
                     {filteredConferences.length > 3 && (
-                      <button 
+                      <button
                         onClick={() => setShowAllConferences(!showAllConferences)}
                         className="w-full py-2 text-center text-[#14b8a6] hover:text-[#0d9488] font-medium"
                       >
@@ -423,8 +423,8 @@ export default function AuthorDashboard() {
                           </>
                         ) : (
                           <>
-                            {language === 'VI' 
-                              ? `Xem thêm ${filteredConferences.length - 3} hội nghị` 
+                            {language === 'VI'
+                              ? `Xem thêm ${filteredConferences.length - 3} hội nghị`
                               : `View ${filteredConferences.length - 3} more`
                             }
                             <ChevronDown className="w-4 h-4 inline ml-1" />
@@ -440,7 +440,7 @@ export default function AuthorDashboard() {
                       {language === 'VI' ? 'Không có hội nghị nào' : 'No conferences'}
                     </h4>
                     <p className="text-gray-500 text-sm">
-                      {language === 'VI' 
+                      {language === 'VI'
                         ? 'Hiện chưa có hội nghị nào đang mở'
                         : 'No open conferences available'
                       }
@@ -462,7 +462,7 @@ export default function AuthorDashboard() {
                   </h3>
                   <Bell className="w-5 h-5 text-gray-400" />
                 </div>
-                
+
                 <div className="space-y-3">
                   {recentActivities.map((activity) => (
                     <div key={activity.id} className="flex items-start gap-3">
@@ -476,8 +476,8 @@ export default function AuthorDashboard() {
                     </div>
                   ))}
                 </div>
-                
-                <button 
+
+                <button
                   onClick={() => navigate('/dashboard/activity')}
                   className="w-full mt-4 pt-3 text-center text-[#14b8a6] hover:text-[#0d9488] font-medium border-t border-gray-100"
                 >
@@ -493,7 +493,7 @@ export default function AuthorDashboard() {
       <div className="mt-8 px-8 py-6 bg-gray-50 border-t border-gray-200">
         <div className="text-center">
           <p className="text-sm text-gray-600">
-            {language === 'VI' 
+            {language === 'VI'
               ? 'Hệ thống chỉ dành cho thành viên UTH và cộng tác viên'
               : 'System for UTH members and collaborators only'
             }

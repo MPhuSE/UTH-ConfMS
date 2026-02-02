@@ -6,6 +6,8 @@ class RegisterRequest(BaseModel):
     full_name: str
     email: EmailStr
     password: str
+    phone_number: Optional[str] = None
+    affiliation: Optional[str] = None
     # accept both `password_confirmation` and camelCase `passwordConfirmation`
     password_confirmation: str = Field(..., alias="passwordConfirmation")
 

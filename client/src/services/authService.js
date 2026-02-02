@@ -15,7 +15,9 @@ export const authService = {
       full_name: payload.full_name,
       email: payload.email,
       password: payload.password,
-      passwordConfirmation: payload.passwordConfirmation,
+      passwordConfirmation: payload.password_confirmation || payload.passwordConfirmation,
+      phone_number: payload.phone,
+      affiliation: payload.institution,
     };
     const res = await api.post("/auth/register", body);
     return res.data;

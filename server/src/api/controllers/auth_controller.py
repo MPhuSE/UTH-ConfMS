@@ -66,7 +66,9 @@ async def register_user_endpoint(
         user = await register_service.register_new_user(
             full_name=request.full_name,
             email=request.email,
-            password=request.password,    
+            password=request.password,
+            phone_number=request.phone_number,
+            affiliation=request.affiliation,
         )
 
         await audit_log_service.create_audit_log(

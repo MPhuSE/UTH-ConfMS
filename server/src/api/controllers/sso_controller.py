@@ -10,12 +10,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth/sso", tags=["SSO"])
 
+from fastapi.responses import RedirectResponse
+
 @router.get("/google/login")
 async def google_login(sso_service: SSOService = Depends(get_sso_service)):
-    """Returns the Google OAuth2 login URL."""
+    """Redirects to Google OAuth2 login URL."""
     try:
         auth_url = await sso_service.get_google_auth_url()
-        return {"url": auth_url}
+        return RedirectResponse(url=auth_url)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

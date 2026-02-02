@@ -15,13 +15,13 @@ const StatCard = ({ title, value, icon: Icon, color, bgColor }) => (
       </div>
     </div>
     <div className="mt-4 h-1 w-full bg-gray-100 rounded-full overflow-hidden">
-      <div 
+      <div
         className="h-full rounded-full transition-all duration-500"
-        style={{ 
-          width: title === "Assigned Papers" ? "100%" : 
-                 title === "Reviewed" ? `${(value/(value + (title === "Pending" ? 0 : value)))*100}%` : 
-                 title === "Pending" ? `${(value/(value + reviewedValue))*100}%` : "100%",
-          backgroundColor: color 
+        style={{
+          width: title === "Assigned Papers" ? "100%" :
+            title === "Reviewed" ? `${(value / (value + (title === "Pending" ? 0 : value))) * 100}%` :
+              title === "Pending" ? `${(value / (value + reviewedValue)) * 100}%` : "100%",
+          backgroundColor: color
         }}
       />
     </div>
@@ -49,7 +49,7 @@ export default function ReviewerDashboard() {
   const primaryLight = "rgba(0, 134, 137, 0.1)";
   const primaryLighter = "rgba(0, 134, 137, 0.05)";
   const primaryDark = "rgb(0, 100, 102)";
-  
+
   // Màu cho các stat card
   const statColors = {
     assigned: { bg: "rgba(0, 134, 137, 0.15)", color: primaryColor },
@@ -121,7 +121,7 @@ export default function ReviewerDashboard() {
                 Click "Review" to submit your evaluation
               </p>
             </div>
-            <div className="px-4 py-2 rounded-full text-xs font-bold uppercase" style={{ 
+            <div className="px-4 py-2 rounded-full text-xs font-bold uppercase" style={{
               backgroundColor: primaryLighter,
               color: primaryColor
             }}>
@@ -132,8 +132,8 @@ export default function ReviewerDashboard() {
 
         {assignedPapers.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ 
-              backgroundColor: primaryLighter 
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{
+              backgroundColor: primaryLighter
             }}>
               <FileText className="w-8 h-8" style={{ color: primaryColor }} />
             </div>
@@ -166,8 +166,8 @@ export default function ReviewerDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {assignedPapers.map(paper => (
-                  <tr 
-                    key={paper.id} 
+                  <tr
+                    key={paper.id}
                     className="hover:bg-gray-50/30 transition-colors duration-200 group"
                   >
                     <td className="px-8 py-4">
@@ -188,11 +188,10 @@ export default function ReviewerDashboard() {
                       </span>
                     </td>
                     <td className="px-8 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                        paper.review_submitted
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${paper.review_submitted
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-amber-100 text-amber-700"
-                      }`}>
+                        }`}>
                         {paper.review_submitted ? "Reviewed" : "Pending"}
                       </span>
                     </td>
@@ -202,7 +201,7 @@ export default function ReviewerDashboard() {
                           navigate(`/dashboard/review-form?paperId=${paper.id}`)
                         }
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 hover:gap-3 hover:shadow-md"
-                        style={{ 
+                        style={{
                           backgroundColor: primaryColor,
                           color: "white"
                         }}

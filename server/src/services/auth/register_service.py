@@ -35,7 +35,8 @@ class RegisterService:
         return role
 
     async def register_new_user(
-        self, full_name: str, email: str, password: str
+        self, full_name: str, email: str, password: str,
+        phone_number: str = None, affiliation: str = None
     ) -> UserModel:
         if await self.user_repo.get_by_email(email):
             raise DuplicateUserError(f"Email '{email}' đã tồn tại.")
@@ -45,6 +46,8 @@ class RegisterService:
         new_user = UserModel(
             full_name=full_name,
             email=email,
+            phone_number=phone_number,
+            affiliation=affiliation,
             hashed_password=hashed_password,
             is_verified=False,
             is_active=True,
